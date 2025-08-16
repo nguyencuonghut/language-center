@@ -290,6 +290,34 @@ class DemoDataSeeder extends Seeder
                     }
                 }
             }
+            // ---------------------------
+            // 6) ATTENDANCES (điểm danh demo)
+            // ---------------------------
+            foreach ($classes as $class) {
+                $sessions  = ClassSession::where('class_id', $class->id)->get();
+                $enrolls   = Enrollment::where('class_id', $class->id)->pluck('student_id');
+
+                foreach ($sessions as $ses) {
+                    foreach ($enrolls as $stuId) {
+                        // Tỉ lệ ngẫu nhiên: 80% present, 10% absent, 5% late, 5% excused
+                        $status = Arr::random([
+                            'present','present','present','present','present',
+                            'present','present','present',
+                            'absent','late','excused'
+                        ]);
+
+                        DB::table('attendances')->updateOrInsert(
+                            ['class_session_id' => $ses->id, 'student_id' => $stuId],
+                            [
+                                'status'     => $status,
+                                'note'       => $status !== 'present' ? Arr::random(['Ốm','Xin nghỉ','Kẹt xe',null]) : null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]
+                        );
+                    }
+                }
+            }
         });
     }
 
