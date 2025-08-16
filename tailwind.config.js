@@ -10,10 +10,19 @@ export default {
         './resources/js/**/*.vue',
     ],
 
+    darkMode: 'class', // Enable class-based dark mode
+
     theme: {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+            },
+            // Add smooth transitions for theme switching
+            transitionProperty: {
+                'colors': 'background-color, border-color, color, fill, stroke',
+            },
+            transitionDuration: {
+                'theme': '300ms',
             },
         },
     },
