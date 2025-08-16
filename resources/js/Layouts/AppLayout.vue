@@ -73,12 +73,21 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
 
     <!-- Sidebar desktop -->
     <aside
-      class="hidden lg:flex lg:flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 w-60 p-3"
+      :class="[
+        'hidden lg:flex lg:flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ease-in-out',
+        isCollapsed ? 'w-16 p-2' : 'w-60 p-3'
+      ]"
     >
-      <div class="flex items-center justify-between mb-2">
-        <div class="font-bold">Language Center</div>
-        <Button icon="pi pi-bars" text rounded @click="isCollapsed = !isCollapsed"
-                class="!text-slate-700 dark:!text-slate-100" />
+      <div class="flex items-center justify-between mb-2" :class="{ 'justify-center': isCollapsed }">
+        <div v-if="!isCollapsed" class="font-bold truncate">Language Center</div>
+        <Button
+          :icon="isCollapsed ? 'pi pi-arrow-right' : 'pi pi-arrow-left'"
+          text
+          rounded
+          @click="isCollapsed = !isCollapsed"
+          class="!text-slate-700 dark:!text-slate-100"
+          :title="isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'"
+        />
       </div>
 
       <nav class="flex-1 overflow-y-auto space-y-1">
@@ -93,13 +102,14 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
               ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 font-semibold dark:text-emerald-300 dark:bg-emerald-900/30 dark:ring-emerald-700/40'
               : (item.ready
                     ? 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20'
-                    : 'text-slate-400 dark:text-slate-500 cursor-not-allowed')
+                    : 'text-slate-400 dark:text-slate-500 cursor-not-allowed'),
+            isCollapsed ? 'justify-center' : ''
           ]"
           :disabled="!item.ready"
           :title="item.ready ? item.label : 'Đang phát triển'"
         >
           <i :class="['pi', item.icon, 'text-base']"></i>
-          <span class="truncate">{{ item.label }}</span>
+          <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
         </button>
       </nav>
     </aside>
