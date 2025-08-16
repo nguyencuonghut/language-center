@@ -154,12 +154,12 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             type="button"
             @click="toggleDark"
             :title="isDark ? 'Chuyển Light' : 'Chuyển Dark'"
-            class="h-9 w-9 inline-flex items-center justify-center rounded-full border border-[#b6f0dd] dark:border-[#10b981] hover:bg-[#e6f9f3]/60 dark:hover:bg-[#23272f]/60 transition-colors duration-theme"
+            class="h-9 w-9 inline-flex items-center justify-center rounded-full dark:border-[#10b981] hover:bg-[#e6f9f3]/60 dark:hover:bg-[#23272f]/60 transition-colors duration-theme"
             aria-label="Dark / Light"
           >
             <i :class="[ isDark ? 'pi pi-sun' : 'pi pi-moon', 'text-lg', 'text-[#10b981] dark:text-[#6ee7b7]' ]" />
           </button>
-          <Button label="Đăng xuất" icon="pi pi-sign-out" severity="secondary" outlined class="!text-[#10b981] dark:!text-[#6ee7b7]" @click="logout" />
+          <Button icon="pi pi-sign-out" severity="secondary" :outlined="false" class="!text-[#10b981] dark:!text-[#6ee7b7] !border-0 !bg-transparent hover:!bg-[#e6f9f3] dark:hover:!bg-[#23272f]" @click="logout" />
         </div>
       </header>
 
