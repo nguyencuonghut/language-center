@@ -13,16 +13,34 @@ class RoomController extends Controller
     public function index(Request $request)
     {
         $branchParam = $request->query('branch'); // 'all' | null | <id>
+        $q           = trim((string) $request->query('q', ''));
+        $perPage     = (int) ($request->query('per_page', 12));
+        $perPage     = $perPage > 0 && $perPage <= 100 ? $perPage : 12;
+
         $rooms = Room::query()
-            ->when($branchParam && $branchParam !== 'all', fn($q) => $q->where('branch_id', (int)$branchParam))
+            ->when($branchParam && $branchParam !== 'all', fn($qB) => $qB->where('branch_id', (int)$branchParam))
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('code', 'like', "%{$q}%")
+                        ->orWhere('name', 'like', "%{$q}%");
+                });
+            })
             ->with('branch:id,name')
             ->orderBy('branch_id')
             ->orderBy('code')
-            ->paginate(12)
+            ->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('Rooms/Index', [
-            'rooms' => $rooms,
+        $branches = Branch::select('id','name')->orderBy('name')->get();
+
+        return \Inertia\Inertia::render('Rooms/Index', [
+            'rooms'    => $rooms,
+            'branches' => $branches,
+            'filters'  => [
+                'branch'  => $branchParam && $branchParam !== 'all' ? (string)(int)$branchParam : 'all',
+                'q'       => $q,
+                'perPage' => $perPage,
+            ],
         ]);
     }
 
