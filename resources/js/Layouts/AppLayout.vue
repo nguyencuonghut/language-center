@@ -68,13 +68,13 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
 </script>
 
 <template>
-  <div class="min-h-screen flex font-sans bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+  <div class="min-h-screen flex font-sans bg-[#f6f8fa] dark:bg-[#181c23] text-[#23272f] dark:text-[#f6f8fa] transition-colors duration-theme">
     <Toast position="top-right" />
 
     <!-- Sidebar desktop -->
     <aside
       :class="[
-        'hidden lg:flex lg:flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 ease-in-out',
+        'hidden lg:flex lg:flex-col bg-white dark:bg-[#23272f] border-r border-[#e5e7eb] dark:border-[#23272f] shadow transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-16 p-2' : 'w-60 p-3'
       ]"
     >
@@ -99,16 +99,16 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
           :class="[
             'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors',
             isActive(item)
-              ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 font-semibold dark:text-emerald-300 dark:bg-emerald-900/30 dark:ring-emerald-700/40'
+              ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
               : (item.ready
-                    ? 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20'
-                    : 'text-slate-400 dark:text-slate-500 cursor-not-allowed'),
+                    ? 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
+                    : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed'),
             isCollapsed ? 'justify-center' : ''
           ]"
           :disabled="!item.ready"
           :title="item.ready ? item.label : 'Đang phát triển'"
         >
-          <i :class="['pi', item.icon, 'text-base']"></i>
+          <i :class="['pi', item.icon, 'text-lg', isActive(item) ? 'text-[#10b981] dark:text-[#6ee7b7]' : 'text-[#b0b7c3] dark:text-[#4b5563]']"></i>
           <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
         </button>
       </nav>
@@ -126,15 +126,15 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
           :class="[
             'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors',
             isActive(item)
-              ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200 font-semibold dark:text-emerald-300 dark:bg-emerald-900/30 dark:ring-emerald-700/40'
+              ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
               : (item.ready
-                    ? 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 dark:text-slate-300 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20'
-                    : 'text-slate-400 dark:text-slate-500 cursor-not-allowed')
+                    ? 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
+                    : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed')
           ]"
           :disabled="!item.ready"
           :title="item.ready ? item.label : 'Đang phát triển'"
         >
-          <i :class="['pi', item.icon, 'text-base']"></i>
+          <i :class="['pi', item.icon, 'text-lg', isActive(item) ? 'text-[#10b981] dark:text-[#6ee7b7]' : 'text-[#b0b7c3] dark:text-[#4b5563]']"></i>
           <span class="truncate">{{ item.label }}</span>
         </button>
       </nav>
@@ -143,9 +143,9 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
     <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
-      <header class="flex items-center justify-between bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-3 py-2">
+  <header class="flex items-center justify-between bg-white dark:bg-[#23272f] border-b border-[#e5e7eb] dark:border-[#23272f] px-3 py-2 shadow-sm transition-colors duration-theme">
         <div class="flex items-center gap-2">
-          <Button icon="pi pi-bars" text rounded class="lg:!hidden" @click="showDrawer = true" />
+          <Button icon="pi pi-bars" text rounded class="lg:!hidden !text-[#10b981] dark:!text-[#6ee7b7]" @click="showDrawer = true" />
           <span class="hidden sm:block text-sm">Xin chào, {{ page.props?.auth?.user?.name ?? 'User' }}</span>
         </div>
 
@@ -154,12 +154,12 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             type="button"
             @click="toggleDark"
             :title="isDark ? 'Chuyển Light' : 'Chuyển Dark'"
-            class="h-9 w-9 inline-flex items-center justify-center rounded-full border border-slate-300 dark:border-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-700/60"
+            class="h-9 w-9 inline-flex items-center justify-center rounded-full border border-[#b6f0dd] dark:border-[#10b981] hover:bg-[#e6f9f3]/60 dark:hover:bg-[#23272f]/60 transition-colors duration-theme"
             aria-label="Dark / Light"
           >
-            <i :class="[ isDark ? 'pi pi-sun' : 'pi pi-moon', 'text-base' ]" />
+            <i :class="[ isDark ? 'pi pi-sun' : 'pi pi-moon', 'text-lg', 'text-[#10b981] dark:text-[#6ee7b7]' ]" />
           </button>
-          <Button label="Đăng xuất" icon="pi pi-sign-out" severity="secondary" outlined @click="logout" />
+          <Button label="Đăng xuất" icon="pi pi-sign-out" severity="secondary" outlined class="!text-[#10b981] dark:!text-[#6ee7b7]" @click="logout" />
         </div>
       </header>
 
