@@ -10,7 +10,26 @@ class Branch extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'location',
+        'name', 'address', 'active'
     ];
+
+    public function classrooms()
+    {
+        return $this->hasMany(Classroom::class);
+    }
+
+    public function rooms()
+    {
+        return $this->hasMany(Room::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function managerUsers()
+    {
+        return $this->belongsToMany(User::class, 'manager_branch')->withTimestamps();
+    }
 }

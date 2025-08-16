@@ -32,8 +32,8 @@ class DemoDataSeeder extends Seeder
             // 1) USERS + ROLES (Spatie)
             // ---------------------------
             $admin = User::firstOrCreate(
-                ['email' => 'admin@example.com'],
-                ['name' => 'Admin', 'password' => Hash::make('password')]
+                ['email' => 'nguyenvancuong@honghafeed.com.vn'],
+                ['name' => 'Tony Nguyen', 'password' => Hash::make('Hongha@123')]
             );
             $admin->assignRole('admin');
 
