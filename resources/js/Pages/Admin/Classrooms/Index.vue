@@ -1,7 +1,12 @@
 <script setup>
 import { reactive, computed, ref } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { createClassroomService } from '@/service/ClassroomService'
+import { usePageToast } from '@/composables/usePageToast'
+
+const toast = usePageToast()
+const classroomService = createClassroomService(toast)
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -43,7 +48,7 @@ function buildQuery(extra = {}) {
 }
 
 function applyFilters() {
-  router.visit(route('admin.classrooms.index', buildQuery()), { preserveScroll: true, preserveState: true })
+  classroomService.getList(buildQuery())
 }
 
 function onClearSearch() {
@@ -53,10 +58,10 @@ function onClearSearch() {
 
 function onPage(event) {
   const page = Math.floor(event.first / event.rows) + 1
-  router.visit(route('admin.classrooms.index', buildQuery({
+  classroomService.getList(buildQuery({
     per_page: event.rows,
     page: page > 1 ? page : undefined,
-  })), { preserveScroll: true, preserveState: true })
+  }))
 }
 
 function onSort(event) {
@@ -67,9 +72,7 @@ function onSort(event) {
 
 /* Actions */
 function destroy(id) {
-  if (confirm('Xoá lớp này?')) {
-    router.delete(route('admin.classrooms.destroy', id), { preserveScroll: true })
-  }
+  classroomService.delete(id)
 }
 
 /* DataTable props */

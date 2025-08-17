@@ -1,15 +1,30 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { router, usePage } from '@inertiajs/vue3'
-
 // PrimeVue
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import { ref, computed, onMounted, watch } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+
+// Composables
+import { usePageToast } from '@/composables/usePageToast'
 import Drawer from 'primevue/drawer'
 import Button from 'primevue/button'
 
 const page = usePage()
-const toast = useToast()
+const { showSuccess, showError, showInfo } = usePageToast()
+
+/* Flash messages từ server */
+watch(() => page.props.flash, (flash) => {
+  if (flash?.success) {
+    showSuccess('Thành công', flash.success)
+  }
+  if (flash?.error) {
+    showError('Lỗi', flash.error)
+  }
+  if (flash?.message) {
+    showInfo('Thông báo', flash.message)
+  }
+}, { deep: true, immediate: true })
 
 /* Theme (dark/light) — đơn giản */
 const isDark = ref(false)
@@ -57,7 +72,7 @@ function isActive(item) {
 
 function go(item) {
   if (!item.ready) {
-    toast.add({ severity: 'info', summary: 'Đang phát triển', detail: `${item.label} sẽ có sớm`, life: 1800 })
+    showInfo('Đang phát triển', `${item.label} sẽ có sớm`)
     return
   }
   router.visit(item.url)

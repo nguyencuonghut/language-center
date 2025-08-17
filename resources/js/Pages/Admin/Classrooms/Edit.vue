@@ -1,6 +1,11 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { createClassroomService } from '@/service/ClassroomService'
+import { usePageToast } from '@/composables/usePageToast'
+
+const toast = usePageToast()
+const classroomService = createClassroomService(toast)
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -44,7 +49,7 @@ function toYMD(val) {
 
 function submit() {
   const payload = { ...form.data(), start_date: toYMD(form.start_date) }
-  form.transform(() => payload).put(route('admin.classrooms.update', props.classroom.id))
+  classroomService.update(props.classroom.id, payload)
 }
 </script>
 
