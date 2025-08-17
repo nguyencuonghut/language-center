@@ -23,7 +23,13 @@ createInertiaApp({
         return createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
-            .use(PrimeVue, { theme: { preset: Aura } })
+            .use(PrimeVue, {
+                theme: {
+                    preset: Aura,
+                    // Ensure PrimeVue switches color scheme based on Tailwind's dark class
+                    options: { darkModeSelector: '.dark' }
+                }
+            })
             .use(ToastService)
             .component('Head', Head)
             .component('Link', Link)
