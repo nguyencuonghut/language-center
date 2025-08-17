@@ -43,4 +43,24 @@ class RoomRequest extends FormRequest
             'capacity'  => 'sức chứa',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'branch_id.required' => 'Vui lòng chọn chi nhánh.',
+            'branch_id.exists' => 'Chi nhánh không tồn tại.',
+            'code.required' => 'Vui lòng nhập mã phòng.',
+            'code.string' => 'Mã phòng phải là chuỗi ký tự.',
+            'code.max' => 'Mã phòng không được vượt quá 20 ký tự.',
+            'code.unique' => 'Mã phòng đã tồn tại trong chi nhánh này.',
+            'name.required' => 'Vui lòng nhập tên phòng.',
+            'name.string' => 'Tên phòng phải là chuỗi ký tự.',
+            'name.max' => 'Tên phòng không được vượt quá 100 ký tự.',
+            'capacity.required' => 'Vui lòng nhập sức chứa.',
+            'capacity.integer' => 'Sức chứa phải là số nguyên.',
+            'capacity.min' => 'Sức chứa phải lớn hơn hoặc bằng 1.',
+            'capacity.max' => 'Sức chứa không được vượt quá 1000.',
+            'active.boolean' => 'Trạng thái hoạt động phải là true hoặc false.',
+        ];
+    }
 }
