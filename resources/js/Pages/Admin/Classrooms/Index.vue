@@ -143,7 +143,7 @@ function statusSeverity(s) {
       size="small"
     >
       <Column field="code" header="Mã" style="width: 140px" :sortable="true" />
-      <Column field="name" header="Tên" :sortable="true" />
+      <Column field="name" header="Tên" style="width: 240px" :sortable="true" />
 
       <Column header="Chi nhánh" field="branch_name" style="width: 200px" :sortable="true">
         <template #body="{ data }">
