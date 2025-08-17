@@ -30,7 +30,11 @@ const form = useForm({
 })
 
 function submit() {
-  roomService.update(props.room.id, form.data())
+  roomService.update(props.room.id, form.data(), {
+    onError: (errors) => {
+      form.setError(errors)
+    }
+  })
 }
 </script>
 

@@ -30,7 +30,11 @@ const form = useForm({
 })
 
 function submit() {
-  roomService.create(form.data())
+  roomService.create(form.data(), {
+    onError: (errors) => {
+      form.setError(errors)
+    }
+  })
 }
 </script>
 

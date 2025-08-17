@@ -17,13 +17,15 @@ export const createRoomService = ({ showSuccess, showError }) => ({
     /**
      * Create a new room
      */
-    create(data) {
+    create(data, callbacks = {}) {
         router.post(route('admin.rooms.store'), data, {
             onSuccess: () => {
                 showSuccess('Thành công', 'Đã tạo phòng học mới')
+                callbacks.onSuccess?.()
             },
             onError: (errors) => {
                 showError('Lỗi', 'Không thể tạo phòng học')
+                callbacks.onError?.(errors)
             }
         })
     },
@@ -31,13 +33,15 @@ export const createRoomService = ({ showSuccess, showError }) => ({
     /**
      * Update a room
      */
-    update(id, data) {
+    update(id, data, callbacks = {}) {
         router.put(route('admin.rooms.update', id), data, {
             onSuccess: () => {
                 showSuccess('Thành công', 'Đã cập nhật phòng học')
+                callbacks.onSuccess?.()
             },
             onError: (errors) => {
                 showError('Lỗi', 'Không thể cập nhật phòng học')
+                callbacks.onError?.(errors)
             }
         })
     },
@@ -45,16 +49,18 @@ export const createRoomService = ({ showSuccess, showError }) => ({
     /**
      * Delete a room
      */
-    delete(id) {
+    delete(id, callbacks = {}) {
         if (!confirm('Xác nhận xoá phòng học này?')) return
 
         router.delete(route('admin.rooms.destroy', id), {
             preserveScroll: true,
             onSuccess: () => {
                 showSuccess('Thành công', 'Đã xoá phòng học')
+                callbacks.onSuccess?.()
             },
             onError: (errors) => {
                 showError('Lỗi', 'Không thể xoá phòng học')
+                callbacks.onError?.(errors)
             }
         })
     }
