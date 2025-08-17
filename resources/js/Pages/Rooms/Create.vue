@@ -6,6 +6,8 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import { createRoomService } from '@/service/RoomService'
+import { usePageToast } from '@/composables/usePageToast'
 
 defineOptions({ layout: AppLayout })
 
@@ -14,6 +16,9 @@ const props = defineProps({
   suggestBranchId: Number,
   errors: Object,
 })
+
+const { showSuccess, showError } = usePageToast()
+const roomService = createRoomService({ showSuccess, showError })
 
 const form = useForm({
   branch_id: props.suggestBranchId ?? null,
@@ -24,7 +29,7 @@ const form = useForm({
 })
 
 function submit() {
-  form.post(route('admin.rooms.store'))
+  roomService.create(form.data())
 }
 </script>
 

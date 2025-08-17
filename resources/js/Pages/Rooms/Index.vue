@@ -2,6 +2,8 @@
 import { reactive, computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { createRoomService } from '@/service/RoomService'
+import { usePageToast } from '@/composables/usePageToast'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -18,6 +20,9 @@ const props = defineProps({
   branches: Array,   // [{id,name}]
   filters: Object,   // {branch:'all'|id, q:'', perPage:number, sort:'', order:''}
 })
+
+const { showSuccess, showError } = usePageToast()
+const roomService = createRoomService({ showSuccess, showError })
 
 /* ---- Local UI state (đọc từ props.filters) ---- */
 const state = reactive({
@@ -39,7 +44,7 @@ function applyFilters() {
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
 
-  router.visit(route('admin.rooms.index', query), { preserveScroll: true, preserveState: true })
+  roomService.getList(query)
 }
 
 function onClearSearch() {
@@ -58,7 +63,7 @@ function onPage(event) {
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
 
-  router.visit(route('admin.rooms.index', query), { preserveScroll: true, preserveState: true })
+  roomService.getList(query)
 }
 
 function onSort(event) {
@@ -68,7 +73,7 @@ function onSort(event) {
 }
 
 function destroy(id) {
-  if (confirm('Xoá phòng?')) router.delete(route('admin.rooms.destroy', id), { preserveScroll: true })
+  roomService.delete(id)
 }
 
 /* Tính toán props cho DataTable */
