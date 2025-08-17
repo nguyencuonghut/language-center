@@ -137,25 +137,27 @@ function submit() {
 
         <div>
           <FormLabel value="Số buổi" required />
-          <InputNumber v-model="form.sessions_total" inputClass="w-full" :min="1" :max="500" />
+          <InputNumber v-model="form.sessions_total" class="w-full" :min="1" :max="500" />
           <small v-if="form.errors.sessions_total" class="text-red-500">{{ form.errors.sessions_total }}</small>
         </div>
 
         <div>
           <FormLabel value="Học phí (VND)" required />
-          <InputNumber v-model="form.tuition_fee" inputClass="w-full" :min="0" :useGrouping="true" />
+          <InputNumber v-model="form.tuition_fee" class="w-full" :min="0" :useGrouping="true" />
           <small v-if="form.errors.tuition_fee" class="text-red-500">{{ form.errors.tuition_fee }}</small>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div>
           <FormLabel value="Trạng thái" required />
-          <div class="inline-flex items-center gap-2">
-            <RadioButton v-model="form.status" inputId="st1" value="open" />
-            <label for="st1">Mở</label>
-          </div>
-          <div class="inline-flex items-center gap-2">
-            <RadioButton v-model="form.status" inputId="st2" value="closed" />
-            <label for="st2">Đóng</label>
+          <div class="flex items-center gap-4 mt-2">
+            <div class="inline-flex items-center gap-2">
+              <RadioButton v-model="form.status" inputId="st1" value="open" />
+              <label for="st1">Mở</label>
+            </div>
+            <div class="inline-flex items-center gap-2">
+              <RadioButton v-model="form.status" inputId="st2" value="closed" />
+              <label for="st2">Đóng</label>
+            </div>
           </div>
           <small v-if="form.errors.status" class="text-red-500">{{ form.errors.status }}</small>
         </div>
