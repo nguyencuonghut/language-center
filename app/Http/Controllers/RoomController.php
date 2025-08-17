@@ -17,6 +17,14 @@ class RoomController extends Controller
         $perPage     = (int) ($request->query('per_page', 12));
         $perPage     = $perPage > 0 && $perPage <= 100 ? $perPage : 12;
 
+        // Sorting parameters
+        $sort  = $request->query('sort', 'code');
+        $order = strtolower($request->query('order', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        // Validate sort fields
+        $allowedSorts = ['code', 'name', 'capacity', 'branch_id'];
+        $sort = in_array($sort, $allowedSorts) ? $sort : 'code';
+
         $rooms = Room::query()
             ->when($branchParam && $branchParam !== 'all', fn($qB) => $qB->where('branch_id', (int)$branchParam))
             ->when($q !== '', function ($query) use ($q) {
@@ -26,8 +34,8 @@ class RoomController extends Controller
                 });
             })
             ->with('branch:id,name')
-            ->orderBy('branch_id')
-            ->orderBy('code')
+            ->orderBy($sort, $order)
+            ->orderBy('code') // Secondary sort
             ->paginate($perPage)
             ->withQueryString();
 
@@ -40,6 +48,8 @@ class RoomController extends Controller
                 'branch'  => $branchParam && $branchParam !== 'all' ? (string)(int)$branchParam : 'all',
                 'q'       => $q,
                 'perPage' => $perPage,
+                'sort'    => $sort,
+                'order'   => $order,
             ],
         ]);
     }

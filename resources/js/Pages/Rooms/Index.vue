@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
@@ -16,7 +16,7 @@ defineOptions({ layout: AppLayout })
 const props = defineProps({
   rooms: Object,     // LengthAwarePaginator
   branches: Array,   // [{id,name}]
-  filters: Object,   // {branch:'all'|id, q:'', perPage:number}
+  filters: Object,   // {branch:'all'|id, q:'', perPage:number, sort:'', order:''}
 })
 
 /* ---- Local UI state (đọc từ props.filters) ---- */
@@ -26,12 +26,18 @@ const state = reactive({
   perPage: props.filters?.perPage ?? (props.rooms?.per_page ?? 12),
 })
 
+/* ---- Sorting state ---- */
+const sortField = ref(props.filters?.sort || null)
+const sortOrder = ref(props.filters?.order === 'asc' ? 1 : props.filters?.order === 'desc' ? -1 : null)
+
 /* ---- Helpers để request lại trang theo filter/pagination ---- */
 function applyFilters() {
   const query = {}
   if (state.branch && state.branch !== 'all') query.branch = state.branch
   if (state.q && state.q.trim() !== '') query.q = state.q.trim()
   if (state.perPage && state.perPage !== props.rooms?.per_page) query.per_page = state.perPage
+  if (sortField.value) query.sort = sortField.value
+  if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
 
   router.visit(route('rooms.index', query), { preserveScroll: true, preserveState: true })
 }
@@ -49,8 +55,16 @@ function onPage(event) {
   if (state.q && state.q.trim() !== '') query.q = state.q.trim()
   if (event.rows) query.per_page = event.rows
   if (page > 1) query.page = page
+  if (sortField.value) query.sort = sortField.value
+  if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
 
   router.visit(route('rooms.index', query), { preserveScroll: true, preserveState: true })
+}
+
+function onSort(event) {
+  sortField.value = event.sortField
+  sortOrder.value = event.sortOrder
+  applyFilters()
 }
 
 function destroy(id) {
@@ -111,22 +125,25 @@ const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
       :rows="rows"
       :totalRecords="totalRecords"
       :first="first"
+      :sortField="sortField"
+      :sortOrder="sortOrder"
       lazy
       @page="onPage"
+      @sort="onSort"
       dataKey="id"
       responsiveLayout="scroll"
       size="small"
     >
-      <Column field="code" header="Mã" style="width: 140px" />
-      <Column field="name" header="Tên" />
+      <Column field="code" header="Mã" style="width: 140px" :sortable="true" />
+      <Column field="name" header="Tên" :sortable="true" />
 
-      <Column header="Chi nhánh" style="width: 200px">
+      <Column header="Chi nhánh" style="width: 200px" field="branch.name" :sortable="true">
         <template #body="{ data }">
           <span>{{ data.branch?.name ?? '—' }}</span>
         </template>
       </Column>
 
-      <Column field="capacity" header="Sức chứa" style="width: 120px">
+      <Column field="capacity" header="Sức chứa" style="width: 120px" :sortable="true">
         <template #body="{ data }">
           <Tag :value="data.capacity" />
         </template>
