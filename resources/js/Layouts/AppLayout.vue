@@ -123,7 +123,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
           :disabled="!item.ready"
           :title="item.ready ? item.label : 'Đang phát triển'"
         >
-          <i :class="['pi', item.icon, 'text-lg', isActive(item) ? 'text-[#10b981] dark:text-[#6ee7b7]' : 'text-[#b0b7c3] dark:text-[#4b5563]']"></i>
+          <i :class="['pi', item.icon, 'text-lg']"></i>
           <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
         </button>
       </nav>
@@ -149,7 +149,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
           :disabled="!item.ready"
           :title="item.ready ? item.label : 'Đang phát triển'"
         >
-          <i :class="['pi', item.icon, 'text-lg', isActive(item) ? 'text-[#10b981] dark:text-[#6ee7b7]' : 'text-[#b0b7c3] dark:text-[#4b5563]']"></i>
+          <i :class="['pi', item.icon, 'text-lg']"></i>
           <span class="truncate">{{ item.label }}</span>
         </button>
       </nav>
