@@ -6,6 +6,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import FormLabel from '@/Components/FormLabel.vue'
 import { createRoomService } from '@/service/RoomService'
 import { usePageToast } from '@/composables/usePageToast'
 
@@ -42,7 +43,7 @@ function submit() {
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm mb-1">Chi nhánh</label>
+          <FormLabel value="Chi nhánh" required />
           <Select
             v-model="form.branch_id"
             :options="(props.branches || []).map(b => ({ label: b.name, value: b.id }))"
@@ -54,19 +55,19 @@ function submit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Mã phòng</label>
+          <FormLabel value="Mã phòng" required />
           <InputText v-model="form.code" class="w-full" placeholder="VD: R01-01" />
           <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Tên phòng</label>
+          <FormLabel value="Tên phòng" required />
           <InputText v-model="form.name" class="w-full" placeholder="VD: Phòng A1" />
           <small v-if="form.errors.name" class="text-red-500">{{ form.errors.name }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Sức chứa</label>
+          <FormLabel value="Sức chứa" required />
           <InputNumber v-model="form.capacity" inputClass="w-full" :min="1" :max="1000" />
           <small v-if="form.errors.capacity" class="text-red-500">{{ form.errors.capacity }}</small>
         </div>
