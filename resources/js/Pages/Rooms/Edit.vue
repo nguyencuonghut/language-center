@@ -24,7 +24,7 @@ const form = useForm({
 })
 
 function submit() {
-  form.put(route('rooms.update', props.room.id))
+  form.put(route('admin.rooms.update', props.room.id))
 }
 </script>
 
@@ -76,7 +76,7 @@ function submit() {
 
       <div class="flex items-center gap-2">
         <Button label="Cập nhật" icon="pi pi-check" severity="success" :loading="form.processing" @click="submit" />
-        <Link :href="route('rooms.index')" class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30">
+        <Link :href="route('admin.rooms.index')" class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30">
           Quay lại
         </Link>
       </div>

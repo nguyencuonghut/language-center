@@ -14,32 +14,36 @@ import Tag from 'primevue/tag'
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
-  rooms: Object,     // LengthAwarePaginator
-  branches: Array,   // [{id,name}]
-  filters: Object,   // {branch:'all'|id, q:'', perPage:number, sort:'', order:''}
+  classrooms: Object, // LengthAwarePaginator
+  branches: Array,    // [{id,name}]
+  filters: Object,    // {branch:'all'|id, q:'', perPage:number, sort:'', order:''}
 })
 
-/* ---- Local UI state (đọc từ props.filters) ---- */
+/* ---- Local UI state ---- */
 const state = reactive({
   q: props.filters?.q ?? '',
   branch: props.filters?.branch ?? 'all',
-  perPage: props.filters?.perPage ?? (props.rooms?.per_page ?? 12),
+  perPage: props.filters?.perPage ?? (props.classrooms?.per_page ?? 12),
 })
 
 /* ---- Sorting state ---- */
 const sortField = ref(props.filters?.sort || null)
 const sortOrder = ref(props.filters?.order === 'asc' ? 1 : props.filters?.order === 'desc' ? -1 : null)
 
-/* ---- Helpers để request lại trang theo filter/pagination ---- */
-function applyFilters() {
+/* ---- Helpers: gọi lại trang theo filter/pagination ---- */
+function buildQuery(extra = {}) {
   const query = {}
   if (state.branch && state.branch !== 'all') query.branch = state.branch
   if (state.q && state.q.trim() !== '') query.q = state.q.trim()
-  if (state.perPage && state.perPage !== props.rooms?.per_page) query.per_page = state.perPage
+  if (state.perPage && state.perPage !== props.classrooms?.per_page) query.per_page = state.perPage
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
+  Object.assign(query, extra)
+  return query
+}
 
-  router.visit(route('admin.rooms.index', query), { preserveScroll: true, preserveState: true })
+function applyFilters() {
+  router.visit(route('admin.classrooms.index', buildQuery()), { preserveScroll: true, preserveState: true })
 }
 
 function onClearSearch() {
@@ -47,18 +51,12 @@ function onClearSearch() {
   applyFilters()
 }
 
-/* DataTable phân trang server-side */
 function onPage(event) {
   const page = Math.floor(event.first / event.rows) + 1
-  const query = {}
-  if (state.branch && state.branch !== 'all') query.branch = state.branch
-  if (state.q && state.q.trim() !== '') query.q = state.q.trim()
-  if (event.rows) query.per_page = event.rows
-  if (page > 1) query.page = page
-  if (sortField.value) query.sort = sortField.value
-  if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
-
-  router.visit(route('admin.rooms.index', query), { preserveScroll: true, preserveState: true })
+  router.visit(route('admin.classrooms.index', buildQuery({
+    per_page: event.rows,
+    page: page > 1 ? page : undefined,
+  })), { preserveScroll: true, preserveState: true })
 }
 
 function onSort(event) {
@@ -67,24 +65,34 @@ function onSort(event) {
   applyFilters()
 }
 
+/* Actions */
 function destroy(id) {
-  if (confirm('Xoá phòng?')) router.delete(route('admin.rooms.destroy', id), { preserveScroll: true })
+  if (confirm('Xoá lớp này?')) {
+    router.delete(route('admin.classrooms.destroy', id), { preserveScroll: true })
+  }
 }
 
-/* Tính toán props cho DataTable */
-const value = computed(() => props.rooms?.data ?? [])
-const totalRecords = computed(() => props.rooms?.total ?? value.value.length)
-const rows = computed(() => props.rooms?.per_page ?? 12)
-const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
+/* DataTable props */
+const value = computed(() => props.classrooms?.data ?? [])
+const totalRecords = computed(() => props.classrooms?.total ?? value.value.length)
+const rows = computed(() => props.classrooms?.per_page ?? 12)
+const first = computed(() => Math.max(0, (props.classrooms?.from ?? 1) - 1))
+
+/* Helpers hiển thị Tag status */
+function statusSeverity(s) {
+  switch (s) {
+    case 'open': return 'success'
+    case 'closed': return 'danger'
+    default: return 'info'
+  }
+}
 </script>
 
 <template>
-  <!-- Title trang (browser tab) -->
-  <Head title="Phòng học" />
+  <Head title="Lớp học" />
 
-  <!-- Tiêu đề hiển thị trên trang -->
   <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold">Phòng học</h1>
+    <h1 class="text-xl md:text-2xl font-heading font-semibold">Lớp học</h1>
 
     <div class="flex flex-wrap items-center gap-2">
       <!-- Branch filter -->
@@ -98,7 +106,7 @@ const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
       />
       <!-- Search -->
       <span class="inline-flex items-center gap-1">
-        <InputText v-model="state.q" placeholder="Tìm mã/tên phòng..." class="w-60" @keydown.enter="applyFilters" />
+        <InputText v-model="state.q" placeholder="Tìm mã/tên lớp..." class="w-60" @keydown.enter="applyFilters" />
         <Button icon="pi pi-search" text @click="applyFilters" :aria-label="'Tìm kiếm'" />
         <Button icon="pi pi-times" text @click="onClearSearch" :disabled="!state.q" :aria-label="'Xoá tìm kiếm'" />
       </span>
@@ -111,13 +119,13 @@ const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
         @change="applyFilters"
       />
 
-      <Link :href="route('admin.rooms.create')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
-        <i class="pi pi-plus mr-1"></i> Tạo phòng
+      <!-- Nút tạo lớp (sẽ làm ở bước sau) -->
+      <Link :href="route('admin.classrooms.create')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+        <i class="pi pi-plus mr-1"></i> Tạo lớp
       </Link>
     </div>
   </div>
 
-  <!-- DataTable -->
   <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2">
     <DataTable
       :value="value"
@@ -137,22 +145,37 @@ const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
       <Column field="code" header="Mã" style="width: 140px" :sortable="true" />
       <Column field="name" header="Tên" :sortable="true" />
 
-      <Column header="Chi nhánh" style="width: 200px" field="branch.name" :sortable="true">
+      <Column header="Chi nhánh" field="branch_name" style="width: 200px" :sortable="true">
         <template #body="{ data }">
-          <span>{{ data.branch?.name ?? '—' }}</span>
+          <span>{{ data.branch_name ?? '—' }}</span>
         </template>
       </Column>
 
-      <Column field="capacity" header="Sức chứa" style="width: 120px" :sortable="true">
+      <Column header="Khóa học" field="course_name" style="width: 220px" :sortable="true">
         <template #body="{ data }">
-          <Tag :value="data.capacity" />
+          <span>{{ data.course_name ?? '—' }}</span>
+        </template>
+      </Column>
+
+      <Column header="Giáo viên" field="teacher_name" style="width: 220px" :sortable="true">
+        <template #body="{ data }">
+          <span>{{ data.teacher_name ?? '—' }}</span>
+        </template>
+      </Column>
+
+      <Column field="start_date" header="Bắt đầu" style="width: 140px" :sortable="true" />
+      <Column field="sessions_total" header="Số buổi" style="width: 120px" :sortable="true" />
+
+      <Column header="Trạng thái" field="status" style="width: 140px" :sortable="true">
+        <template #body="{ data }">
+          <Tag :value="data.status" :severity="statusSeverity(data.status)" />
         </template>
       </Column>
 
       <Column header="" style="width: 180px">
         <template #body="{ data }">
           <div class="flex gap-2 justify-end">
-            <Link :href="route('admin.rooms.edit', data.id)" class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
+            <Link :href="route('admin.classrooms.edit', data.id)" class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
               <i class="pi pi-pencil mr-1"></i>Sửa
             </Link>
             <button @click="destroy(data.id)" class="px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20">
@@ -163,7 +186,7 @@ const first = computed(() => Math.max(0, (props.rooms?.from ?? 1) - 1))
       </Column>
 
       <template #empty>
-        <div class="p-6 text-center text-slate-500 dark:text-slate-400">Chưa có phòng nào.</div>
+        <div class="p-6 text-center text-slate-500 dark:text-slate-400">Chưa có lớp nào.</div>
       </template>
     </DataTable>
   </div>

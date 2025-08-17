@@ -24,7 +24,7 @@ const form = useForm({
 })
 
 function submit() {
-  form.post(route('rooms.store'))
+  form.post(route('admin.rooms.store'))
 }
 </script>
 
@@ -76,7 +76,7 @@ function submit() {
 
       <div class="flex items-center gap-2">
         <Button label="Lưu" icon="pi pi-check" severity="success" :loading="form.processing" @click="submit" />
-        <Link :href="route('rooms.index')" class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30">
+        <Link :href="route('admin.rooms.index')" class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30">
           Huỷ
         </Link>
       </div>

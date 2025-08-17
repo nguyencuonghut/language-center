@@ -75,7 +75,7 @@ class RoomController extends Controller
         Room::create($data);
 
         return redirect()
-            ->route('rooms.index', request()->only('branch')) // giữ nguyên query branch nếu có
+            ->route('admin.rooms.index', request()->only('branch')) // giữ nguyên query branch nếu có
             ->with('success', 'Tạo phòng thành công.');
     }
 
@@ -97,7 +97,7 @@ class RoomController extends Controller
         $room->update($data);
 
         return redirect()
-            ->route('rooms.index', request()->only('branch'))
+            ->route('admin.rooms.index', request()->only('branch'))
             ->with('success', 'Cập nhật phòng thành công.');
     }
 
@@ -106,7 +106,7 @@ class RoomController extends Controller
         $room->delete();
 
         return redirect()
-            ->route('rooms.index', request()->only('branch'))
+            ->route('admin.rooms.index', request()->only('branch'))
             ->with('success', 'Đã xoá phòng.');
     }
 }

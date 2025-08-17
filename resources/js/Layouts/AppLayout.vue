@@ -33,8 +33,8 @@ const isCollapsed = ref(false)
 /* Menu items */
 const menu = [
   { label: 'Dashboard', icon: 'pi pi-home', url: '/admin/dashboard', ready: true },
-  { label: 'Phòng học', icon: 'pi pi-building', url: '/rooms', ready: true },          // ĐÃ có route
-  { label: 'Lớp học', icon: 'pi pi-users', url: '/admin/classrooms', ready: false },
+  { label: 'Phòng học', icon: 'pi pi-building', url: '/admin/rooms', ready: true },          // ĐÃ có route
+  { label: 'Lớp học', icon: 'pi pi-users', url: '/admin/classrooms', ready: true },
   { label: 'Học viên', icon: 'pi pi-id-card', url: '/admin/students', ready: false },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: false },
   { label: 'Khóa học', icon: 'pi pi-book', url: '/admin/courses', ready: false },
