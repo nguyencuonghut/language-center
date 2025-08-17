@@ -49,4 +49,32 @@ class ClassroomRequest extends FormRequest
             'status'         => 'trạng thái',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'code.required'           => 'Mã lớp là bắt buộc.',
+            'code.max'              => 'Mã lớp không được vượt quá 50 ký tự.',
+            'code.unique'           => 'Mã lớp đã tồn tại trong hệ thống.',
+            'name.required'           => 'Tên lớp là bắt buộc.',
+            'name.max'              => 'Tên lớp không được vượt quá 150 ký tự.',
+            'term_code.max'           => 'Học kỳ không được vượt quá 20 ký tự.',
+            'course_id.required'      => 'Khóa học là bắt buộc.',
+            'course_id.exists'        => 'Khóa học không tồn tại trong hệ thống.',
+            'branch_id.required'      => 'Chi nhánh là bắt buộc.',
+            'branch_id.exists'        => 'Chi nhánh không tồn tại trong hệ thống.',
+            'teacher_id.exists'     => 'Giáo viên không tồn tại trong hệ thống.',
+            'start_date.required'     => 'Ngày bắt đầu là bắt buộc.',
+            'start_date.date'       => 'Ngày bắt đầu phải là một ngày hợp lệ.',
+            'sessions_total.required' => 'Số buổi là bắt buộc.',
+            'sessions_total.integer'  => 'Số buổi phải là một số nguyên.',
+            'sessions_total.min'      => 'Số buổi phải lớn hơn hoặc bằng 1.',
+            'sessions_total.max'      => 'Số buổi không được vượt quá 500.',
+            'tuition_fee.required'    => 'Học phí là bắt buộc.',
+            'tuition_fee.integer'     => 'Học phí phải là một số nguyên.',
+            'tuition_fee.min'       => 'Học phí phải lớn hơn hoặc bằng 0.',
+            'status.required'         => 'Trạng thái là bắt buộc.',
+            'status.in'             => 'Trạng thái phải là "mở" hoặc "đóng".',
+        ];
+    }
 }

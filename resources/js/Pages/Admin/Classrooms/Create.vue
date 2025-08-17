@@ -12,6 +12,7 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import RadioButton from 'primevue/radiobutton'
 import Button from 'primevue/button'
+import FormLabel from '@/Components/FormLabel.vue'
 
 defineOptions({ layout: AppLayout })
 
@@ -30,7 +31,7 @@ const form = useForm({
   course_id: null,
   branch_id: props.suggestBranchId ?? null,
   teacher_id: null,
-  start_date: null, // sẽ là Date hoặc string -> convert trước khi submit
+  start_date: null,
   sessions_total: 24,
   tuition_fee: 0,
   status: 'open',
@@ -38,7 +39,6 @@ const form = useForm({
 
 function toYMD(val) {
   if (!val) return null
-  // nếu đã là 'YYYY-MM-DD' thì giữ nguyên
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val
   const d = (val instanceof Date) ? val : new Date(val)
   if (isNaN(d)) return null
@@ -50,7 +50,14 @@ function toYMD(val) {
 
 function submit() {
   const payload = { ...form.data(), start_date: toYMD(form.start_date) }
-  classroomService.create(payload)
+  form.post(route('admin.classrooms.store'), {
+    onSuccess: () => {
+      toast.showSuccess('Thành công', 'Đã tạo lớp học mới')
+    },
+    onError: (errors) => {
+      form.setError(errors)
+    }
+  })
 }
 </script>
 
@@ -63,25 +70,25 @@ function submit() {
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
       <div class="grid md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm mb-1">Mã lớp</label>
+          <FormLabel value="Mã lớp" required />
           <InputText v-model="form.code" class="w-full" placeholder="VD: ENG-A01" />
           <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Tên lớp</label>
+          <FormLabel value="Tên lớp" required />
           <InputText v-model="form.name" class="w-full" placeholder="VD: Tiếng Anh thiếu nhi A01" />
           <small v-if="form.errors.name" class="text-red-500">{{ form.errors.name }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Học kỳ</label>
+          <FormLabel value="Học kỳ" />
           <InputText v-model="form.term_code" class="w-full" placeholder="VD: K1/K2..." />
           <small v-if="form.errors.term_code" class="text-red-500">{{ form.errors.term_code }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Khóa học</label>
+          <FormLabel value="Khóa học" required />
           <Select
             v-model="form.course_id"
             :options="(props.courses||[]).map(x=>({label:x.name,value:x.id}))"
@@ -93,7 +100,7 @@ function submit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Chi nhánh</label>
+          <FormLabel value="Chi nhánh" required />
           <Select
             v-model="form.branch_id"
             :options="(props.branches||[]).map(x=>({label:x.name,value:x.id}))"
@@ -105,7 +112,7 @@ function submit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Giáo viên (tuỳ chọn)</label>
+          <FormLabel value="Giáo viên (tuỳ chọn)" />
           <Select
             v-model="form.teacher_id"
             :options="(props.teachers||[]).map(x=>({label:x.name,value:x.id}))"
@@ -118,7 +125,7 @@ function submit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Ngày bắt đầu</label>
+          <FormLabel value="Ngày bắt đầu" required />
           <DatePicker
             v-model="form.start_date"
             dateFormat="yy-mm-dd"
@@ -129,18 +136,19 @@ function submit() {
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Số buổi</label>
+          <FormLabel value="Số buổi" required />
           <InputNumber v-model="form.sessions_total" inputClass="w-full" :min="1" :max="500" />
           <small v-if="form.errors.sessions_total" class="text-red-500">{{ form.errors.sessions_total }}</small>
         </div>
 
         <div>
-          <label class="block text-sm mb-1">Học phí (VND)</label>
+          <FormLabel value="Học phí (VND)" required />
           <InputNumber v-model="form.tuition_fee" inputClass="w-full" :min="0" :useGrouping="true" />
           <small v-if="form.errors.tuition_fee" class="text-red-500">{{ form.errors.tuition_fee }}</small>
         </div>
 
         <div class="flex items-center gap-4">
+          <FormLabel value="Trạng thái" required />
           <div class="inline-flex items-center gap-2">
             <RadioButton v-model="form.status" inputId="st1" value="open" />
             <label for="st1">Mở</label>
