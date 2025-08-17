@@ -72,7 +72,12 @@ function submit() {
 
         <div>
           <FormLabel value="Sức chứa" required />
-          <InputNumber v-model="form.capacity" inputClass="w-full" :min="1" :max="1000" />
+          <InputNumber
+            v-model="form.capacity"
+            class="w-full"
+            :min="1"
+            :max="1000"
+          />
           <small v-if="form.errors.capacity" class="text-red-500">{{ form.errors.capacity }}</small>
         </div>
 
