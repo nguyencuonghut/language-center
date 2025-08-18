@@ -24,7 +24,7 @@ class BranchRequest extends FormRequest
                 'max:100',
                 Rule::unique('branches', 'name')->ignore($branchId),
             ],
-            'address' => ['nullable', 'string', 'max:255'],
+            'address' => ['required', 'string', 'max:255'],
             'active'  => ['nullable', 'boolean'],
         ];
     }
@@ -45,6 +45,7 @@ class BranchRequest extends FormRequest
             'name.max'        => 'Tên chi nhánh không được vượt quá :max ký tự.',
             'name.unique'     => 'Tên chi nhánh đã tồn tại.',
 
+            'address.required' => 'Địa chỉ là bắt buộc.',
             'address.max'     => 'Địa chỉ không được vượt quá :max ký tự.',
             'active.boolean'  => 'Trạng thái phải là true/false.',
         ];
