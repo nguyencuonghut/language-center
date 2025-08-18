@@ -20,7 +20,6 @@ export const createBranchService = ({ showSuccess, showError }) => ({
     create(data, callbacks = {}) {
         router.post(route('admin.branches.store'), data, {
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã tạo chi nhánh mới')
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
