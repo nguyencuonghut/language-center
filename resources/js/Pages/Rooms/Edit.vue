@@ -18,8 +18,8 @@ const props = defineProps({
   errors: Object,
 })
 
-const { showSuccess, showError } = usePageToast()
-const roomService = createRoomService({ showSuccess, showError })
+const toast = usePageToast()
+const roomService = createRoomService(toast)
 
 const form = useForm({
   branch_id: props.room.branch_id,

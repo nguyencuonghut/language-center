@@ -103,10 +103,15 @@ class RoomController extends Controller
 
     public function destroy(Room $room)
     {
-        $room->delete();
+        try {
+            if ($room->classrooms()->exists()) {
+                return back()->with('error', 'Không thể xoá phòng vì đang có lớp học sử dụng.');
+            }
 
-        return redirect()
-            ->route('admin.rooms.index', request()->only('branch'))
-            ->with('success', 'Đã xoá phòng.');
+            $room->delete();
+            return back()->with('success', 'Đã xoá phòng.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Không thể xoá phòng vì đang được sử dụng.');
+        }
     }
 }

@@ -50,10 +50,7 @@ function toYMD(val) {
 
 function submit() {
   const payload = { ...form.data(), start_date: toYMD(form.start_date) }
-  form.put(route('admin.classrooms.update', props.classroom.id), {
-    onSuccess: () => {
-      toast.showSuccess('Thành công', 'Đã cập nhật lớp học')
-    },
+  classroomService.update(props.classroom.id, payload, {
     onError: (errors) => {
       form.setError(errors)
     }

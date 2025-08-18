@@ -20,11 +20,12 @@ export const createClassroomService = ({ showSuccess, showError }) => ({
     create(data, callbacks = {}) {
         router.post(route('admin.classrooms.store'), data, {
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã tạo lớp học mới')
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
-                showError('Lỗi', 'Không thể tạo lớp học')
+                if (errors.message) {
+                    showError('Lỗi', errors.message)
+                }
                 callbacks.onError?.(errors)
             }
         })
@@ -36,11 +37,12 @@ export const createClassroomService = ({ showSuccess, showError }) => ({
     update(id, data, callbacks = {}) {
         router.put(route('admin.classrooms.update', id), data, {
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã cập nhật lớp học')
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
-                showError('Lỗi', 'Không thể cập nhật lớp học')
+                if (errors.message) {
+                    showError('Lỗi', errors.message)
+                }
                 callbacks.onError?.(errors)
             }
         })
@@ -55,11 +57,12 @@ export const createClassroomService = ({ showSuccess, showError }) => ({
         router.delete(route('admin.classrooms.destroy', id), {
             preserveScroll: true,
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã xoá lớp học')
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
-                showError('Lỗi', 'Không thể xoá lớp học')
+                if (errors.message) {
+                    showError('Lỗi', errors.message)
+                }
                 callbacks.onError?.(errors)
             }
         })

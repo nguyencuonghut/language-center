@@ -16,8 +16,8 @@ const props = defineProps({
   errors: Object,
 })
 
-const { showSuccess, showError } = usePageToast()
-const branchService = createBranchService({ showSuccess, showError })
+const toast = usePageToast()
+const branchService = createBranchService(toast)
 
 const form = useForm({
   name: props.branch.name,
