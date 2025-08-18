@@ -81,15 +81,23 @@ class BranchController extends Controller
     public function destroy(Branch $branch)
     {
         try {
-            $branch->delete();
+            // Kiểm tra xem branch có đang được sử dụng không
+            if ($branch->rooms()->exists()) {
+                return back()
+                    ->with('error', 'Không thể xoá chi nhánh vì đang có phòng học.');
+            }
 
-            return redirect()
-                ->route('admin.branches.index', request()->query())
-                ->with('success', 'Đã xoá chi nhánh.');
+            if ($branch->classrooms()->exists()) {
+                return back()
+                    ->with('error', 'Không thể xoá chi nhánh vì đang có lớp học.');
+            }
+
+            $branch->delete();
+            return back()->with('success', 'Đã xoá chi nhánh.');
+
         } catch (QueryException $e) {
-            // Ví dụ lỗi ràng buộc khoá ngoại
-            return redirect()
-                ->route('admin.branches.index', request()->query())
+            \Log::error('Error deleting branch: ' . $e->getMessage());
+            return back()
                 ->with('error', 'Không thể xoá chi nhánh vì đang được sử dụng.');
         }
     }

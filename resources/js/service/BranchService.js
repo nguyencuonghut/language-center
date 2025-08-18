@@ -55,11 +55,23 @@ export const createBranchService = ({ showSuccess, showError }) => ({
         router.delete(route('admin.branches.destroy', id), {
             preserveScroll: true,
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã xoá chi nhánh')
+                // Không xử lý toast ở đây nữa vì đã có AppLayout xử lý
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
-                showError('Lỗi', 'Không thể xoá chi nhánh')
+                // Chỉ xử lý các lỗi không phải từ flash message
+                if (errors?.message) {
+                    showError('Lỗi', errors.message)
+                }
+                callbacks.onError?.(errors)
+            },
+            onError: (errors) => {
+                // Xử lý validation hoặc server error
+                if (errors.message) {
+                    showError('Không thể xoá', errors.message)
+                } else {
+                    showError('Lỗi', 'Không thể xoá chi nhánh vì đang được sử dụng')
+                }
                 callbacks.onError?.(errors)
             }
         })
