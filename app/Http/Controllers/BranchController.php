@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\BranchRequest;
 use App\Models\Branch;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Database\QueryException;
@@ -17,6 +18,7 @@ class BranchController extends Controller
     public function index(Request $request)
     {
         $branches = Branch::query()
+            ->with(['managerUsers:id,name'])
             ->orderBy('name')
             ->paginate(12)
             ->withQueryString();
@@ -31,7 +33,14 @@ class BranchController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Admin/Branches/Create');
+        $managers = User::role('manager')
+            ->select('id','name','email')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Admin/Branches/Create', [
+            'managers' => $managers,
+        ]);
     }
 
     /**
@@ -42,7 +51,14 @@ class BranchController extends Controller
         $data = $request->validated();
         $data['active'] = (bool)($data['active'] ?? true);
 
-        Branch::create($data);
+        $branch = Branch::create($data);
+
+        $managerIds = collect($request->input('manager_ids', []))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $branch->managerUsers()->sync($managerIds);
 
         return redirect()
             ->route('admin.branches.index', request()->query()) // giữ query
@@ -54,8 +70,15 @@ class BranchController extends Controller
      */
     public function edit(Branch $branch)
     {
+        $managers = User::role('manager')
+            ->select('id','name','email')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Admin/Branches/Edit', [
             'branch' => $branch->only('id', 'code', 'name', 'address', 'phone', 'active'),
+            'assignedManagerIds' => $branch->managerUsers()->pluck('users.id'),
+            'managers' => $managers,
         ]);
     }
 
@@ -68,6 +91,13 @@ class BranchController extends Controller
         $data['active'] = (bool)($data['active'] ?? false);
 
         $branch->update($data);
+
+        $managerIds = collect($request->input('manager_ids', []))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $branch->managerUsers()->sync($managerIds);
 
         return redirect()
             ->route('admin.branches.index', request()->query())

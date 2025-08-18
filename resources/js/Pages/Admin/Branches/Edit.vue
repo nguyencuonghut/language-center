@@ -5,6 +5,7 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import MultiSelect from 'primevue/multiselect'
 import FormLabel from '@/Components/FormLabel.vue'
 import { createBranchService } from '@/service/BranchService'
 import { usePageToast } from '@/composables/usePageToast'
@@ -14,6 +15,8 @@ defineOptions({ layout: AppLayout })
 const props = defineProps({
   branch: Object,
   errors: Object,
+  managers: Array,
+  assignedManagerIds: Array,
 })
 
 const toast = usePageToast()
@@ -23,6 +26,7 @@ const form = useForm({
   name: props.branch.name,
   address: props.branch.address,
   active: !!props.branch.active,
+  manager_ids: props.assignedManagerIds || [],
 })
 
 function submit() {
@@ -52,6 +56,20 @@ function submit() {
           <FormLabel value="Địa chỉ" required />
           <Textarea v-model="form.address" class="w-full" rows="3" />
           <small v-if="form.errors.address" class="text-red-500">{{ form.errors.address }}</small>
+        </div>
+
+        <div class="md:col-span-2">
+          <FormLabel value="Quản lý phụ trách" />
+          <MultiSelect
+            v-model="form.manager_ids"
+            :options="props.managers || []"
+            optionLabel="name"
+            optionValue="id"
+            display="chip"
+            placeholder="Chọn quản lý"
+            class="w-full"
+          />
+          <small v-if="form.errors.manager_ids" class="text-red-500">{{ form.errors.manager_ids }}</small>
         </div>
 
         <div class="md:col-span-2">

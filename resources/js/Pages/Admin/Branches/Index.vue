@@ -145,6 +145,20 @@ const first = computed(() => Math.max(0, (props.branches?.from ?? 1) - 1))
       <Column field="name" header="Tên" :sortable="true" />
       <Column field="address" header="Địa chỉ" />
 
+      <Column header="Quản lý">
+        <template #body="{ data }">
+          <div class="flex flex-wrap gap-1">
+            <Tag
+              v-for="m in (data.manager_users || [])"
+              :key="m.id"
+              :value="m.name"
+              severity="info"
+            />
+            <span v-if="!data.manager_users || data.manager_users.length === 0" class="text-slate-400">—</span>
+          </div>
+        </template>
+      </Column>
+
       <Column header="Trạng thái" field="active" style="width: 140px" :sortable="true">
         <template #body="{ data }">
           <Tag :value="data.active ? 'Hoạt động' : 'Ngừng'"

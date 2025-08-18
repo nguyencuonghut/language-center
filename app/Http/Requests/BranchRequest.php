@@ -26,15 +26,20 @@ class BranchRequest extends FormRequest
             ],
             'address' => ['required', 'string', 'max:255'],
             'active'  => ['nullable', 'boolean'],
+
+            // Gán manager ↔ branch
+            'manager_ids'   => ['nullable', 'array'],
+            'manager_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'name'    => 'Tên chi nhánh',
-            'address' => 'Địa chỉ',
-            'active'  => 'Trạng thái',
+            'name'        => 'Tên chi nhánh',
+            'address'     => 'Địa chỉ',
+            'active'      => 'Trạng thái',
+            'manager_ids' => 'Quản lý',
         ];
     }
 
@@ -48,6 +53,10 @@ class BranchRequest extends FormRequest
             'address.required' => 'Địa chỉ là bắt buộc.',
             'address.max'     => 'Địa chỉ không được vượt quá :max ký tự.',
             'active.boolean'  => 'Trạng thái phải là true/false.',
+
+            'manager_ids.array'        => 'Danh sách quản lý không hợp lệ.',
+            'manager_ids.*.integer'    => 'Mã quản lý không hợp lệ.',
+            'manager_ids.*.exists'     => 'Một số quản lý không tồn tại.',
         ];
     }
 }
