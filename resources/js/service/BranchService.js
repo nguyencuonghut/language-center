@@ -36,11 +36,9 @@ export const createBranchService = ({ showSuccess, showError }) => ({
     update(id, data, callbacks = {}) {
         router.put(route('admin.branches.update', id), data, {
             onSuccess: () => {
-                showSuccess('Thành công', 'Đã cập nhật chi nhánh')
                 callbacks.onSuccess?.()
             },
             onError: (errors) => {
-                showError('Lỗi', 'Không thể cập nhật chi nhánh')
                 callbacks.onError?.(errors)
             }
         })
