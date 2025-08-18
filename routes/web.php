@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 // Controllers (nếu có)
+use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ClassroomController;
 
@@ -52,6 +53,10 @@ Route::middleware(['auth'])->group(function () {
                 return Inertia::render('Admin/Dashboard');
             })->name('dashboard');
         }
+
+        // Branch (CRUD) — nếu muốn permission-based:
+        // Route::resource('branches', BranchController::class)->middleware('permission:branches.view');
+        Route::resource('branches', BranchController::class);
 
         // Rooms (CRUD) — nếu muốn permission-based:
         // Route::resource('rooms', RoomController::class)->middleware('permission:rooms.view');
