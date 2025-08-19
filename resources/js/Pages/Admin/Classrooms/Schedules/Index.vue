@@ -30,7 +30,11 @@ const state = reactive({
 
 /* ---- Sorting state ---- */
 const sortField = ref(props.filters?.sort || null)
-const sortOrder = ref(props.filters?.order === 'asc' ? 1 : props.filters?.order === 'desc' ? -1 : null)
+const sortOrder = ref(
+  props.filters?.order === 'asc' ? 1 :
+  props.filters?.order === 'desc' ? -1 : null
+)
+
 
 /* ---- Helpers ---- */
 function applyFilters() {
@@ -38,7 +42,6 @@ function applyFilters() {
   if (state.perPage && state.perPage !== props.schedules?.per_page) query.per_page = state.perPage
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
-
   scheduleService.getList(props.classroom.id, query)
 }
 
@@ -49,7 +52,6 @@ function onPage(event) {
   if (page > 1) query.page = page
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
-
   scheduleService.getList(props.classroom.id, query)
 }
 
@@ -76,31 +78,58 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
 <template>
   <Head :title="`Lịch học - ${classroom.name}`" />
 
-  <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold">
-      Lịch học của lớp: {{ classroom.name }}
-    </h1>
+  <!-- Sticky header: breadcrumb + actions -->
+  <div class="sticky top-0 z-10 bg-gray-50/70 dark:bg-slate-900/70 backdrop-blur border-b border-slate-200 dark:border-slate-700 -mx-3 md:-mx-5 px-3 md:px-5 py-2">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <!-- Breadcrumb -->
+      <nav class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+        <Link :href="route('admin.classrooms.index')" class="hover:text-emerald-600 dark:hover:text-emerald-300">
+          Lớp học
+        </Link>
+        <span>/</span>
+        <Link :href="route('admin.classrooms.edit', { classroom: classroom.id })" class="hover:text-emerald-600 dark:hover:text-emerald-300">
+          {{ classroom.name }}
+        </Link>
+        <span>/</span>
+        <span class="font-medium text-slate-900 dark:text-slate-100">Lịch học</span>
+      </nav>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <!-- PerPage -->
-      <Select
-        v-model="state.perPage"
-        :options="[{label:'12 / trang',value:12},{label:'24 / trang',value:24},{label:'50 / trang',value:50}]"
-        optionLabel="label" optionValue="value"
-        class="w-36"
-        @change="applyFilters"
-      />
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center gap-2">
+        <Link
+          :href="route('admin.classrooms.index')"
+          class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          ← Danh sách lớp
+        </Link>
 
-      <Link
-        :href="route('admin.classrooms.schedules.create', classroom.id)"
-        class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-      >
-        <i class="pi pi-plus mr-1"></i> Thêm lịch
-      </Link>
+        <Link
+          :href="route('admin.classrooms.edit', { classroom: classroom.id })"
+          class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          Chi tiết lớp
+        </Link>
+
+        <Link
+          :href="route('admin.classrooms.schedules.create', { classroom: classroom.id })"
+          class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+        >
+          <i class="pi pi-plus mr-1"></i> Thêm lịch
+        </Link>
+
+        <Select
+          v-model="state.perPage"
+          :options="[{label:'12 / trang',value:12},{label:'24 / trang',value:24},{label:'50 / trang',value:50}]"
+          optionLabel="label" optionValue="value"
+          class="w-36"
+          @change="applyFilters"
+        />
+      </div>
     </div>
   </div>
 
-  <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2">
+  <!-- Table -->
+  <div class="mt-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2">
     <DataTable
       :value="value"
       :paginator="true"
@@ -124,11 +153,11 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
       <Column field="start_time" header="Bắt đầu" style="width: 120px" :sortable="true" />
       <Column field="end_time" header="Kết thúc" style="width: 120px" :sortable="true" />
 
-      <Column header="" style="width: 180px">
+      <Column header="" style="width: 200px">
         <template #body="{ data }">
           <div class="flex gap-2 justify-end">
             <Link
-              :href="route('admin.classrooms.schedules.edit', [classroom.id, data.id])"
+              :href="route('admin.classrooms.schedules.edit', { classroom: classroom.id, schedule: data.id })"
               class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
             >
               <i class="pi pi-pencil mr-1"></i>Sửa

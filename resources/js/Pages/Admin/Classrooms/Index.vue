@@ -176,7 +176,7 @@ function statusSeverity(s) {
       </Column>
 
       <!-- Actions -->
-      <Column header="" style="min-width: 380px; width: 380px">
+      <Column header="" style="min-width: 240px; width: 240px">
         <template #body="{ data }">
           <div class="flex items-center gap-2 justify-end">
             <!-- NEW: Link sang danh sách lịch của lớp -->
