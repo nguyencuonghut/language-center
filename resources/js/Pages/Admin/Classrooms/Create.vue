@@ -4,8 +4,9 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 import { createClassroomService } from '@/service/ClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
 
-const toast = usePageToast()
-const classroomService = createClassroomService(toast)
+const { showSuccess, showError } = usePageToast()
+const classroomService = createClassroomService({ showSuccess, showError })
+
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -50,10 +51,7 @@ function toYMD(val) {
 
 function submit() {
   const payload = { ...form.data(), start_date: toYMD(form.start_date) }
-  form.post(route('admin.classrooms.store'), {
-    onSuccess: () => {
-      toast.showSuccess('Thành công', 'Đã tạo lớp học mới')
-    },
+  classroomService.create(payload, {
     onError: (errors) => {
       form.setError(errors)
     }

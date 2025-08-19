@@ -14,11 +14,13 @@ export const createClassroomService = ({ showSuccess, showError }) => ({
         })
     },
 
-    /**
-     * Create a new classroom
-     */
     create(data, callbacks = {}) {
-        router.post(route('admin.classrooms.store'), data, {
+        // Format date to MySQL datetime format
+        const formattedData = {
+            ...data,
+            start_date: data.start_date ? new Date(data.start_date).toISOString().slice(0, 19).replace('T', ' ') : null
+        };
+        router.post(route('admin.classrooms.store'), formattedData, {
             onSuccess: () => {
                 callbacks.onSuccess?.()
             },
@@ -35,7 +37,12 @@ export const createClassroomService = ({ showSuccess, showError }) => ({
      * Update a classroom
      */
     update(id, data, callbacks = {}) {
-        router.put(route('admin.classrooms.update', id), data, {
+        // Format date to MySQL datetime format
+        const formattedData = {
+            ...data,
+            start_date: data.start_date ? new Date(data.start_date).toISOString().slice(0, 19).replace('T', ' ') : null
+        };
+        router.put(route('admin.classrooms.update', id), formattedData, {
             onSuccess: () => {
                 callbacks.onSuccess?.()
             },

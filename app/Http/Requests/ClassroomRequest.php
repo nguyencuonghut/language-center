@@ -77,4 +77,21 @@ class ClassroomRequest extends FormRequest
             'status.in'             => 'Trạng thái phải là "mở" hoặc "đóng".',
         ];
     }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('start_date')) {
+            $startDate = $this->get('start_date');
+
+            // Handle ISO 8601 format with timezone
+            if (is_string($startDate) && preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?$/', $startDate)) {
+                $this->merge([
+                    'start_date' => \Carbon\Carbon::parse($startDate)->format('Y-m-d H:i:s')
+                ]);
+            }
+        }
+    }
 }
