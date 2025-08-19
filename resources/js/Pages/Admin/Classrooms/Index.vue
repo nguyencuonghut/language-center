@@ -122,7 +122,7 @@ function statusSeverity(s) {
         @change="applyFilters"
       />
 
-      <!-- Nút tạo lớp (sẽ làm ở bước sau) -->
+      <!-- Nút tạo lớp (tùy môi trường của bạn) -->
       <Link :href="route('admin.classrooms.create')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
         <i class="pi pi-plus mr-1"></i> Tạo lớp
       </Link>
@@ -175,14 +175,30 @@ function statusSeverity(s) {
         </template>
       </Column>
 
-      <Column header="" style="width: 180px">
+      <!-- Actions -->
+      <Column header="" style="min-width: 380px; width: 380px">
         <template #body="{ data }">
-          <div class="flex gap-2 justify-end">
-            <Link :href="route('admin.classrooms.edit', data.id)" class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20">
-              <i class="pi pi-pencil mr-1"></i>Sửa
+          <div class="flex items-center gap-2 justify-end">
+            <!-- NEW: Link sang danh sách lịch của lớp -->
+            <Link
+              :href="route('admin.classrooms.schedules.index', data.id)"
+              class="inline-flex items-center px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20 whitespace-nowrap"
+            >
+              <i class="pi pi-calendar mr-1"></i> Lịch
             </Link>
-            <button @click="destroy(data.id)" class="px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20">
-              <i class="pi pi-trash mr-1"></i>Xoá
+
+            <Link
+              :href="route('admin.classrooms.edit', data.id)"
+              class="inline-flex items-center px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20 whitespace-nowrap"
+            >
+              <i class="pi pi-pencil mr-1"></i> Sửa
+            </Link>
+
+            <button
+              @click="destroy(data.id)"
+              class="inline-flex items-center px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20 whitespace-nowrap"
+            >
+              <i class="pi pi-trash mr-1"></i> Xoá
             </button>
           </div>
         </template>

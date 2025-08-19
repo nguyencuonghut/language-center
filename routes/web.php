@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\ClassScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +70,11 @@ Route::middleware(['auth'])->group(function () {
         // Route::resource('classrooms', ClassroomController::class)
         //     ->only(['create','store','edit','update','destroy'])->middleware('permission:classrooms.manage');
         Route::resource('classrooms', ClassroomController::class);
+
+        // Nested resource: schedules thuộc về classroom
+        Route::resource('classrooms.schedules', ClassScheduleController::class)
+            ->parameters(['schedules' => 'schedule'])   // {schedule} cho model binding
+            ->scoped(['schedule' => 'id']);             // scope theo id, hoặc có thể thay bằng 'uuid' nếu bạn dùng
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
