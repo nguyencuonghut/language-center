@@ -11,6 +11,10 @@ import Column from 'primevue/column'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Checkbox from 'primevue/checkbox'
+import DatePicker from 'primevue/datepicker' // PrimeVue v4
 
 defineOptions({ layout: AppLayout })
 
@@ -20,42 +24,58 @@ const props = defineProps({
   filters: Object,     // {sort, order, perPage}
 })
 
-/* ---- Generate sessions (backend sẽ flash message) ---- */
-function generateSessions() {
-  if (!confirm('Phát sinh các buổi học theo lịch tuần?')) return
-
-  if (!props.classroom?.id) {
-    showError('Thiếu thông tin lớp học, vui lòng thử lại.')
-    return
-  }
-  router.post(
-    route('admin.classrooms.sessions.generate', { classroom: props.classroom.id }),
-    {
-      // có thể bật thêm option:
-      // from_date: new Date().toISOString().slice(0,10),
-      // max_sessions: 50,
-      // reset: true,
-    },
-    {preserveScroll: true }
-  )
-}
-
+/* (giữ lại service cho list/delete) */
 const { showSuccess, showError } = usePageToast()
 const scheduleService = createClassScheduleService({ showSuccess, showError })
 
-/* ---- Local UI state ---- */
+/* -------------------------------------------------
+   Dialog "Phát sinh buổi"
+-------------------------------------------------- */
+const showDialog = ref(false)
+const form = reactive({
+  from_date: null,     // Date | null
+  max_sessions: null,  // number | null
+  reset: false,        // boolean
+})
+
+function openGenerateDialog() {
+  showDialog.value = true
+}
+
+function submitGenerate() {
+  router.post(
+    route('admin.classrooms.sessions.generate', { classroom: props.classroom.id }),
+    {
+      from_date: form.from_date instanceof Date
+        ? new Date(form.from_date).toISOString().slice(0, 10)
+        : null,
+      max_sessions: form.max_sessions || null,
+      reset: !!form.reset,
+    },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        // KHÔNG show toast tại FE để tránh trùng với flash từ backend
+        showDialog.value = false
+      },
+      // onError: để layout hiển thị flash error (nếu có), tránh showError ở đây để không bị đôi
+    }
+  )
+}
+
+/* -------------------------------------------------
+   Local UI state / sorting / filters
+-------------------------------------------------- */
 const state = reactive({
   perPage: props.filters?.perPage ?? (props.schedules?.per_page ?? 12),
 })
 
-/* ---- Sorting state ---- */
 const sortField = ref(props.filters?.sort || null)
 const sortOrder = ref(
   props.filters?.order === 'asc' ? 1 :
   props.filters?.order === 'desc' ? -1 : null
 )
 
-/* ---- Helpers ---- */
 function applyFilters() {
   const query = {}
   if (state.perPage && state.perPage !== props.schedules?.per_page) query.per_page = state.perPage
@@ -84,13 +104,17 @@ function destroy(id) {
   scheduleService.delete(props.classroom.id, id)
 }
 
-/* ---- DataTable computed ---- */
+/* -------------------------------------------------
+   DataTable computed
+-------------------------------------------------- */
 const value = computed(() => props.schedules?.data ?? [])
 const totalRecords = computed(() => props.schedules?.total ?? value.value.length)
 const rows = computed(() => props.schedules?.per_page ?? 12)
 const first = computed(() => Math.max(0, (props.schedules?.from ?? 1) - 1))
 
-/* ---- Helpers hiển thị ---- */
+/* -------------------------------------------------
+   Helpers hiển thị
+-------------------------------------------------- */
 const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
 </script>
 
@@ -129,20 +153,20 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
           Chi tiết lớp
         </Link>
 
+        <!-- NEW: mở dialog phát sinh buổi -->
+        <Button
+          label="Phát sinh buổi"
+          icon="pi pi-refresh"
+          class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+          @click="openGenerateDialog"
+        />
+
         <Link
           :href="route('admin.classrooms.schedules.create', { classroom: classroom.id })"
           class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
         >
           <i class="pi pi-plus mr-1"></i> Thêm lịch
         </Link>
-
-        <!-- NEW: Phát sinh buổi theo lịch tuần -->
-        <Button
-          label="Phát sinh buổi"
-          icon="pi pi-sitemap"
-          severity="success"
-          @click="generateSessions"
-        />
 
         <Select
           v-model="state.perPage"
@@ -205,4 +229,43 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
       </template>
     </DataTable>
   </div>
+
+  <!-- Dialog phát sinh buổi -->
+  <Dialog v-model:visible="showDialog" modal header="Phát sinh buổi" :style="{ width: '420px' }">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Ngày bắt đầu</label>
+        <DatePicker
+          v-model="form.from_date"
+          dateFormat="yy-mm-dd"
+          showIcon
+          iconDisplay="input"
+          class="w-full"
+        />
+        <small class="text-slate-500">Bỏ trống để dùng ngày bắt đầu của lớp.</small>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Số buổi cần phát sinh</label>
+        <InputText
+          v-model.number="form.max_sessions"
+          type="number"
+          min="1"
+          placeholder="VD: 10"
+          class="w-full"
+        />
+        <small class="text-slate-500">Bỏ trống để tự tính theo tổng số buổi của lớp còn thiếu.</small>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <Checkbox v-model="form.reset" :binary="true" inputId="reset" />
+        <label for="reset" class="cursor-pointer select-none">Xoá hết buổi đang planned và phát sinh lại</label>
+      </div>
+    </div>
+
+    <template #footer>
+      <Button label="Huỷ" icon="pi pi-times" text @click="showDialog=false" />
+      <Button label="Phát sinh" icon="pi pi-check" @click="submitGenerate" autofocus />
+    </template>
+  </Dialog>
 </template>
