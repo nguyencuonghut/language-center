@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, computed, ref } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createClassScheduleService } from '@/service/ClassScheduleService'
 import { usePageToast } from '@/composables/usePageToast'
@@ -20,6 +20,26 @@ const props = defineProps({
   filters: Object,     // {sort, order, perPage}
 })
 
+/* ---- Generate sessions (backend sẽ flash message) ---- */
+function generateSessions() {
+  if (!confirm('Phát sinh các buổi học theo lịch tuần?')) return
+
+  if (!props.classroom?.id) {
+    showError('Thiếu thông tin lớp học, vui lòng thử lại.')
+    return
+  }
+  router.post(
+    route('admin.classrooms.sessions.generate', { classroom: props.classroom.id }),
+    {
+      // có thể bật thêm option:
+      // from_date: new Date().toISOString().slice(0,10),
+      // max_sessions: 50,
+      // reset: true,
+    },
+    {preserveScroll: true }
+  )
+}
+
 const { showSuccess, showError } = usePageToast()
 const scheduleService = createClassScheduleService({ showSuccess, showError })
 
@@ -34,7 +54,6 @@ const sortOrder = ref(
   props.filters?.order === 'asc' ? 1 :
   props.filters?.order === 'desc' ? -1 : null
 )
-
 
 /* ---- Helpers ---- */
 function applyFilters() {
@@ -117,6 +136,14 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
           <i class="pi pi-plus mr-1"></i> Thêm lịch
         </Link>
 
+        <!-- NEW: Phát sinh buổi theo lịch tuần -->
+        <Button
+          label="Phát sinh buổi"
+          icon="pi pi-sitemap"
+          severity="success"
+          @click="generateSessions"
+        />
+
         <Select
           v-model="state.perPage"
           :options="[{label:'12 / trang',value:12},{label:'24 / trang',value:24},{label:'50 / trang',value:50}]"
@@ -150,6 +177,7 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
           <Tag :value="weekdays[data.weekday]" />
         </template>
       </Column>
+
       <Column field="start_time" header="Bắt đầu" style="width: 120px" :sortable="true" />
       <Column field="end_time" header="Kết thúc" style="width: 120px" :sortable="true" />
 

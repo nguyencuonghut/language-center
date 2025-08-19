@@ -9,6 +9,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassScheduleController;
+use App\Http\Controllers\Admin\ClassSessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,6 +76,10 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('classrooms.schedules', ClassScheduleController::class)
             ->parameters(['schedules' => 'schedule'])   // {schedule} cho model binding
             ->scoped(['schedule' => 'id']);             // scope theo id, hoặc có thể thay bằng 'uuid' nếu bạn dùng
+
+        // Generate sessions (needs classroom parameter for route-model binding)
+        Route::post('classrooms/{classroom}/sessions/generate', [ClassSessionController::class, 'generate'])
+            ->name('classrooms.sessions.generate');
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
