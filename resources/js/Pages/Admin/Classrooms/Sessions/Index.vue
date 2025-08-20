@@ -193,6 +193,40 @@ function saveCreate() {
     onError: (errors) => { createForm.errors = errors || {} }
   })
 }
+
+/* ---------- Bulk gán phòng ---------- */
+const selection = ref([])            // mảng các row được chọn
+const bulkRoom = ref(null)           // room id dạng string
+const roomOptions = computed(() => (props.rooms || []).map(r => ({ label: r.label, value: String(r.id) })))
+const hasSelection = computed(() => Array.isArray(selection.value) && selection.value.length > 0)
+
+function bulkAssignRoom() {
+  if (!hasSelection.value) {
+    alert('Bạn chưa chọn buổi nào.')
+    return
+  }
+  if (!bulkRoom.value) {
+    alert('Vui lòng chọn phòng để gán.')
+    return
+  }
+  const ids = selection.value.map(x => x.id)
+  if (!confirm(`Gán phòng cho ${ids.length} buổi?`)) return
+
+  router.post(route('admin.classrooms.sessions.bulk-room', { classroom: props.classroom.id }), {
+    ids,
+    room_id: Number(bulkRoom.value),
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // làm sạch lựa chọn + giữ room đã chọn để thao tác tiếp nếu muốn
+      selection.value = []
+    },
+    onError: (errors) => {
+      // backend nên trả về flash error/chi tiết conflict
+      console.error(errors)
+    }
+  })
+}
 </script>
 
 <template>
@@ -249,6 +283,31 @@ function saveCreate() {
     </div>
   </div>
 
+  <!-- Bulk toolbar -->
+  <div class="mb-2 flex flex-wrap items-center gap-2 justify-between">
+    <div class="flex items-center gap-2">
+      <Select
+        v-model="bulkRoom"
+        :options="roomOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Chọn phòng để gán…"
+        class="min-w-[260px]"
+        showClear
+      />
+      <Button
+        label="Gán phòng"
+        icon="pi pi-check"
+        :disabled="!hasSelection || !bulkRoom"
+        @click="bulkAssignRoom"
+      />
+    </div>
+
+    <div class="text-sm text-slate-600 dark:text-slate-300">
+      Đã chọn: <span class="font-medium">{{ selection?.length || 0 }}</span> buổi
+    </div>
+  </div>
+
   <!-- Table -->
   <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2">
     <DataTable
@@ -265,7 +324,13 @@ function saveCreate() {
       dataKey="id"
       responsiveLayout="scroll"
       size="small"
+
+      v-model:selection="selection"
+      :metaKeySelection="false"
     >
+      <!-- Checkbox chọn nhiều -->
+      <Column selectionMode="multiple" headerStyle="width: 3rem" />
+
       <Column field="session_no" header="#" style="width: 80px" :sortable="true" />
       <Column field="date" header="Ngày" style="width: 160px" :sortable="true">
         <template #body="{ data }">
@@ -303,7 +368,7 @@ function saveCreate() {
         </template>
       </Column>
 
-      <Column header="Phòng" style="width: 220px">
+      <Column field="room" header="Phòng" style="width: 220px" :sortable="true">
         <template #body="{ data }">
           <div v-if="isEditing(data.id)">
             <Select

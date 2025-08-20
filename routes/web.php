@@ -89,6 +89,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('classrooms.sessions.week');
         Route::post('classrooms/{classroom}/sessions', [ClassSessionController::class, 'store'])
             ->name('classrooms.sessions.store');
+        Route::post('classrooms/{classroom}/sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
+            ->name('classrooms.sessions.bulk-room');
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [

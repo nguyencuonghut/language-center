@@ -50,10 +50,20 @@ class ClassSessionController extends Controller
 
     $sort  = $request->string('sort')->toString() ?: 'date';
     $order = $request->string('order')->toString() === 'desc' ? 'desc' : 'asc';
-    if (!in_array($sort, ['date','start_time','end_time','session_no','status'])) {
+    if (!in_array($sort, ['date','start_time','end_time','session_no','status','room'])) {
         $sort = 'date';
     }
-    $query->orderBy($sort, $order)->orderBy('start_time', $order);
+
+    if ($sort === 'room') {
+        // Sắp xếp theo phòng: ưu tiên code, sau đó name. Dùng left join để giữ những buổi chưa có phòng.
+        $query->leftJoin('rooms as r', 'r.id', '=', 'class_sessions.room_id')
+              ->select('class_sessions.*')
+              ->orderByRaw("COALESCE(r.code, '') $order")
+              ->orderByRaw("COALESCE(r.name, '') $order")
+              ->orderBy('start_time', $order);
+    } else {
+        $query->orderBy($sort, $order)->orderBy('start_time', $order);
+    }
 
     $perPage  = (int) ($request->integer('per_page') ?: 20);
     $sessions = $query->paginate($perPage)->withQueryString();
@@ -187,4 +197,50 @@ class ClassSessionController extends Controller
             'sessionsByDay' => $byDay, // { '2025-08-18': [ ... ], ... }
         ]);
     }
+
+    public function bulkAssignRoom(Request $request, Classroom $classroom)
+    {
+        $data = $request->validate([
+            'ids' => ['required','array','min:1'],
+            'ids.*' => ['integer','exists:class_sessions,id'],
+            'room_id' => ['required','integer','exists:rooms,id'],
+        ], [], [
+            'ids' => 'các buổi',
+            'room_id' => 'phòng',
+        ]);
+
+        $ids = $data['ids'];
+        $roomId = $data['room_id'];
+
+        // Gán phòng theo từng buổi + check trùng giờ trong ngày (dựa trên scopeOverlapping bạn đã có)
+        $updated = 0; $conflicts = [];
+        $sessions = ClassSession::where('class_id', $classroom->id)->whereIn('id', $ids)->get();
+
+        foreach ($sessions as $s) {
+            $overlap = ClassSession::overlapping([
+                'room_id' => $roomId,
+                'date' => $s->date,
+                'start_time' => $s->start_time,
+                'end_time' => $s->end_time,
+            ])->where('id','!=',$s->id)->exists();
+
+            if ($overlap) {
+                $conflicts[] = $s->id;
+                continue;
+            }
+
+            $s->update(['room_id' => $roomId]);
+            $updated++;
+        }
+
+        if (count($conflicts) > 0) {
+            return back()->with(
+                'warning',
+                'Đã gán phòng cho ' . $updated . ' buổi. ' . count($conflicts) . ' buổi bị trùng lịch và không được cập nhật.'
+            );
+        }
+
+        return back()->with('success', 'Đã gán phòng cho ' . $updated . ' buổi.');
+    }
+
 }
