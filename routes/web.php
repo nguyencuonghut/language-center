@@ -80,6 +80,11 @@ Route::middleware(['auth'])->group(function () {
         // Generate sessions (needs classroom parameter for route-model binding)
         Route::post('classrooms/{classroom}/sessions/generate', [ClassSessionController::class, 'generate'])
             ->name('classrooms.sessions.generate');
+        Route::get('classrooms/{classroom}/sessions', [ClassSessionController::class, 'index'])
+            ->name('classrooms.sessions.index'); // List buổi theo lớp
+        Route::put('classrooms/{classroom}/sessions/{session}', [ClassSessionController::class, 'update'])
+            ->name('classrooms.sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
+
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
