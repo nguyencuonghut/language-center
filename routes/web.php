@@ -84,7 +84,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('classrooms.sessions.index'); // List buổi theo lớp
         Route::put('classrooms/{classroom}/sessions/{session}', [ClassSessionController::class, 'update'])
             ->name('classrooms.sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
-
+        // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
+        Route::get('classrooms/{classroom}/sessions/week', [ClassSessionController::class, 'week'])
+            ->name('classrooms.sessions.week');
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [

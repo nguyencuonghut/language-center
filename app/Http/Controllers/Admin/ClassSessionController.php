@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Http\Requests\UpdateSessionRequest;
 use App\Models\ClassSession;
 use App\Models\Room;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -105,5 +106,70 @@ class ClassSessionController extends Controller
         ])->save();
 
         return back()->with('success', 'Đã cập nhật buổi học.');
+    }
+
+    /**
+     * Week View cho buổi học của 1 lớp.
+     * Query:
+     *  - date: ngày bất kỳ trong tuần muốn xem (mặc định: hôm nay)
+     *  - room_id: lọc theo phòng (optional)
+     */
+    public function week(Request $request, Classroom $classroom)
+    {
+        // Ngày tham chiếu (y-m-d), mặc định hôm nay
+        $ref = $request->date
+            ? Carbon::parse($request->date)->startOfDay()
+            : now()->startOfDay();
+
+        // Chuẩn hóa: tuần bắt đầu Thứ 2 (ISO-8601)
+        $weekStart = $ref->copy()->startOfWeek(Carbon::MONDAY);
+        $weekEnd   = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $roomId = $request->integer('room_id') ?: null;
+
+        // Danh sách phòng cùng chi nhánh của lớp (để filter)
+        $rooms = Room::query()
+            ->where('branch_id', $classroom->branch_id)
+            ->orderBy('name')
+            ->get(['id','code','name'])
+            ->map(fn($r) => [
+                'id'    => $r->id,
+                'code'  => $r->code,
+                'name'  => $r->name,
+                'label' => trim(($r->code ? $r->code.' - ' : '').$r->name),
+                'value' => (string)$r->id,
+            ]);
+
+        // Lấy các buổi trong tuần, có thể lọc theo phòng
+        $sessions = ClassSession::query()
+            ->where('class_id', $classroom->id)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->when($roomId, fn($q) => $q->where('room_id', $roomId))
+            ->with(['room:id,code,name'])
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get([
+                'id','class_id','date','start_time','end_time','room_id','status','session_no','note'
+            ]);
+
+        // Gom theo ngày để render nhanh ở FE
+        $byDay = $sessions->groupBy('date')->map(function ($items) {
+            return $items->values();
+        });
+
+        return Inertia::render('Admin/Classrooms/Sessions/Week', [
+            'classroom' => $classroom->only(['id','code','name','branch_id']),
+            'filters'   => [
+                'date'    => $ref->toDateString(),
+                'room_id' => $roomId,
+            ],
+            'week' => [
+                'start' => $weekStart->toDateString(),
+                'end'   => $weekEnd->toDateString(),
+                'days'  => collect(range(0,6))->map(fn($i) => $weekStart->copy()->addDays($i)->toDateString()),
+            ],
+            'rooms' => $rooms,
+            'sessionsByDay' => $byDay, // { '2025-08-18': [ ... ], ... }
+        ]);
     }
 }
