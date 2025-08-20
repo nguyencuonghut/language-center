@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateSessionsRequest;
+use App\Http\Requests\StoreSessionRequest;
 use App\Jobs\GenerateSessionsForClass;
 use App\Models\Classroom;
 use App\Http\Requests\UpdateSessionRequest;
@@ -99,6 +100,27 @@ class ClassSessionController extends Controller
         $session->update($data);
 
         return back()->with('success', 'Đã cập nhật buổi học.');
+    }
+
+    public function store(StoreSessionRequest $request, Classroom $classroom)
+    {
+        $data = $request->validated();
+
+        // session_no = max + 1 theo lớp
+        $nextNo = (int) (ClassSession::where('class_id', $classroom->id)->max('session_no') ?? 0) + 1;
+
+        ClassSession::create([
+            'class_id'    => $classroom->id,
+            'session_no'  => $nextNo,
+            'date'        => $data['date'],
+            'start_time'  => $data['start_time'],
+            'end_time'    => $data['end_time'],
+            'room_id'     => $data['room_id'] ?? null,
+            'status'      => $data['status'] ?? 'planned',
+            'note'        => $data['note'] ?? null,
+        ]);
+
+        return back()->with('success', 'Đã tạo buổi học.');
     }
 
     /**

@@ -12,6 +12,7 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import DatePicker from 'primevue/datepicker'
+import Dialog from 'primevue/dialog'
 
 defineOptions({ layout: AppLayout })
 
@@ -26,6 +27,16 @@ const props = defineProps({
 function toHHmm(t) {
   if (!t) return ''
   return String(t).slice(0, 5) // HH:mm:ss -> HH:mm
+}
+
+/* ---------- Helpers: format YYYY-MM-DD in local time (no UTC shift) ---------- */
+function toYmdLocal(d) {
+  if (!d) return null
+  const dt = new Date(d)
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const day = String(dt.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /* ---------- Local state / sort / paging ---------- */
@@ -121,7 +132,7 @@ function saveRow(row) {
 
   model.saving = true
   router.put(route('admin.classrooms.sessions.update', { classroom: props.classroom.id, session: id }), {
-    date: model.date ? new Date(model.date).toISOString().slice(0,10) : null,
+    date: model.date ? toYmdLocal(model.date) : null,
     start_time: toHHmm(model.start_time),
     end_time: toHHmm(model.end_time),
     room_id: model.room_id ? Number(model.room_id) : null,
@@ -132,6 +143,54 @@ function saveRow(row) {
     onFinish: () => { model.saving = false },
     onSuccess: () => { delete editing[id] },
     onError: (errors) => { model.errors = errors || {} }
+  })
+}
+
+/* ---------- Create dialog ---------- */
+const showCreate = ref(false)
+const createForm = reactive({
+  date: null,
+  start_time: '',
+  end_time: '',
+  room_id: null,
+  status: 'planned',
+  note: '',
+  saving: false,
+  errors: {}
+})
+
+function openCreate() {
+  createForm.date = null
+  createForm.start_time = ''
+  createForm.end_time = ''
+  createForm.room_id = null
+  createForm.status = 'planned'
+  createForm.note = ''
+  createForm.errors = {}
+  showCreate.value = true
+}
+function saveCreate() {
+  createForm.errors = {}
+  const isTimeFmt = (v) => /^\d{2}:\d{2}$/.test(String(v||''))
+
+  if (!createForm.date) createForm.errors.date = 'Vui lòng chọn ngày'
+  if (!isTimeFmt(createForm.start_time)) createForm.errors.start_time = 'Định dạng HH:mm'
+  if (!isTimeFmt(createForm.end_time)) createForm.errors.end_time = 'Định dạng HH:mm'
+  if (Object.keys(createForm.errors).length) return
+
+  createForm.saving = true
+  router.post(route('admin.classrooms.sessions.store', { classroom: props.classroom.id }), {
+    date: toYmdLocal(createForm.date),
+    start_time: toHHmm(createForm.start_time),
+    end_time: toHHmm(createForm.end_time),
+    room_id: createForm.room_id ? Number(createForm.room_id) : null,
+    status: createForm.status,
+    note: createForm.note || null,
+  }, {
+    preserveScroll: true,
+    onFinish: () => { createForm.saving = false },
+    onSuccess: () => { showCreate.value = false },
+    onError: (errors) => { createForm.errors = errors || {} }
   })
 }
 </script>
@@ -149,7 +208,8 @@ function saveRow(row) {
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <!-- ✅ Đúng: đi tới Week View của Sessions -->
+      <Button label="Thêm buổi" icon="pi pi-plus" @click="openCreate" />
+
       <Link
         :href="route('admin.classrooms.sessions.week', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50
@@ -158,7 +218,6 @@ function saveRow(row) {
         <i class="pi pi-calendar mr-1"></i> Lịch tuần
       </Link>
 
-      <!-- Tuỳ chọn: quay về Lịch tuần mẫu (Schedules) để bảo trì lịch gốc -->
       <Link
         :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -208,7 +267,6 @@ function saveRow(row) {
       size="small"
     >
       <Column field="session_no" header="#" style="width: 80px" :sortable="true" />
-
       <Column field="date" header="Ngày" style="width: 160px" :sortable="true">
         <template #body="{ data }">
           <div v-if="isEditing(data.id)" class="flex items-center gap-2">
@@ -273,7 +331,7 @@ function saveRow(row) {
           <div v-if="isEditing(data.id)">
             <Select
               v-model="editing[data.id].status"
-              :options="statusOptions"
+              :options="[{label:'Kế hoạch',value:'planned'},{label:'Đã dạy',value:'taught'},{label:'Huỷ',value:'cancelled'}]"
               optionLabel="label"
               optionValue="value"
               class="w-40"
@@ -314,4 +372,63 @@ function saveRow(row) {
       </template>
     </DataTable>
   </div>
+
+  <!-- Dialog: Thêm buổi -->
+  <Dialog v-model:visible="showCreate" modal header="Thêm buổi" :style="{ width: '440px' }">
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Ngày</label>
+        <DatePicker v-model="createForm.date" dateFormat="yy-mm-dd" showIcon iconDisplay="input" class="w-full" />
+        <div v-if="createForm.errors?.date" class="text-red-500 text-xs mt-1">{{ createForm.errors.date }}</div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Bắt đầu (HH:mm)</label>
+          <InputText v-model="createForm.start_time" placeholder="08:00" class="w-full" />
+          <div v-if="createForm.errors?.start_time" class="text-red-500 text-xs mt-1">{{ createForm.errors.start_time }}</div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Kết thúc (HH:mm)</label>
+          <InputText v-model="createForm.end_time" placeholder="10:00" class="w-full" />
+          <div v-if="createForm.errors?.end_time" class="text-red-500 text-xs mt-1">{{ createForm.errors.end_time }}</div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Phòng</label>
+        <Select
+          v-model="createForm.room_id"
+          :options="(props.rooms || []).map(r => ({label: r.label, value: String(r.id)}))"
+          optionLabel="label"
+          optionValue="value"
+          class="w-full"
+          showClear
+          placeholder="Chọn phòng (không bắt buộc)"
+        />
+        <div v-if="createForm.errors?.room_id" class="text-red-500 text-xs mt-1">{{ createForm.errors.room_id }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Trạng thái</label>
+        <Select
+          v-model="createForm.status"
+          :options="statusOptions"
+          optionLabel="label"
+          optionValue="value"
+          class="w-full"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Ghi chú</label>
+        <Textarea v-model="createForm.note" autoResize rows="2" class="w-full" />
+      </div>
+    </div>
+
+    <template #footer>
+      <Button label="Huỷ" icon="pi pi-times" text @click="showCreate=false" />
+      <Button label="Tạo" icon="pi pi-check" :loading="createForm.saving" @click="saveCreate" autofocus />
+    </template>
+  </Dialog>
 </template>

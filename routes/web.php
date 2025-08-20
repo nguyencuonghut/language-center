@@ -87,6 +87,8 @@ Route::middleware(['auth'])->group(function () {
         // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
         Route::get('classrooms/{classroom}/sessions/week', [ClassSessionController::class, 'week'])
             ->name('classrooms.sessions.week');
+        Route::post('classrooms/{classroom}/sessions', [ClassSessionController::class, 'store'])
+            ->name('classrooms.sessions.store');
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
