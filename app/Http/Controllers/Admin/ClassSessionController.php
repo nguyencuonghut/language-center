@@ -95,15 +95,8 @@ class ClassSessionController extends Controller
 
         $data = $request->validated();
 
-        // chỉ cho phép update các trường này
-        $session->fill([
-            'date'       => $data['date']       ?? $session->date,
-            'start_time' => $data['start_time'] ?? $session->start_time,
-            'end_time'   => $data['end_time']   ?? $session->end_time,
-            'room_id'    => array_key_exists('room_id',$data) ? $data['room_id'] : $session->room_id,
-            'status'     => $data['status']     ?? $session->status,
-            'note'       => $data['note']       ?? $session->note,
-        ])->save();
+        // nếu FE gửi HH:mm, DB cột time sẽ tự parse OK
+        $session->update($data);
 
         return back()->with('success', 'Đã cập nhật buổi học.');
     }

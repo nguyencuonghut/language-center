@@ -1,171 +1,193 @@
 <script setup>
-import { Head, useForm, Link } from '@inertiajs/vue3'
+import { reactive, toRefs } from 'vue'
+import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createClassroomService } from '@/service/ClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
 
-const toast = usePageToast()
-const classroomService = createClassroomService(toast)
-import Select from 'primevue/select'
+// PrimeVue v4
 import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
+import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
-import RadioButton from 'primevue/radiobutton'
 import Button from 'primevue/button'
-import FormLabel from '@/Components/FormLabel.vue'
+import Tag from 'primevue/tag'
 
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
-  classroom: Object,
-  branches: Array,
-  courses: Array,
-  teachers: Array,
-  errors: Object,
+  classroom: Object,     // { id, code, name, branch_id, course_id, teacher_id, start_date, sessions_total, tuition_fee, status, note }
+  branches: Array,       // [{id,name}]
+  courses: Array,        // [{id,name}]
+  teachers: Array,       // [{id,name}]
+  errors: Object,        // Inertia validation errors
 })
 
-const form = useForm({
-  code: props.classroom.code,
-  name: props.classroom.name,
-  term_code: props.classroom.term_code,
-  course_id: props.classroom.course_id,
-  branch_id: props.classroom.branch_id,
-  teacher_id: props.classroom.teacher_id,
-  start_date: props.classroom.start_date,
-  sessions_total: props.classroom.sessions_total,
-  tuition_fee: props.classroom.tuition_fee,
-  status: props.classroom.status,
+const { showSuccess, showError } = usePageToast()
+const classroomService = createClassroomService({ showSuccess, showError })
+
+/* ----- Local state ----- */
+const state = reactive({
+  code: props.classroom?.code ?? '',
+  name: props.classroom?.name ?? '',
+  branch_id: props.classroom?.branch_id ? String(props.classroom.branch_id) : null,
+  course_id: props.classroom?.course_id ? String(props.classroom.course_id) : null,
+  teacher_id: props.classroom?.teacher_id ? String(props.classroom.teacher_id) : null,
+  start_date: props.classroom?.start_date ? new Date(props.classroom.start_date + 'T00:00:00') : null,
+  sessions_total: props.classroom?.sessions_total ?? 24,
+  tuition_fee: props.classroom?.tuition_fee ?? 0,
+  status: props.classroom?.status ?? 'open',
+  note: props.classroom?.note ?? '',
+  saving: false,
 })
 
-function toYMD(val) {
-  if (!val) return null
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val
-  const d = (val instanceof Date) ? val : new Date(val)
-  if (isNaN(d)) return null
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+/* ----- Options ----- */
+const branchOptions = (props.branches || []).map(b => ({ label: b.name, value: String(b.id) }))
+const courseOptions = (props.courses || []).map(c => ({ label: c.name, value: String(c.id) }))
+const teacherOptions = (props.teachers || []).map(t => ({ label: t.name, value: String(t.id) }))
+const statusOptions = [
+  { label: 'Đang mở', value: 'open' },
+  { label: 'Đóng', value: 'closed' },
+]
 
-function submit() {
-  const payload = { ...form.data(), start_date: toYMD(form.start_date) }
-  classroomService.update(props.classroom.id, payload, {
-    onError: (errors) => {
-      form.setError(errors)
-    }
+/* ----- Submit ----- */
+function onSubmit() {
+  state.saving = true
+  classroomService.update(props.classroom.id, {
+    code: state.code,
+    name: state.name,
+    branch_id: state.branch_id ? Number(state.branch_id) : null,
+    course_id: state.course_id ? Number(state.course_id) : null,
+    teacher_id: state.teacher_id ? Number(state.teacher_id) : null,
+    start_date: state.start_date ? new Date(state.start_date).toISOString().slice(0,10) : null,
+    sessions_total: Number(state.sessions_total) || 0,
+    tuition_fee: Number(state.tuition_fee) || 0,
+    status: state.status,
+    note: state.note || null,
+  }, {
+    onSuccess: () => { state.saving = false },
+    onError: () => { state.saving = false },
   })
 }
 </script>
 
 <template>
-  <Head title="Sửa lớp" />
+  <Head :title="`Sửa lớp - ${classroom?.name || ''}`" />
 
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold mb-4">Sửa lớp</h1>
-
-    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <FormLabel value="Mã lớp" required />
-          <InputText v-model="form.code" class="w-full" />
-          <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Tên lớp" required />
-          <InputText v-model="form.name" class="w-full" />
-          <small v-if="form.errors.name" class="text-red-500">{{ form.errors.name }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Học kỳ" />
-          <InputText v-model="form.term_code" class="w-full" />
-          <small v-if="form.errors.term_code" class="text-red-500">{{ form.errors.term_code }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Khóa học" required />
-          <Select
-            v-model="form.course_id"
-            :options="(props.courses||[]).map(x=>({label:x.name,value:x.id}))"
-            optionLabel="label" optionValue="value"
-            placeholder="Chọn khóa học"
-            :pt="{ root: { class: 'w-full' } }"
-          />
-          <small v-if="form.errors.course_id" class="text-red-500">{{ form.errors.course_id }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Chi nhánh" required />
-          <Select
-            v-model="form.branch_id"
-            :options="(props.branches||[]).map(x=>({label:x.name,value:x.id}))"
-            optionLabel="label" optionValue="value"
-            placeholder="Chọn chi nhánh"
-            :pt="{ root: { class: 'w-full' } }"
-          />
-          <small v-if="form.errors.branch_id" class="text-red-500">{{ form.errors.branch_id }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Giáo viên (tuỳ chọn)" />
-          <Select
-            v-model="form.teacher_id"
-            :options="(props.teachers||[]).map(x=>({label:x.name,value:x.id}))"
-            optionLabel="label" optionValue="value"
-            placeholder="Chọn giáo viên"
-            showClear
-            :pt="{ root: { class: 'w-full' } }"
-          />
-          <small v-if="form.errors.teacher_id" class="text-red-500">{{ form.errors.teacher_id }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Ngày bắt đầu" required />
-          <DatePicker
-            v-model="form.start_date"
-            dateFormat="yy-mm-dd"
-            showIcon
-            fluid
-          />
-          <small v-if="form.errors.start_date" class="text-red-500">{{ form.errors.start_date }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Số buổi" required />
-          <InputNumber v-model="form.sessions_total" class="w-full" :min="1" :max="500" />
-          <small v-if="form.errors.sessions_total" class="text-red-500">{{ form.errors.sessions_total }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Học phí (VND)" required />
-          <InputNumber v-model="form.tuition_fee" class="w-full" :min="0" :useGrouping="true" />
-          <small v-if="form.errors.tuition_fee" class="text-red-500">{{ form.errors.tuition_fee }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Trạng thái" required />
-          <div class="flex items-center gap-4 mt-2">
-            <div class="inline-flex items-center gap-2">
-              <RadioButton v-model="form.status" inputId="st1" value="open" />
-              <label for="st1">Mở</label>
-            </div>
-            <div class="inline-flex items-center gap-2">
-              <RadioButton v-model="form.status" inputId="st2" value="closed" />
-              <label for="st2">Đóng</label>
-            </div>
-          </div>
-          <small v-if="form.errors.status" class="text-red-500">{{ form.errors.status }}</small>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <Button label="Cập nhật" icon="pi pi-check" severity="success" :loading="form.processing" @click="submit" />
-        <Link :href="route('admin.classrooms.index')" class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30">
-          Quay lại
-        </Link>
+  <!-- Header / Breadcrumb & Actions -->
+  <div class="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h1 class="text-xl md:text-2xl font-heading font-semibold">Sửa lớp</h1>
+      <div class="text-slate-500 dark:text-slate-400 text-sm">
+        Mã: <Tag :value="classroom.code" />
       </div>
     </div>
+
+    <div class="flex flex-wrap gap-2">
+      <!-- Nút đi đến Buổi học -->
+      <Link
+        :href="route('admin.classrooms.sessions.index', { classroom: classroom.id })"
+        class="px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50
+               dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20"
+        title="Danh sách buổi học"
+      >
+        <i class="pi pi-list mr-1"></i> Buổi học
+      </Link>
+
+      <!-- Nút đi đến Lịch tuần -->
+      <Link
+        :href="route('admin.classrooms.sessions.week', { classroom: classroom.id })"
+        class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
+               dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
+        title="Xem lịch tuần"
+      >
+        <i class="pi pi-calendar mr-1"></i> Lịch tuần
+      </Link>
+
+      <!-- Quay lại danh sách lớp -->
+      <Link
+        :href="route('admin.classrooms.index')"
+        class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        ← Danh sách lớp
+      </Link>
+    </div>
   </div>
+
+  <!-- Form -->
+  <form @submit.prevent="onSubmit"
+        class="space-y-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Mã lớp</label>
+        <InputText v-model="state.code" class="w-full" placeholder="VD: ENG-01" />
+        <div v-if="errors?.code" class="text-red-500 text-xs mt-1">{{ errors.code }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Tên lớp</label>
+        <InputText v-model="state.name" class="w-full" placeholder="VD: Tiếng Anh Thiếu nhi 1" />
+        <div v-if="errors?.name" class="text-red-500 text-xs mt-1">{{ errors.name }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Chi nhánh</label>
+        <Select v-model="state.branch_id" :options="branchOptions" optionLabel="label" optionValue="value" class="w-full" />
+        <div v-if="errors?.branch_id" class="text-red-500 text-xs mt-1">{{ errors.branch_id }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Khóa học</label>
+        <Select v-model="state.course_id" :options="courseOptions" optionLabel="label" optionValue="value" class="w-full" />
+        <div v-if="errors?.course_id" class="text-red-500 text-xs mt-1">{{ errors.course_id }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Giáo viên</label>
+        <Select v-model="state.teacher_id" :options="teacherOptions" optionLabel="label" optionValue="value" class="w-full" showClear />
+        <div v-if="errors?.teacher_id" class="text-red-500 text-xs mt-1">{{ errors.teacher_id }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Ngày bắt đầu</label>
+        <DatePicker v-model="state.start_date" dateFormat="yy-mm-dd" showIcon iconDisplay="input" class="w-full" />
+        <div v-if="errors?.start_date" class="text-red-500 text-xs mt-1">{{ errors.start_date }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Tổng số buổi</label>
+        <InputText v-model.number="state.sessions_total" type="number" min="1" class="w-full" />
+        <div v-if="errors?.sessions_total" class="text-red-500 text-xs mt-1">{{ errors.sessions_total }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Học phí (VND)</label>
+        <InputText v-model.number="state.tuition_fee" type="number" min="0" class="w-full" />
+        <div v-if="errors?.tuition_fee" class="text-red-500 text-xs mt-1">{{ errors.tuition_fee }}</div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Trạng thái</label>
+        <Select v-model="state.status" :options="statusOptions" optionLabel="label" optionValue="value" class="w-full" />
+        <div v-if="errors?.status" class="text-red-500 text-xs mt-1">{{ errors.status }}</div>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1">Ghi chú</label>
+      <Textarea v-model="state.note" autoResize rows="3" class="w-full" placeholder="Ghi chú thêm (không bắt buộc)" />
+      <div v-if="errors?.note" class="text-red-500 text-xs mt-1">{{ errors.note }}</div>
+    </div>
+
+    <div class="flex items-center gap-2 justify-end pt-2">
+      <Link
+        :href="route('admin.classrooms.index')"
+        class="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        Huỷ
+      </Link>
+      <Button type="submit" :loading="state.saving" label="Cập nhật" icon="pi pi-check" />
+    </div>
+  </form>
 </template>

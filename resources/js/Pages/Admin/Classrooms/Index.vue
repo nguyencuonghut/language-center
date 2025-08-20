@@ -176,33 +176,51 @@ function statusSeverity(s) {
       </Column>
 
       <!-- Actions -->
-      <Column header="" style="min-width: 240px; width: 240px">
+      <Column header="" style="width: 360px">
         <template #body="{ data }">
-          <div class="flex items-center gap-2 justify-end">
-            <!-- NEW: Link sang danh sách lịch của lớp -->
+            <div class="flex flex-wrap gap-2 justify-end">
+            <!-- Đi đến danh sách buổi -->
             <Link
-              :href="route('admin.classrooms.schedules.index', data.id)"
-              class="inline-flex items-center px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20 whitespace-nowrap"
+                :href="route('admin.classrooms.sessions.index', { classroom: data.id })"
+                class="px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50
+                    dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20"
+                title="Danh sách buổi học"
             >
-              <i class="pi pi-calendar mr-1"></i> Lịch
+                <i class="pi pi-list mr-1"></i> Buổi học
             </Link>
 
+            <!-- Đi đến lịch tuần -->
             <Link
-              :href="route('admin.classrooms.edit', data.id)"
-              class="inline-flex items-center px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20 whitespace-nowrap"
+                :href="route('admin.classrooms.sessions.week', { classroom: data.id })"
+                class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
+                    dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
+                title="Xem lịch tuần"
             >
-              <i class="pi pi-pencil mr-1"></i> Sửa
+                <i class="pi pi-calendar mr-1"></i> Lịch tuần
             </Link>
 
+            <!-- Sửa lớp -->
+            <Link
+                :href="route('admin.classrooms.edit', data.id)"
+                class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
+                    dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                title="Sửa lớp"
+            >
+                <i class="pi pi-pencil mr-1"></i> Sửa
+            </Link>
+
+            <!-- Xoá lớp -->
             <button
-              @click="destroy(data.id)"
-              class="inline-flex items-center px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20 whitespace-nowrap"
+                @click="destroy(data.id)"
+                class="px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50
+                    dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
+                title="Xoá lớp"
             >
-              <i class="pi pi-trash mr-1"></i> Xoá
+                <i class="pi pi-trash mr-1"></i> Xoá
             </button>
-          </div>
+            </div>
         </template>
-      </Column>
+        </Column>
 
       <template #empty>
         <div class="p-6 text-center text-slate-500 dark:text-slate-400">Chưa có lớp nào.</div>

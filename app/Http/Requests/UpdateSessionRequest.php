@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use App\Models\ClassSession;
 
 class UpdateSessionRequest extends FormRequest
 {
@@ -12,64 +13,78 @@ class UpdateSessionRequest extends FormRequest
         return true; // TODO: gắn policy khi sẵn sàng
     }
 
+    /**
+     * Chuẩn hoá trước khi validate:
+     * - cắt giây HH:mm:ss -> HH:mm
+     */
+    protected function prepareForValidation(): void
+    {
+        $start = $this->input('start_time');
+        $end   = $this->input('end_time');
+
+        $this->merge([
+            'start_time' => $start ? substr((string) $start, 0, 5) : $start,
+            'end_time'   => $end ? substr((string) $end, 0, 5) : $end,
+        ]);
+    }
     public function rules(): array
     {
+        // chỉ validate trường có gửi lên (PUT partial)
         return [
             'date'       => ['sometimes','date'],
-            'start_time' => ['sometimes','date_format:H:i'],
-            'end_time'   => ['sometimes','date_format:H:i','after:start_time'],
+            'start_time' => ['sometimes','regex:/^\d{2}:\d{2}$/'],
+            'end_time'   => ['sometimes','regex:/^\d{2}:\d{2}$/','after:start_time'],
             'room_id'    => ['nullable','integer','exists:rooms,id'],
             'status'     => ['sometimes','in:planned,taught,cancelled'],
-            'note'       => ['nullable','string','max:255'],
+            'note'       => ['nullable','string','max:500'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'date.date'              => 'Ngày không hợp lệ.',
-            'start_time.date_format' => 'Giờ bắt đầu phải theo định dạng HH:mm.',
-            'end_time.date_format'   => 'Giờ kết thúc phải theo định dạng HH:mm.',
-            'end_time.after'         => 'Giờ kết thúc phải sau giờ bắt đầu.',
-            'room_id.exists'         => 'Phòng không hợp lệ.',
-            'status.in'              => 'Trạng thái không hợp lệ.',
+            'date.date'            => 'Ngày không hợp lệ.',
+            'start_time.regex'     => 'Bắt đầu phải theo định dạng HH:mm.',
+            'end_time.regex'       => 'Kết thúc phải theo định dạng HH:mm.',
+            'end_time.after'       => 'Giờ kết thúc phải sau giờ bắt đầu.',
+            'room_id.exists'       => 'Phòng không tồn tại.',
+            'status.in'            => 'Trạng thái không hợp lệ.',
         ];
     }
 
+    /**
+     * Sau khi pass rule cơ bản, kiểm tra trùng phòng nếu có room_id + date + time.
+     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v) {
-            $data = $this->validated();
+            // gom dữ liệu đang có: ưu tiên input mới, fallback dữ liệu hiện tại
+            /** @var ClassSession $session */
+            $session = $this->route('session'); // model binding
 
-            // Chỉ kiểm tra chồng chéo nếu có đủ date, start_time, end_time và room_id
-            if (!array_key_exists('room_id', $data) &&
-                !array_key_exists('date', $data) &&
-                !array_key_exists('start_time', $data) &&
-                !array_key_exists('end_time', $data)) {
+            $date  = $this->input('date', $session->date);
+            $start = $this->input('start_time', substr($session->start_time, 0, 5));
+            $end   = $this->input('end_time',   substr($session->end_time, 0, 5));
+            $room  = $this->input('room_id', $session->room_id);
+
+            // Không set phòng thì bỏ qua check
+            if (!$room || !$date || !$start || !$end) {
                 return;
             }
 
-            $session   = $this->route('session');   // App\Models\ClassSession
-            $roomId    = $data['room_id']    ?? $session->room_id;
-            $date      = $data['date']       ?? $session->date;
-            $startTime = $data['start_time'] ?? $session->start_time;
-            $endTime   = $data['end_time']   ?? $session->end_time;
-
-            if (!$roomId || !$date || !$startTime || !$endTime) {
-                return; // thiếu dữ liệu để kiểm tra
-            }
-
-            $overlap = \App\Models\ClassSession::query()
-                ->where('room_id', $roomId)
-                ->where('date', $date)
-                // khoảng thời gian chồng nhau: A.start < B.end && A.end > B.start
-                ->where('start_time', '<', $endTime)
-                ->where('end_time',   '>', $startTime)
+            // Tìm xem có buổi khác (khác id hiện tại) trùng phòng + ngày + chồng lấn giờ không
+            $exists = ClassSession::query()
+                ->overlapping([
+                    'room_id'    => $room,
+                    'date'       => $date,
+                    'start_time' => $start,
+                    'end_time'   => $end,
+                ])
                 ->where('id', '!=', $session->id)
                 ->exists();
 
-            if ($overlap) {
-                $v->errors()->add('room_id', 'Khung giờ này đã có lớp khác trong cùng phòng.');
+            if ($exists) {
+                $v->errors()->add('room_id', 'Phòng đã có lịch trùng giờ trong ngày này.');
             }
         });
     }

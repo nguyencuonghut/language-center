@@ -11,32 +11,30 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import DatePicker from 'primevue/datepicker' // PrimeVue v4
+import DatePicker from 'primevue/datepicker'
 
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
   classroom: Object,   // {id, code, name, branch_id}
-  sessions: Object,    // LengthAwarePaginator
+  sessions: Object,    // paginator
   rooms: Array,        // [{id,code,name,label,value}]
   filters: Object,     // {sort, order, perPage}
 })
 
+/* ---------- Helpers: format HH:mm ---------- */
+function toHHmm(t) {
+  if (!t) return ''
+  return String(t).slice(0, 5) // HH:mm:ss -> HH:mm
+}
 
-/* ---------- State: filter/sort/pagination ---------- */
+/* ---------- Local state / sort / paging ---------- */
 const state = reactive({
   perPage: props.filters?.perPage ?? (props.sessions?.per_page ?? 20),
 })
 const sortField = ref(props.filters?.sort || 'date')
 const sortOrder = ref(props.filters?.order === 'desc' ? -1 : 1)
 
-function toHHmm(t) {
-  if (!t) return ''
-  // t có thể là '08:00:00' hoặc '08:00' → luôn trả '08:00'
-  return String(t).slice(0,5)
-}
-
-/* ---------- Helpers gọi lại list ---------- */
 function buildQuery(extra = {}) {
   const q = {}
   if (state.perPage && state.perPage !== props.sessions?.per_page) q.per_page = state.perPage
@@ -53,10 +51,13 @@ function applyFilters() {
 }
 function onPage(event) {
   const page = Math.floor(event.first / event.rows) + 1
-  router.visit(route('admin.classrooms.sessions.index', { classroom: props.classroom.id, ...buildQuery({
-    per_page: event.rows,
-    page: page > 1 ? page : undefined
-  })}), {
+  router.visit(route('admin.classrooms.sessions.index', {
+    classroom: props.classroom.id,
+    ...buildQuery({
+      per_page: event.rows,
+      page: page > 1 ? page : undefined
+    })
+  }), {
     preserveScroll: true,
     preserveState: true
   })
@@ -73,7 +74,7 @@ const totalRecords = computed(() => props.sessions?.total ?? value.value.length)
 const rows = computed(() => props.sessions?.per_page ?? 20)
 const first = computed(() => Math.max(0, (props.sessions?.from ?? 1) - 1))
 
-/* ---------- Tuỳ chọn hiển thị ---------- */
+/* ---------- UI helpers ---------- */
 const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
 const statusOptions = [
   { label: 'Kế hoạch', value: 'planned' },
@@ -81,8 +82,8 @@ const statusOptions = [
   { label: 'Huỷ', value: 'cancelled' }
 ]
 
-/* ---------- Row edit model ---------- */
-const editing = reactive({}) // key theo session.id
+/* ---------- Row inline edit ---------- */
+const editing = reactive({}) // key: session.id
 
 function startEdit(row) {
   const id = row.id
@@ -104,13 +105,9 @@ function cancelEdit(id) {
 function isEditing(id) {
   return !!editing[id]
 }
-
-/* ---------- Validate tối thiểu phía FE ---------- */
 function isTime(hhmm) {
   return /^\d{2}:\d{2}$/.test(hhmm)
 }
-
-/* ---------- Save row ---------- */
 function saveRow(row) {
   const id = row.id
   const model = editing[id]
@@ -120,7 +117,6 @@ function saveRow(row) {
   if (!model.date) model.errors.date = 'Vui lòng chọn ngày'
   if (!isTime(model.start_time)) model.errors.start_time = 'Định dạng HH:mm'
   if (!isTime(model.end_time)) model.errors.end_time = 'Định dạng HH:mm'
-
   if (Object.keys(model.errors).length) return
 
   model.saving = true
@@ -130,18 +126,12 @@ function saveRow(row) {
     end_time: toHHmm(model.end_time),
     room_id: model.room_id ? Number(model.room_id) : null,
     status: model.status,
-    note: model.note ?? null,
+    note: model.note || null,
   }, {
     preserveScroll: true,
     onFinish: () => { model.saving = false },
-    onSuccess: () => {
-      // reload lại row hiển thị từ props.sessions khi Inertia re-render
-      delete editing[id]
-    },
-    onError: (errors) => {
-      model.errors = errors || {}
-      // Ví dụ trùng phòng backend trả về errors.room_id
-    }
+    onSuccess: () => { delete editing[id] },
+    onError: (errors) => { model.errors = errors || {} }
   })
 }
 </script>
@@ -158,12 +148,36 @@ function saveRow(row) {
       </div>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- ✅ Đúng: đi tới Week View của Sessions -->
+      <Link
+        :href="route('admin.classrooms.sessions.week', { classroom: classroom.id })"
+        class="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50
+               dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
+      >
+        <i class="pi pi-calendar mr-1"></i> Lịch tuần
+      </Link>
+
+      <!-- Tuỳ chọn: quay về Lịch tuần mẫu (Schedules) để bảo trì lịch gốc -->
       <Link
         :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
-        ← Lịch tuần
+        Lịch tuần mẫu
+      </Link>
+
+      <Link
+        :href="route('admin.classrooms.edit', { classroom: classroom.id })"
+        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        Chi tiết lớp
+      </Link>
+
+      <Link
+        :href="route('admin.classrooms.index')"
+        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        ← Danh sách lớp
       </Link>
 
       <Select
@@ -176,7 +190,7 @@ function saveRow(row) {
     </div>
   </div>
 
-  <!-- Bảng buổi học -->
+  <!-- Table -->
   <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2">
     <DataTable
       :value="value"
@@ -288,19 +302,8 @@ function saveRow(row) {
               <Button label="Sửa" icon="pi pi-pencil" text @click="startEdit(data)" />
             </template>
             <template v-else>
-              <Button
-                label="Huỷ"
-                icon="pi pi-times"
-                text
-                :disabled="editing[data.id].saving"
-                @click="cancelEdit(data.id)"
-              />
-              <Button
-                label="Lưu"
-                icon="pi pi-check"
-                :loading="editing[data.id].saving"
-                @click="saveRow(data)"
-              />
+              <Button label="Huỷ" icon="pi pi-times" text :disabled="editing[data.id].saving" @click="cancelEdit(data.id)" />
+              <Button label="Lưu" icon="pi pi-check" :loading="editing[data.id].saving" @click="saveRow(data)" />
             </template>
           </div>
         </template>
