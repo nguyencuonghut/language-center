@@ -49,19 +49,21 @@ class AttendanceController extends Controller
 
         // Lấy điểm danh đã có
         $existing = Attendance::where('class_session_id', $session->id)
-            ->get(['student_id','status'])
+            ->get(['student_id','status','note'])
             ->keyBy('student_id');
 
         // Map ra list cho FE
         $rows = $enrollments->map(function ($en) use ($existing) {
             $s = $en->student;
+            $attendance = $existing->get($s->id);
             return [
                 'student_id' => $s->id,
                 'code'       => $s->code,
                 'name'       => $s->name,
                 'phone'      => $s->phone,
                 'email'      => $s->email,
-                'status'     => optional($existing->get($s->id))->status ?? 'present',
+                'status'     => $attendance->status ?? 'present',
+                'note'       => $attendance->note ?? '',
             ];
         });
 

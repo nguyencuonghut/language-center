@@ -26,6 +26,7 @@ class StoreAttendanceRequest extends FormRequest
             'items'              => ['required', 'array', 'min:1'],
             'items.*.student_id' => ['required', 'integer', 'exists:students,id'],
             'items.*.status'     => ['required', Rule::in(['present','absent','late','excused'])],
+            'items.*.note'       => ['nullable', 'string', 'max:500'],
         ];
     }
 

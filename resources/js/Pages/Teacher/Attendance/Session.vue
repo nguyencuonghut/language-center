@@ -9,13 +9,14 @@ import Column from 'primevue/column'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
 
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
   session: Object,   // {id, class_id, date, start_time, end_time}
   classroom: Object, // {id, code, name}
-  students: Array    // [{student_id, code, name, status}]
+  students: Array    // [{student_id, code, name, status, note}]
 })
 
 const rows = ref((props.students || []).map(s => ({
@@ -23,6 +24,7 @@ const rows = ref((props.students || []).map(s => ({
   code: s.code,
   name: s.name,
   status: s.status || 'present',
+  note: s.note || '',
 })))
 
 const statusOptions = [
@@ -33,7 +35,11 @@ const statusOptions = [
 ]
 
 function save(){
-  const items = rows.value.map(r => ({ student_id: r.student_id, status: r.status }))
+  const items = rows.value.map(r => ({
+    student_id: r.student_id,
+    status: r.status,
+    note: r.note || null
+  }))
   router.post(route('teacher.attendance.store', { session: props.session.id }), { items }, {
     preserveScroll: true
   })
@@ -68,6 +74,11 @@ function toHHmm(t){ return String(t||'').slice(0,5) }
       <Column header="Trạng thái" style="width:220px">
         <template #body="{ data }">
           <Select v-model="data.status" :options="statusOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </template>
+      </Column>
+      <Column header="Ghi chú" style="width:300px">
+        <template #body="{ data }">
+          <InputText v-model="data.note" placeholder="Nhập ghi chú..." class="w-full" />
         </template>
       </Column>
     </DataTable>
