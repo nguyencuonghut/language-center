@@ -56,7 +56,7 @@ function routeExists(name){
 
 /* ---------------- List state ---------------- */
 const state = reactive({
-  perPage: props.filters?.perPage ?? (props.enrollments?.per_page ?? 20),
+  perPage: props.filters?.perPage ?? (props.enrollments?.per_page ?? 12),
 })
 const sortField = ref(props.filters?.sort || null)
 const sortOrder = ref(props.filters?.order === 'desc' ? -1 : (props.filters?.order === 'asc' ? 1 : null))
@@ -88,7 +88,7 @@ function onSort(e){
 
 const value = computed(() => props.enrollments?.data ?? [])
 const totalRecords = computed(() => props.enrollments?.total ?? value.value.length)
-const rows = computed(() => props.enrollments?.per_page ?? 20)
+const rows = computed(() => props.enrollments?.per_page ?? 12)
 const first = computed(() => Math.max(0, (props.enrollments?.from ?? 1) - 1))
 
 /* ---------------- Dialog: Enroll ---------------- */
@@ -241,6 +241,9 @@ function destroy(id){
       dataKey="id"
       responsiveLayout="scroll"
       size="small"
+      paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+      currentPageReportTemplate="Hiển thị {first} - {last} trên tổng số {totalRecords} bản ghi"
+      :rowsPerPageOptions="[12, 24, 48]"
     >
       <Column field="id" header="#" style="width: 80px" :sortable="true" />
 
