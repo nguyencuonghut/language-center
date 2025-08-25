@@ -10,7 +10,9 @@ class TeachingAssignment extends Model
     use HasFactory;
 
     protected $fillable = [
-        // Thêm các trường phù hợp nếu có, ví dụ:
-        // 'teacher_id', 'class_id', 'assigned_at', ...
+        'teacher_id',
+        'class_id',
+        'assigned_at',
+        'rate_per_session',
     ];
 }
