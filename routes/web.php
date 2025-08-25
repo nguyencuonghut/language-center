@@ -10,6 +10,7 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\Admin\ClassSessionController;
+use App\Http\Controllers\Admin\EnrollmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,24 +74,37 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('classrooms', ClassroomController::class);
 
         // Nested resource: schedules thuộc về classroom
-        Route::resource('classrooms.schedules', ClassScheduleController::class)
+        Route::prefix('classrooms/{classroom}')
+            ->name('classrooms.')
+            ->group(function () {
+            Route::resource('schedules', ClassScheduleController::class)
             ->parameters(['schedules' => 'schedule'])   // {schedule} cho model binding
             ->scoped(['schedule' => 'id']);             // scope theo id, hoặc có thể thay bằng 'uuid' nếu bạn dùng
 
-        // Generate sessions (needs classroom parameter for route-model binding)
-        Route::post('classrooms/{classroom}/sessions/generate', [ClassSessionController::class, 'generate'])
-            ->name('classrooms.sessions.generate');
-        Route::get('classrooms/{classroom}/sessions', [ClassSessionController::class, 'index'])
-            ->name('classrooms.sessions.index'); // List buổi theo lớp
-        Route::put('classrooms/{classroom}/sessions/{session}', [ClassSessionController::class, 'update'])
-            ->name('classrooms.sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
-        // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
-        Route::get('classrooms/{classroom}/sessions/week', [ClassSessionController::class, 'week'])
-            ->name('classrooms.sessions.week');
-        Route::post('classrooms/{classroom}/sessions', [ClassSessionController::class, 'store'])
-            ->name('classrooms.sessions.store');
-        Route::post('classrooms/{classroom}/sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
-            ->name('classrooms.sessions.bulk-room');
+            // Generate sessions (needs classroom parameter for route-model binding)
+            Route::post('sessions/generate', [ClassSessionController::class, 'generate'])
+                ->name('sessions.generate');
+            Route::get('sessions', [ClassSessionController::class, 'index'])
+                ->name('sessions.index'); // List buổi theo lớp
+            Route::put('sessions/{session}', [ClassSessionController::class, 'update'])
+                ->name('sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
+            // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
+            Route::get('sessions/week', [ClassSessionController::class, 'week'])
+                ->name('sessions.week');
+            Route::post('sessions', [ClassSessionController::class, 'store'])
+                ->name('sessions.store');
+            Route::post('sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
+                ->name('sessions.bulk-room');
+            // ENROLLMENTS (ghi danh)
+            Route::get('enrollments', [EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::post('enrollments',       [EnrollmentController::class, 'store'])->name('enrollments.store');
+            Route::delete('enrollments/{enrollment}', [EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+            Route::post('enrollments/bulk', [EnrollmentController::class, 'bulkStore'])->name('enrollments.bulk-store');
+
+            // (tuỳ chọn) API tìm học viên để gợi ý autocomplete
+            Route::get('enrollments/search-students', [EnrollmentController::class, 'searchStudents'])
+                ->name('enrollments.search-students');
+        });
 
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
