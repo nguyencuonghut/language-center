@@ -11,6 +11,8 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\Admin\ClassSessionController;
 use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Teacher\AttendanceController;
+use App\Http\Controllers\Teacher\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,8 +20,23 @@ use App\Http\Controllers\Admin\EnrollmentController;
 |--------------------------------------------------------------------------
 */
 
-// Trang chủ → tuỳ ý: tạm chuyển về dashboard admin
+// Trang chủ → điều hướng theo role của user
 Route::get('/', function () {
+    if (!auth()->check()) {
+        return redirect()->route('login');
+    }
+
+    $user = auth()->user();
+
+    if ($user->hasRole('admin')) {
+        return redirect()->route('admin.dashboard');
+    } elseif ($user->hasRole('manager')) {
+        return redirect()->route('manager.dashboard');
+    } elseif ($user->hasRole('teacher')) {
+        return redirect()->route('teacher.dashboard');
+    }
+
+    // Fallback cho user không có role hoặc role không xác định
     return redirect()->route('admin.dashboard');
 });
 
@@ -147,7 +164,11 @@ Route::middleware(['auth'])->group(function () {
     |  - Bạn có thể thay/ghép thêm permission:...
     |----------------------------------------------------------------------
     */
-    Route::prefix('manager')->name('manager.')->middleware(['role:manager'])->group(function () {
+    Route::middleware(['auth', 'verified', 'role:manager'])
+    ->prefix('manager')
+    ->name('manager.')
+    ->group(function () {
+    //Route::prefix('manager')->name('manager.')->middleware(['role:manager'])->group(function () {
 
         // Dashboard
         if (class_exists(\App\Http\Controllers\Manager\DashboardController::class)) {
@@ -182,26 +203,28 @@ Route::middleware(['auth'])->group(function () {
     |  - Quyền mặc định: role:teacher
     |----------------------------------------------------------------------
     */
-    Route::prefix('teacher')->name('teacher.')->middleware(['role:teacher'])->group(function () {
-
+    Route::middleware(['auth', 'verified', 'role:teacher'])
+    ->prefix('teacher')
+    ->name('teacher.')
+    ->group(function () {
         // Dashboard
-        if (class_exists(\App\Http\Controllers\Teacher\DashboardController::class)) {
-            Route::get('/dashboard', \App\Http\Controllers\Teacher\DashboardController::class)
+        if (class_exists(DashboardController::class)) {
+            Route::get('/dashboard', DashboardController::class)
                 ->name('dashboard');
         } else {
             Route::get('/dashboard', fn () => Inertia::render('Teacher/Dashboard'))->name('dashboard');
         }
 
-        // Ví dụ placeholders
-        Route::get('/schedule', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Lịch dạy',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('schedule');
 
-        Route::get('/attendance', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Điểm danh theo buổi',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('attendance');
+        // Điểm danh
+        Route::get('attendance', [AttendanceController::class, 'index'])
+            ->name('attendance.index'); // Danh sách buổi của tôi
+
+        Route::get('attendance/sessions/{session}', [AttendanceController::class, 'show'])
+            ->name('attendance.show');   // Mở phiếu điểm danh cho 1 buổi
+
+        Route::post('attendance/sessions/{session}', [AttendanceController::class, 'store'])
+            ->name('attendance.store');  // Lưu điểm danh
     });
 
     /*

@@ -14,17 +14,15 @@ const page = usePage()
 const { showSuccess, showError, showInfo } = usePageToast()
 
 /* Flash messages từ server */
-watch(() => page.props.flash, (flash) => {
-  if (flash?.success) {
-    showSuccess('Thành công', flash.success)
-  }
-  if (flash?.error) {
-    showError('Lỗi', flash.error)
-  }
-  if (flash?.message) {
-    showInfo('Thông báo', flash.message)
-  }
-}, { deep: true, immediate: true })
+watch(
+  () => page.props.flash,
+  (flash) => {
+    if (flash?.success) showSuccess('Thành công', flash.success)
+    if (flash?.error)   showError('Lỗi', flash.error)
+    if (flash?.message) showInfo('Thông báo', flash.message)
+  },
+  { deep: true, immediate: true }
+)
 
 /* Theme (dark/light) — đơn giản */
 const isDark = ref(false)
@@ -45,27 +43,65 @@ function toggleDark(){ applyTheme(!isDark.value) }
 const showDrawer = ref(false)
 const isCollapsed = ref(false)
 
-/* Menu items */
-const menu = [
-  { label: 'Dashboard', icon: 'pi pi-home', url: '/admin/dashboard', ready: true },
-  { label: 'Chi nhánh', icon: 'pi pi-sitemap', url: '/admin/branches', ready: true },
-  { label: 'Phòng học', icon: 'pi pi-building', url: '/admin/rooms', ready: true },
-  { label: 'Lớp học', icon: 'pi pi-users', url: '/admin/classrooms', ready: true },
-  { label: 'Học viên', icon: 'pi pi-id-card', url: '/admin/students', ready: false },
+/* ===== Menu theo vai trò ===== */
+// Chuẩn hoá roles → mảng tên (string)
+const rolesRaw = computed(() => page.props?.auth?.user?.roles ?? [])
+const roleNames = computed(() => {
+  const arr = Array.isArray(rolesRaw.value) ? rolesRaw.value : []
+  return arr.map(r => (typeof r === 'string' ? r : r?.name)).filter(Boolean)
+})
+
+// Helpers check vai trò
+const hasRole = (name) => roleNames.value.includes(name)
+const isAdmin   = computed(() => hasRole('admin'))
+const isManager = computed(() => hasRole('manager'))
+const isTeacher = computed(() => hasRole('teacher'))
+
+// Admin menu (giữ format bạn đang dùng)
+const adminMenu = [
+  { label: 'Dashboard', icon: 'pi pi-home',     url: '/admin/dashboard',   ready: true },
+  { label: 'Chi nhánh', icon: 'pi pi-sitemap',  url: '/admin/branches',    ready: true },
+  { label: 'Phòng học', icon: 'pi pi-building', url: '/admin/rooms',       ready: true },
+  { label: 'Lớp học',   icon: 'pi pi-users',    url: '/admin/classrooms',  ready: true },
+  { label: 'Học viên',  icon: 'pi pi-id-card',  url: '/admin/students',    ready: false },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: false },
-  { label: 'Khóa học', icon: 'pi pi-book', url: '/admin/courses', ready: false },
-  { label: 'Hóa đơn', icon: 'pi pi-wallet', url: '/admin/billing', ready: false },
-  { label: 'Báo cáo', icon: 'pi pi-chart-bar', url: '/admin/reports', ready: false },
-  { label: 'Cài đặt', icon: 'pi pi-cog', url: '/admin/settings', ready: false },
+  { label: 'Khóa học',  icon: 'pi pi-book',     url: '/admin/courses',     ready: false },
+  { label: 'Hóa đơn',   icon: 'pi pi-wallet',   url: '/admin/billing',     ready: false },
+  { label: 'Báo cáo',   icon: 'pi pi-chart-bar',url: '/admin/reports',     ready: false },
+  { label: 'Cài đặt',   icon: 'pi pi-cog',      url: '/admin/settings',    ready: false },
 ]
 
+// Manager menu (tham khảo, có thể chỉnh tiếp)
+const managerMenu = [
+  { label: 'Dashboard', icon: 'pi pi-home',     url: '/manager/dashboard', ready: true },
+  { label: 'Lớp học',   icon: 'pi pi-users',    url: '/manager/classrooms',ready: true },
+  { label: 'Phòng học', icon: 'pi pi-building', url: '/manager/rooms',     ready: true },
+  { label: 'Hóa đơn',   icon: 'pi pi-wallet',   url: '/manager/billing',   ready: false },
+  { label: 'Báo cáo',   icon: 'pi pi-chart-bar',url: '/manager/reports',   ready: false },
+]
+
+// Teacher menu
+const teacherMenu = [
+  { label: 'Dashboard', icon: 'pi pi-home',         url: '/teacher/dashboard',    ready: true },
+  { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/teacher/attendance',   ready: true },
+  { label: 'Lịch dạy',  icon: 'pi pi-calendar',     url: '/teacher/schedule',     ready: false },
+]
+
+// Chọn menu theo vai trò (ưu tiên admin > manager > teacher)
+const menu = computed(() => {
+  if (isAdmin.value)   return adminMenu
+  if (isManager.value) return managerMenu
+  if (isTeacher.value) return teacherMenu
+  return [] // fallback
+})
+
+/* Active route highlight */
 function normalizePath(path = '') {
   path = String(path).split('#')[0].split('?')[0] || '/'
   if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
   return path
 }
 const currentPath = computed(() => normalizePath(page.url || window.location.pathname))
-
 function isActive(item) {
   const base = normalizePath(item.url)
   return currentPath.value === base || currentPath.value.startsWith(base + '/')
@@ -159,7 +195,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
     <!-- Main -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Topbar -->
-  <header class="flex items-center justify-between bg-white dark:bg-[#23272f] border-b border-[#e5e7eb] dark:border-[#23272f] px-3 py-2 shadow-sm transition-colors duration-theme">
+      <header class="flex items-center justify-between bg-white dark:bg-[#23272f] border-b border-[#e5e7eb] dark:border-[#23272f] px-3 py-2 shadow-sm transition-colors duration-theme">
         <div class="flex items-center gap-2">
           <Button icon="pi pi-bars" text rounded class="lg:!hidden !text-[#10b981] dark:!text-[#6ee7b7]" @click="showDrawer = true" />
           <span class="hidden sm:block text-sm">Xin chào, {{ page.props?.auth?.user?.name ?? 'User' }}</span>
