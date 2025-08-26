@@ -11,6 +11,7 @@ use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\Admin\ClassSessionController;
 use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 
@@ -252,4 +253,19 @@ Route::middleware(['auth'])->group(function () {
             return back();
         })->name('branch.switch');
     }
+
+    /*
+    |----------------------------------------------------------------------
+    | Route dùng chung Admin/Manager
+    |  - KHÔNG đặt trong prefix để cả 2 vai trò dùng chung
+    |----------------------------------------------------------------------
+    */
+    Route::middleware(['auth', 'role:admin|manager'])
+    ->prefix('manager')
+    ->name('manager.')
+    ->group(function () {
+        Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
+        Route::post('timesheets/{id}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');
+        Route::post('timesheets/bulk-approve', [TimesheetController::class, 'bulkApprove'])->name('timesheets.bulk-approve');
+    });
 });

@@ -57,7 +57,7 @@ const isAdmin   = computed(() => hasRole('admin'))
 const isManager = computed(() => hasRole('manager'))
 const isTeacher = computed(() => hasRole('teacher'))
 
-// Admin menu (giữ format bạn đang dùng)
+// Admin menu
 const adminMenu = [
   { label: 'Dashboard', icon: 'pi pi-home',     url: '/admin/dashboard',   ready: true },
   { label: 'Chi nhánh', icon: 'pi pi-sitemap',  url: '/admin/branches',    ready: true },
@@ -71,13 +71,14 @@ const adminMenu = [
   { label: 'Cài đặt',   icon: 'pi pi-cog',      url: '/admin/settings',    ready: false },
 ]
 
-// Manager menu (tham khảo, có thể chỉnh tiếp)
+// Manager menu — đã thêm “Bảng công”
 const managerMenu = [
-  { label: 'Dashboard', icon: 'pi pi-home',     url: '/manager/dashboard', ready: true },
-  { label: 'Lớp học',   icon: 'pi pi-users',    url: '/manager/classrooms',ready: true },
-  { label: 'Phòng học', icon: 'pi pi-building', url: '/manager/rooms',     ready: true },
-  { label: 'Hóa đơn',   icon: 'pi pi-wallet',   url: '/manager/billing',   ready: false },
-  { label: 'Báo cáo',   icon: 'pi pi-chart-bar',url: '/manager/reports',   ready: false },
+  { label: 'Dashboard',  icon: 'pi pi-home',     url: '/manager/dashboard',   ready: true },
+  { label: 'Lớp học',    icon: 'pi pi-users',    url: '/manager/classrooms',  ready: true },
+  { label: 'Phòng học',  icon: 'pi pi-building', url: '/manager/rooms',       ready: true },
+  { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true }, // ← NEW
+  { label: 'Hóa đơn',    icon: 'pi pi-wallet',   url: '/manager/billing',     ready: false },
+  { label: 'Báo cáo',    icon: 'pi pi-chart-bar',url: '/manager/reports',     ready: false },
 ]
 
 // Teacher menu
