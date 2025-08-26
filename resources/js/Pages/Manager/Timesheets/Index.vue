@@ -58,6 +58,13 @@ function toggleSelect(id, checked) {
     selectedIds.value = selectedIds.value.filter(x => x !== id)
   }
 }
+
+// Format number with Vietnamese comma separators
+function formatVND(amount) {
+  if (!amount) return '—'
+  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
 function approveOne(id) {
   router.post(route('manager.timesheets.approve', id), {}, { preserveScroll: true })
 }
@@ -139,7 +146,11 @@ function bulkApprove() {
       <Column header="Phòng" style="width: 180px">
         <template #body="{ data }">{{ data.session?.room?.code ? (data.session.room.code+' - ') : '' }}{{ data.session?.room?.name ?? '—' }}</template>
       </Column>
-      <Column field="amount" header="Tiền buổi (VND)" style="width: 160px" />
+      <Column header="Tiền buổi (VND)" style="width: 160px">
+        <template #body="{ data }">
+          {{ formatVND(data.amount) }}
+        </template>
+      </Column>
       <Column field="status" header="Trạng thái" style="width: 140px">
         <template #body="{ data }">
           <Tag :value="data.status" :severity="data.status==='draft' ? 'info' : data.status==='approved' ? 'success' : 'warning'" />
