@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\EnrollmentController;
 use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
+use App\Http\Controllers\Manager\PayrollController;
 
 /*
 |--------------------------------------------------------------------------
@@ -264,8 +265,28 @@ Route::middleware(['auth'])->group(function () {
     ->prefix('manager')
     ->name('manager.')
     ->group(function () {
+        // TIMESHEETS
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
         Route::post('timesheets/{id}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');
         Route::post('timesheets/bulk-approve', [TimesheetController::class, 'bulkApprove'])->name('timesheets.bulk-approve');
+
+        // PAYROLLS
+        Route::prefix('payrolls')->name('payrolls.')->group(function () {
+            Route::get('/',            [PayrollController::class, 'index'])->name('index');   // danh sách kỳ
+            Route::get('/create',      [PayrollController::class, 'create'])->name('create'); // form tạo kỳ
+            Route::post('/',           [PayrollController::class, 'store'])->name('store');   // generate từ timesheet
+            Route::get('/{payroll}',   [PayrollController::class, 'show'])->name('show');     // xem chi tiết items
+
+            // hành động trạng thái
+            Route::post('/{payroll}/approve', [PayrollController::class, 'approve'])->name('approve');
+            Route::post('/{payroll}/lock',    [PayrollController::class, 'lock'])->name('lock');
+
+            // chỉ cho phép xoá khi vẫn là draft
+            Route::delete('/{payroll}', [PayrollController::class, 'destroy'])->name('destroy');
+
+            // tuỳ chọn (nếu đã làm)
+            Route::post('/{payroll}/lock',   [PayrollController::class, 'lock'])->name('lock');
+            Route::get('/{payroll}/export',  [PayrollController::class, 'export'])->name('export');
+        });
     });
 });
