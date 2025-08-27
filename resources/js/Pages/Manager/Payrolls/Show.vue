@@ -84,7 +84,11 @@ function onPage(e) {
 /* ---------------- Actions ---------------- */
 function approve() {
   if (!confirm('Duyệt bảng lương này?')) return
-  router.post(route('manager.payrolls.approve', props.payroll.id), {}, { preserveScroll: true })
+  router.post(
+    route('manager.payrolls.approve', props.payroll.id),
+    { confirm: true },  // Add this line
+    { preserveScroll: true }
+  )
 }
 function lockPayroll() {
   if (!confirm('Khóa bảng lương này? Sau khi khóa sẽ không chỉnh sửa.')) return
