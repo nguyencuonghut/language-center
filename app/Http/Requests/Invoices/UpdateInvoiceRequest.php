@@ -16,7 +16,7 @@ class UpdateInvoiceRequest extends FormRequest
             'student_id' => ['required','integer','exists:students,id'],
             'class_id'   => ['nullable','integer','exists:classrooms,id'],
             'total'      => ['required','integer','min:0'],
-            'status'     => ['required', Rule::in(['unpaid','partial','paid','refunded'])],
+            'status'     => ['nullable', Rule::in(['unpaid','partial','paid','refunded'])],
             'due_date'   => ['nullable','date'],
         ];
     }

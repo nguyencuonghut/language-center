@@ -141,7 +141,7 @@ class InvoiceController extends Controller
             'classes'  => $classes,
             'defaults' => [
                 'status' => 'unpaid',
-                'total_default'  => $totalDefault,
+                'total_defaulti'  => $totalDefault,
                 'class_id'      => $class?->id,
                 'student_id'    => $student?->id,
             ],
@@ -209,7 +209,7 @@ class InvoiceController extends Controller
             'student_id' => $data['student_id'],
             'class_id'   => $data['class_id'] ?? null,
             'total'      => (int) $data['total'],
-            'status'     => $data['status'],
+            'status'      => $data['status'] ?? $invoice->status,
             'due_date'   => $data['due_date'] ?? null,
         ]);
 
