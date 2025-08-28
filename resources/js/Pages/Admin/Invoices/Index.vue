@@ -28,6 +28,36 @@ function toVnDate(ymd) {
   return `${d}/${m}/${y}`
 }
 
+// Check if input is a date in format dd/mm/yyyy or dd/mm
+function isDateString(str) {
+  return /^\d{1,2}\/\d{1,2}(?:\/\d{4})?$/.test(str)
+}
+
+// Convert date string to YYYY-MM-DD format for API
+function toYmd(dmy) {
+  const [d, m, y = new Date().getFullYear()] = dmy.split('/')
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+}
+
+// Check if input is a date range (e.g., 01/08 - 15/08)
+function isDateRangeString(str) {
+  return /^\d{1,2}\/\d{1,2}\s*-\s*\d{1,2}\/\d{1,2}$/.test(str)
+}
+
+// Convert date range string to start and end dates
+function parseDateRange(rangeStr) {
+  const [start, end] = rangeStr.split('-').map(s => s.trim())
+  return {
+    start: toYmd(start),
+    end: toYmd(end)
+  }
+}
+
+// Check if input is a number (for amount)
+function isNumericString(str) {
+  return /^\d+$/.test(str)
+}
+
 const invoiceService = createInvoiceService()
 
 /* -------- Local UI state -------- */
@@ -48,7 +78,26 @@ const sortOrder = ref(
 /* -------- Navigate with filters -------- */
 function buildQuery(extra = {}) {
   const query = {}
-  if (state.q && state.q.trim() !== '') query.q = state.q.trim()
+  const searchTerm = state.q.trim()
+
+  if (searchTerm !== '') {
+    if (isDateRangeString(searchTerm)) {
+      // Handle date range search (e.g., 01/08 - 15/08)
+      const { start, end } = parseDateRange(searchTerm)
+      query.start_date = start
+      query.end_date = end
+    } else if (isDateString(searchTerm)) {
+      // Handle single date search (dd/mm/yyyy or dd/mm)
+      query.due_date = toYmd(searchTerm)
+    } else if (isNumericString(searchTerm)) {
+      // Handle amount search
+      query.total = searchTerm
+    } else {
+      // Handle text search
+      query.q = searchTerm
+    }
+  }
+
   if (state.status && state.status !== 'all') query.status = state.status
   if (state.branch && state.branch !== 'all') query.branch = state.branch
   if (state.perPage && state.perPage !== props.invoices?.per_page) query.per_page = state.perPage
@@ -145,7 +194,12 @@ function statusSeverity(s) {
 
       <!-- Search -->
       <span class="inline-flex items-center gap-1">
-        <InputText v-model="state.q" placeholder="Tìm mã/tên HV/lớp..." class="w-60" @keydown.enter="applyFilters" />
+        <InputText
+          v-model="state.q"
+          placeholder="Tìm mã/tên HV/lớp/tổng tiền (số)/hạn thanh toán (dd/mm/yyyy)..."
+          class="w-96"
+          @keydown.enter="applyFilters"
+        />
         <Button icon="pi pi-search" text @click="applyFilters" />
         <Button icon="pi pi-times" text @click="onClearSearch" :disabled="!state.q" />
       </span>
@@ -153,7 +207,7 @@ function statusSeverity(s) {
       <!-- PerPage -->
       <Select
         v-model="state.perPage"
-        :options="[{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]"
+        :options="[{label:'12 / trang',value:12},{label:'24 / trang',value:24},{label:'48 / trang',value:48}]"
         optionLabel="label" optionValue="value"
         class="w-40"
         @change="applyFilters"

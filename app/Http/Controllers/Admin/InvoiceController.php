@@ -31,6 +31,8 @@ class InvoiceController extends Controller
         $branch   = $request->string('branch')->toString();             // 'all' | branch_id
         $status   = $request->string('status')->toString();             // unpaid|partial|paid|refunded
         $q        = trim((string) $request->string('q'));
+        $total    = $request->input('total');
+        $dueDate  = $request->input('due_date');
         $perPage  = (int) $request->integer('per_page', 12);
         $sort     = $request->string('sort')->toString();               // created_at|due_date|total|status
         $order    = strtolower($request->string('order')->toString());  // asc|desc
@@ -59,6 +61,16 @@ class InvoiceController extends Controller
             });
         }
 
+        // Search by total amount (exact match)
+        if ($total) {
+            $query->where('total', (int) $total);
+        }
+
+        // Search by due date (exact match)
+        if ($dueDate) {
+            $query->whereDate('due_date', $dueDate);
+        }
+
         // Sorting
         $sortable = ['created_at','due_date','total','status','id'];
         if (!in_array($sort, $sortable, true)) {
@@ -81,6 +93,8 @@ class InvoiceController extends Controller
                 'branch'   => $branch ?: 'all',
                 'status'   => $status ?: null,
                 'q'        => $q ?: null,
+                'total'    => $total ?: null,
+                'due_date' => $dueDate ?: null,
                 'perPage'  => $perPage,
                 'sort'     => $sort,
                 'order'    => $order,
