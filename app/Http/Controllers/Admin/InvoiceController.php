@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Student;
 use App\Models\Classroom;
+use App\Services\InvoiceCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,12 +117,23 @@ class InvoiceController extends Controller
     /**
      * Form tạo hoá đơn
      */
-    public function create()
+    public function create(Request $request, InvoiceCalculator $calc)
     {
         // Dữ liệu chọn
         $branches = Branch::select('id','name')->orderBy('name')->get();
         $students = Student::select('id','code','name','phone','email')->orderBy('name')->limit(50)->get();
         $classes  = Classroom::select('id','code','name')->orderBy('name')->limit(50)->get();
+
+        $classId   = $request->integer('class_id');
+        $studentId = $request->integer('student_id');
+
+        $class     = $classId ? Classroom::find($classId) : null;
+        $student   = $studentId ? Student::find($studentId) : null;
+
+        $totalDefault = 0;
+        if ($class && $student) {
+            $totalDefault = $calc->tuitionDefaultTotal($class->id, $student->id, null);
+        }
 
         return Inertia::render('Admin/Invoices/Create', [
             'branches' => $branches,
@@ -129,6 +141,9 @@ class InvoiceController extends Controller
             'classes'  => $classes,
             'defaults' => [
                 'status' => 'unpaid',
+                'total_default'  => $totalDefault,
+                'class_id'      => $class?->id,
+                'student_id'    => $student?->id,
             ],
         ]);
     }
