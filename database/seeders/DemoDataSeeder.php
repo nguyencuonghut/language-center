@@ -254,6 +254,7 @@ class DemoDataSeeder extends Seeder
 
                     // Hóa đơn học phí cơ bản
                     $invoice = Invoice::create([
+                        'code'      => 'INV-' . $stu->code . '-' . $class->code,
                         'branch_id' => $class->branch_id,
                         'student_id'=> $stu->id,
                         'class_id'  => $class->id,

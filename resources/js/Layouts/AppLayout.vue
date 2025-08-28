@@ -67,7 +67,7 @@ const adminMenu = [
   { label: 'Học viên',  icon: 'pi pi-id-card',  url: '/admin/students',    ready: false },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: false },
   { label: 'Khóa học',  icon: 'pi pi-book',     url: '/admin/courses',     ready: false },
-  { label: 'Hóa đơn',   icon: 'pi pi-wallet',   url: '/admin/billing',     ready: false },
+  { label: 'Hoá đơn', icon: 'pi pi-wallet', url: '/admin/invoices', ready: true },
   { label: 'Báo cáo',   icon: 'pi pi-chart-bar',url: '/admin/reports',     ready: false },
   { label: 'Cài đặt',   icon: 'pi pi-cog',      url: '/admin/settings',    ready: false },
 ]
@@ -79,7 +79,7 @@ const managerMenu = [
   { label: 'Phòng học',  icon: 'pi pi-building', url: '/manager/rooms',       ready: true },
   { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true },
   { label: 'Bảng lương', icon: 'pi pi-briefcase', url: '/manager/payrolls', ready: true },
-  { label: 'Hóa đơn',    icon: 'pi pi-wallet',   url: '/manager/billing',     ready: false },
+  { label: 'Hoá đơn',    icon: 'pi pi-wallet',   url: '/manager/invoices',     ready: true },
   { label: 'Báo cáo',    icon: 'pi pi-chart-bar',url: '/manager/reports',     ready: false },
 ]
 

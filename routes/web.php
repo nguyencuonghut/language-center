@@ -15,6 +15,9 @@ use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Manager\PayrollController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\InvoiceItemController;
+use App\Http\Controllers\Admin\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -125,6 +128,28 @@ Route::middleware(['auth'])->group(function () {
                 ->name('enrollments.search-students');
         });
 
+        // =========================
+        // Invoices
+        // =========================
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/',            [InvoiceController::class, 'index'])->name('index');
+            Route::get('/create',      [InvoiceController::class, 'create'])->name('create');
+            Route::post('/',           [InvoiceController::class, 'store'])->name('store');
+            Route::get('/{invoice}',   [InvoiceController::class, 'show'])->name('show');
+            Route::get('/{invoice}/edit', [InvoiceController::class, 'edit'])->name('edit');
+            Route::put('/{invoice}',   [InvoiceController::class, 'update'])->name('update');
+            Route::delete('/{invoice}',[InvoiceController::class, 'destroy'])->name('destroy');
+
+            // -------- Invoice Items (nested) --------
+            Route::post('/{invoice}/items',                         [InvoiceItemController::class, 'store'])->name('items.store');
+            Route::put('/{invoice}/items/{item}',                   [InvoiceItemController::class, 'update'])->name('items.update');
+            Route::delete('/{invoice}/items/{item}',                [InvoiceItemController::class, 'destroy'])->name('items.destroy');
+
+            // -------- Payments (nested) --------
+            Route::post('/{invoice}/payments',                      [PaymentController::class, 'store'])->name('payments.store');
+            Route::delete('/{invoice}/payments/{payment}',          [PaymentController::class, 'destroy'])->name('payments.destroy');
+        });
+
         // Các menu admin CHƯA làm → placeholder
         Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Học viên',
@@ -140,11 +165,6 @@ Route::middleware(['auth'])->group(function () {
             'title' => 'Khóa học',
             'note'  => 'Tính năng đang phát triển.',
         ]))->name('courses');
-
-        Route::get('/billing', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Hóa đơn',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('billing');
 
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Báo cáo',

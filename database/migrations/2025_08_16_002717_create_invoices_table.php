@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
+            $table->string('code')->unique();
             $table->foreignId('branch_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
             $table->foreignId('student_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
             $table->foreignId('class_id')->nullable()->constrained('classrooms')->nullOnDelete();

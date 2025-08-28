@@ -10,7 +10,7 @@ class Invoice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'branch_id', 'student_id', 'class_id', 'total', 'status', 'due_date'
+        'code', 'branch_id', 'student_id', 'class_id', 'total', 'status', 'due_date'
     ];
 
     public function branch()
