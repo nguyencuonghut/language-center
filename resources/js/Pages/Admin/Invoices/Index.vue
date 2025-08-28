@@ -11,6 +11,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import Tooltip from 'primevue/tooltip'
 
 defineOptions({ layout: AppLayout })
 
@@ -193,16 +194,31 @@ function statusSeverity(s) {
       />
 
       <!-- Search -->
-      <span class="inline-flex items-center gap-1">
-        <InputText
-          v-model="state.q"
-          placeholder="Tìm mã/tên HV/lớp/tổng tiền (số)/hạn thanh toán (dd/mm/yyyy)..."
-          class="w-96"
-          @keydown.enter="applyFilters"
-        />
-        <Button icon="pi pi-search" text @click="applyFilters" />
-        <Button icon="pi pi-times" text @click="onClearSearch" :disabled="!state.q" />
-      </span>
+      <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <span class="relative flex-grow">
+          <InputText
+            v-model="state.q"
+            placeholder="Tìm mã/tên HV/lớp/tổng tiền ..."
+            class="w-full sm:w-96"
+            @keydown.enter="applyFilters"
+          />
+        </span>
+        <div class="flex gap-1">
+          <Button
+            icon="pi pi-search"
+            class="p-button-text"
+            @click="applyFilters"
+            :title="'Tìm kiếm'"
+          />
+          <Button
+            icon="pi pi-times"
+            class="p-button-text"
+            @click="onClearSearch"
+            :disabled="!state.q"
+            :title="'Xoá tìm kiếm'"
+          />
+        </div>
+      </div>
 
       <!-- PerPage -->
       <Select

@@ -49,15 +49,26 @@ class InvoiceController extends Controller
 
         if ($q !== '') {
             $query->where(function (Builder $w) use ($q) {
-                $w->whereHas('student', function (Builder $ws) use ($q) {
+                // Search by exact invoice code or ID
+                $w->where('code', 'like', "%{$q}%")
+                  ->orWhere('id', $q);
+
+                // Search by student code or classroom code within the invoice code
+                $w->orWhereHas('student', function (Builder $ws) use ($q) {
                     $ws->where('name', 'like', "%{$q}%")
                        ->orWhere('code', 'like', "%{$q}%")
                        ->orWhere('phone', 'like', "%{$q}%")
                        ->orWhere('email', 'like', "%{$q}%");
-                })->orWhereHas('classroom', function (Builder $wc) use ($q) {
+                });
+
+                $w->orWhereHas('classroom', function (Builder $wc) use ($q) {
                     $wc->where('name', 'like', "%{$q}%")
                        ->orWhere('code', 'like', "%{$q}%");
-                })->orWhere('id', $q);
+                });
+
+                // Search for student or class code in the invoice code
+                $w->orWhere('code', 'like', "%-{$q}%"); // Matches "-{code}" in the invoice code
+                $w->orWhere('code', 'like', "%{$q}-%"); // Matches "{code}-" in the invoice code
             });
         }
 
@@ -127,12 +138,10 @@ class InvoiceController extends Controller
      */
     public function store(StoreInvoiceRequest $request)
     {
-        \Illuminate\Support\Facades\Log::info('Get in');
         $data = $request->validated();
 
         $classroom = Classroom::find($data['class_id']);
         $student   = Student::find($data['student_id']);
-        \Illuminate\Support\Facades\Log::info($data);
         $invoice = Invoice::create([
             'code'      => 'INV-' . $student->code . '-' . $classroom->code,
             'branch_id' => $data['branch_id'],
@@ -142,7 +151,6 @@ class InvoiceController extends Controller
             'status'    => $data['status'] ?? 'unpaid',
             'due_date'  => $data['due_date'] ?? null,
         ]);
-        \Illuminate\Support\Facades\Log::info('xxx');
 
         return redirect()
             ->route('admin.invoices.show', $invoice->id)
