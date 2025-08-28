@@ -55,7 +55,7 @@ const statusSeverity = (s) => {
   }
 }
 
-const itemsValue = computed(() => props.invoice?.items ?? [])
+const itemsValue = computed(() => props.invoice?.invoice_items ?? [])
 const paymentsValue = computed(() => props.invoice?.payments ?? [])
 
 function destroyInvoice() {
@@ -161,7 +161,7 @@ function savePayment() {
       <div class="font-medium">{{ invoice.branch?.name ?? '—' }}</div>
 
       <div class="mt-3 text-sm text-slate-500 mb-1">Lớp (nếu có)</div>
-      <div class="font-medium">{{ invoice.class?.code }} · {{ invoice.class?.name }}</div>
+      <div class="font-medium">{{ invoice.classroom?.code }} · {{ invoice.classroom?.name }}</div>
     </div>
 
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
