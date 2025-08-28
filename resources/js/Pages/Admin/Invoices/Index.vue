@@ -270,7 +270,7 @@ function statusSeverity(s) {
 
       <Column header="Lớp" :sortable="true" style="min-width: 180px">
         <template #body="{ data }">
-          <span>{{ data.class?.name ?? data.class?.code ?? '—' }}</span>
+          <span>{{ data.classroom?.name ?? data.classroom?.code ?? '—' }}</span>
         </template>
       </Column>
 
