@@ -128,13 +128,13 @@ const languageLabels = {
     >
       <Column field="code" header="Mã" style="width: 160px" :sortable="true" />
       <Column field="name" header="Tên khóa học" :sortable="true" />
-      <Column field="audience" header="Đối tượng" style="width: 160px">
+      <Column field="audience" header="Đối tượng" :sortable="true" style="width: 160px">
         <template #body="{ data }">{{ audienceLabels[data.audience] || data.audience }}</template>
       </Column>
-      <Column field="language" header="Ngôn ngữ" style="width: 160px">
+      <Column field="language" header="Ngôn ngữ" :sortable="true" style="width: 160px">
         <template #body="{ data }">{{ languageLabels[data.language] || data.language }}</template>
       </Column>
-      <Column field="active" header="Trạng thái" style="width: 160px">
+      <Column field="active" header="Trạng thái" :sortable="true" style="width: 160px">
         <template #body="{ data }">
           <Tag
             :value="data.active ? 'Đang hoạt động' : 'Ngừng'"

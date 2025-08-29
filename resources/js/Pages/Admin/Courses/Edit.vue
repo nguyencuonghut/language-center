@@ -64,7 +64,16 @@ function update() {
     active: form.active ? 1 : 0
   }, {
     preserveScroll: true,
-    onFinish: () => { form.saving = false }
+    onSuccess: () => {
+      form.saving = false
+    },
+    onError: (errors) => {
+      form.errors = errors
+      form.saving = false
+    },
+    onFinish: () => {
+      form.saving = false
+    }
   })
 }
 
