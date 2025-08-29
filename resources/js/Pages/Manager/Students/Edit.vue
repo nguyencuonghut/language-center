@@ -12,6 +12,7 @@ import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
+import RadioButton from 'primevue/radiobutton'
 
 defineOptions({ layout: AppLayout })
 
@@ -50,7 +51,7 @@ const form = reactive({
   email: props.student?.email || '',
   phone: props.student?.phone || '',
   address: props.student?.address || '',
-  active: props.student?.active === 1 ? true : false,
+  active: props.student?.active ?? 1,
 
   saving: false,
   errors: {},
@@ -71,7 +72,7 @@ function update() {
     email: form.email?.trim() || null,
     phone: form.phone?.trim() || null,
     address: form.address?.trim() || null,
-    active: form.active === 'true' ? 1 : 0, // Chuyển đổi giá trị thành 1 hoặc 0
+    active: form.active,
   }, {
     onSuccess: () => { /* BE set flash, FE không bắn toast */ },
     onError: (errors) => { form.errors = errors || {} },
@@ -167,11 +168,11 @@ function update() {
         <label class="block text-sm font-medium mb-1">Trạng thái</label>
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
-            <input type="radio" id="active" value="true" v-model="form.active" class="p-inputradio">
+            <RadioButton id="active" :value="1" v-model="form.active" />
             <label for="active">Đang hoạt động</label>
           </div>
           <div class="flex items-center gap-2">
-            <input type="radio" id="inactive" value="false" v-model="form.active" class="p-inputradio">
+            <RadioButton id="inactive" :value="0" v-model="form.active" />
             <label for="inactive">Ngừng</label>
           </div>
         </div>
