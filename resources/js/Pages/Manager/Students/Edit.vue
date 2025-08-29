@@ -1,6 +1,6 @@
-<!-- resources/js/Pages/Manager/Students/Create.vue -->
+<!-- resources/js/Pages/Manager/Students/Edit.vue -->
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createStudentService } from '@/service/StudentService'
@@ -15,6 +15,10 @@ import Button from 'primevue/button'
 
 defineOptions({ layout: AppLayout })
 
+const props = defineProps({
+  student: Object // {id, code, name, gender, dob, email, phone, address, active}
+})
+
 const studentService = createStudentService()
 
 const genders = [
@@ -23,7 +27,6 @@ const genders = [
   { label: 'Khác', value: 'Khác' },
 ]
 
-// Chuẩn hoá Date → YYYY-MM-DD (tránh lệch timezone)
 function toYmdLocal(d) {
   if (!d) return null
   const dt = new Date(d)
@@ -33,30 +36,34 @@ function toYmdLocal(d) {
   return `${y}-${m}-${day}`
 }
 
+function parseDate(d) {
+  if (!d) return null
+  const dt = new Date(d)
+  return isNaN(dt.getTime()) ? null : dt
+}
+
 const form = reactive({
-  code: '',
-  name: '',
-  gender: null,
-  dob: null,        // Date object từ DatePicker
-  email: '',
-  phone: '',
-  address: '',
-  active: true,
+  code: props.student?.code || '',
+  name: props.student?.name || '',
+  gender: props.student?.gender || null,
+  dob: parseDate(props.student?.dob) || null,
+  email: props.student?.email || '',
+  phone: props.student?.phone || '',
+  address: props.student?.address || '',
+  active: props.student?.active === 1 ? true : false,
 
   saving: false,
   errors: {},
 })
 
-function save() {
+function update() {
   form.errors = {}
-
-  // validate nhanh phía FE (BE vẫn là chuẩn)
-  if (!form.name || !form.name.trim()) form.errors.name = 'Vui lòng nhập họ tên'
-  if (!form.code || !form.code.trim()) form.errors.code = 'Vui lòng nhập mã học viên'
+  if (!form.name.trim()) form.errors.name = 'Vui lòng nhập họ tên'
+  if (!form.code.trim()) form.errors.code = 'Vui lòng nhập mã học viên'
   if (Object.keys(form.errors).length) return
 
   form.saving = true
-  studentService.create({
+  studentService.update(props.student.id, {
     code: form.code?.trim(),
     name: form.name?.trim(),
     gender: form.gender || null,
@@ -64,9 +71,9 @@ function save() {
     email: form.email?.trim() || null,
     phone: form.phone?.trim() || null,
     address: form.address?.trim() || null,
-    active: !!form.active,
+    active: form.active === 'true' ? 1 : 0, // Chuyển đổi giá trị thành 1 hoặc 0
   }, {
-    onSuccess: () => { /* BE set flash; FE không bắn toast */ },
+    onSuccess: () => { /* BE set flash, FE không bắn toast */ },
     onError: (errors) => { form.errors = errors || {} },
     onFinish: () => { form.saving = false },
   })
@@ -74,10 +81,12 @@ function save() {
 </script>
 
 <template>
-  <Head title="Thêm học viên" />
+  <Head :title="`Sửa học viên #${props.student?.id}`" />
 
   <div class="mb-3 flex justify-between items-center">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold">Thêm học viên</h1>
+    <h1 class="text-xl md:text-2xl font-heading font-semibold">
+      Sửa học viên #{{ props.student?.id }}
+    </h1>
     <Link
       :href="route('manager.students.index')"
       class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -177,7 +186,7 @@ function save() {
         >
           Huỷ
         </Link>
-        <Button label="Lưu" icon="pi pi-check" :loading="form.saving" @click="save" />
+        <Button label="Cập nhật" icon="pi pi-check" :loading="form.saving" @click="update" />
       </div>
     </div>
   </div>

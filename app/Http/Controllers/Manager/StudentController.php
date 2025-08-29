@@ -98,7 +98,7 @@ class StudentController extends Controller
 
         $student->update($data);
 
-        return back()->with('success', 'Đã cập nhật học viên.');
+        return redirect()->route('manager.students.index')->with('success', 'Đã cập nhật học viên.');
     }
 
     public function destroy(Student $student)
