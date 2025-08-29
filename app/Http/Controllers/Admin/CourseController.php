@@ -18,6 +18,7 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $q        = trim((string) $request->input('q', ''));
+        $language = $request->input('language');
         $perPage  = (int) $request->input('per_page', 12);
         $perPage  = $perPage > 0 ? min($perPage, 100) : 12;
 
@@ -31,11 +32,12 @@ class CourseController extends Controller
 
         $query = Course::query();
 
-        if ($q !== '') {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('code', 'like', "%{$q}%")
-                    ->orWhere('name', 'like', "%{$q}%");
-            });
+        // Apply search if query exists
+        $query->search($q);
+
+        // Apply language filter
+        if ($language && $language !== 'all') {
+            $query->where('language', $language);
         }
 
         if ($sort) {
@@ -50,6 +52,7 @@ class CourseController extends Controller
             'courses' => $courses,
             'filters' => [
                 'q'        => $q,
+                'language' => $language,
                 'perPage'  => $perPage,
                 'sort'     => $sort,
                 'order'    => $order,

@@ -9,6 +9,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
 
 // Service
 import { createCourseService } from '@/service/CourseService'
@@ -26,6 +27,8 @@ const courseService = createCourseService({ showSuccess, showError })
 
 /* ---- Local UI state ---- */
 const state = reactive({
+  q: props.filters?.q ?? '',
+  language: props.filters?.language ?? 'all',
   perPage: props.filters?.perPage ?? (props.courses?.per_page ?? 12),
 })
 
@@ -37,21 +40,39 @@ const sortOrder = ref(
 )
 
 /* ---- Helpers ---- */
-function applyFilters() {
+function buildQuery(extra = {}) {
   const query = {}
+  const searchTerm = state.q.trim()
+  if (searchTerm !== '') query.q = searchTerm
+  if (state.language !== 'all') query.language = state.language
   if (state.perPage !== props.courses?.per_page) query.per_page = state.perPage
   if (sortField.value) query.sort = sortField.value
   if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
-  courseService.getList(query)
+  Object.assign(query, extra)
+  return query
 }
 
-function onPage(event) {
-  const page = Math.floor(event.first / event.rows) + 1
-  const query = { page }
-  if (event.rows) query.per_page = event.rows
-  if (sortField.value) query.sort = sortField.value
-  if (sortOrder.value !== null) query.order = sortOrder.value === 1 ? 'asc' : 'desc'
-  courseService.getList(query)
+function applyFilters() {
+  router.visit(route('admin.courses.index', buildQuery()), {
+    preserveScroll: true,
+    preserveState: true,
+  })
+}
+
+function onClearSearch() {
+  state.q = ''
+  applyFilters()
+}
+
+function onPage(e) {
+  const page = Math.floor(e.first / e.rows) + 1
+  router.visit(route('admin.courses.index', buildQuery({
+    per_page: e.rows,
+    page: page > 1 ? page : undefined,
+  })), {
+    preserveScroll: true,
+    preserveState: true,
+  })
 }
 
 function onSort(event) {
@@ -90,15 +111,54 @@ const languageLabels = {
   <Head title="Khóa học" />
 
   <!-- Header -->
-  <div class="mb-3 flex justify-between items-center">
+  <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
     <h1 class="text-xl md:text-2xl font-heading font-semibold">Danh sách khóa học</h1>
-    <div class="flex items-center gap-2">
-      <Link
-        :href="route('admin.courses.create')"
-        class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-      >
-        <i class="pi pi-plus mr-1"></i> Thêm khóa học
-      </Link>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Language Filter -->
+      <Select
+        v-model="state.language"
+        :options="[
+          { label: 'Tất cả ngôn ngữ', value: 'all' },
+          { label: 'Tiếng Anh', value: 'en' },
+          { label: 'Tiếng Trung', value: 'zh' },
+          { label: 'Tiếng Hàn', value: 'ko' },
+          { label: 'Tiếng Nhật', value: 'ja' }
+        ]"
+        optionLabel="label"
+        optionValue="value"
+        class="w-48"
+        @change="applyFilters"
+      />
+
+      <!-- Search -->
+      <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <span class="relative flex-grow">
+          <InputText
+            v-model="state.q"
+            placeholder="Tìm theo mã, tên, đối tượng..."
+            class="w-full sm:w-96"
+            @keydown.enter="applyFilters"
+          />
+        </span>
+        <div class="flex gap-1">
+          <Button
+            icon="pi pi-search"
+            class="p-button-text"
+            @click="applyFilters"
+            :title="'Tìm kiếm'"
+          />
+          <Button
+            icon="pi pi-times"
+            class="p-button-text"
+            @click="onClearSearch"
+            :disabled="!state.q"
+            :title="'Xoá tìm kiếm'"
+          />
+        </div>
+      </div>
+
+      <!-- PerPage -->
       <Select
         v-model="state.perPage"
         :options="[{label:'12 / trang',value:12},{label:'24 / trang',value:24},{label:'48 / trang',value:48}]"
@@ -106,6 +166,13 @@ const languageLabels = {
         class="w-40"
         @change="applyFilters"
       />
+
+      <Link
+        :href="route('admin.courses.create')"
+        class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+      >
+        <i class="pi pi-plus mr-1"></i> Thêm khóa học
+      </Link>
     </div>
   </div>
 
