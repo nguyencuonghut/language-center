@@ -82,7 +82,7 @@ function update() {
 </script>
 
 <template>
-  <Head :title="`Sửa học viên #${props.student?.id}`" />
+  <Head :title="`Sửa học viên #${props.student?.code}`" />
 
   <div class="mb-3 flex justify-between items-center">
     <h1 class="text-xl md:text-2xl font-heading font-semibold">
