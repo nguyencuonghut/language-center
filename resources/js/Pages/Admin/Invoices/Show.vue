@@ -268,7 +268,7 @@ function deleteItem(item) {
       <Button v-if="can?.update !== false" label="Thêm dòng" icon="pi pi-plus" @click="openCreateItem" />
     </div>
     <DataTable :value="itemsValue" dataKey="id" size="small" responsiveLayout="scroll">
-      <Column field="type" header="Loại" style="width: 160px" />
+      <Column field="type_label" header="Loại" style="width: 160px" />
       <Column field="description" header="Mô tả" />
       <Column field="qty" header="SL" style="width: 80px" />
       <Column field="unit_price" header="Đơn giá" style="width: 160px">
