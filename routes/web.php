@@ -133,12 +133,7 @@ Route::middleware(['auth'])->group(function () {
         // =========================
         // Course
         // =========================
-        Route::get('courses',             [CourseController::class, 'index'])->name('courses.index');
-        Route::get('courses/create',      [CourseController::class, 'create'])->name('courses.create');
-        Route::post('courses',            [CourseController::class, 'store'])->name('courses.store');
-        Route::get('courses/{course}',    [CourseController::class, 'edit'])->name('courses.edit');
-        Route::put('courses/{course}',    [CourseController::class, 'update'])->name('courses.update');
-        Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+        Route::resource('courses', CourseController::class);
 
         // =========================
         // Invoices
