@@ -15,6 +15,7 @@ use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Manager\PayrollController;
+use App\Http\Controllers\Manager\StudentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -318,5 +319,16 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{payroll}/lock',   [PayrollController::class, 'lock'])->name('lock');
             Route::get('/{payroll}/export',  [PayrollController::class, 'export'])->name('export');
         });
+
+         // STUDENTS
+         Route::get('students',                [StudentController::class, 'index'])->name('students.index');
+         Route::get('students/create',         [StudentController::class, 'create'])->name('students.create');
+         Route::post('students',               [StudentController::class, 'store'])->name('students.store');
+         Route::get('students/{student}/edit', [StudentController::class, 'edit'])->name('students.edit');
+         Route::put('students/{student}',      [StudentController::class, 'update'])->name('students.update');
+         Route::delete('students/{student}',   [StudentController::class, 'destroy'])->name('students.destroy');
+
+         // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
+         Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');
     });
 });

@@ -64,7 +64,7 @@ const adminMenu = [
   { label: 'Phòng học', icon: 'pi pi-building', url: '/admin/rooms',       ready: true },
   { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true },
   { label: 'Lớp học',   icon: 'pi pi-users',    url: '/admin/classrooms',  ready: true },
-  { label: 'Học viên',  icon: 'pi pi-id-card',  url: '/admin/students',    ready: false },
+  { label: 'Học viên',  icon: 'pi pi-id-card',  url: '/manager/students',    ready: true },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: false },
   { label: 'Khóa học',  icon: 'pi pi-book',     url: '/admin/courses',     ready: false },
   { label: 'Hoá đơn', icon: 'pi pi-wallet', url: '/admin/invoices', ready: true },
@@ -76,6 +76,7 @@ const adminMenu = [
 const managerMenu = [
   { label: 'Dashboard',  icon: 'pi pi-home',     url: '/manager/dashboard',   ready: true },
   { label: 'Lớp học',    icon: 'pi pi-users',    url: '/manager/classrooms',  ready: true },
+  { label: 'Học viên',   icon: 'pi pi-id-card',  url: '/manager/students',    ready: true },
   { label: 'Phòng học',  icon: 'pi pi-building', url: '/manager/rooms',       ready: true },
   { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true },
   { label: 'Bảng lương', icon: 'pi pi-briefcase', url: '/manager/payrolls', ready: true },
