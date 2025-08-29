@@ -19,6 +19,7 @@ use App\Http\Controllers\Manager\StudentController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\CourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -130,6 +131,16 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // =========================
+        // Course
+        // =========================
+        Route::get('courses',             [CourseController::class, 'index'])->name('courses.index');
+        Route::get('courses/create',      [CourseController::class, 'create'])->name('courses.create');
+        Route::post('courses',            [CourseController::class, 'store'])->name('courses.store');
+        Route::get('courses/{course}',    [CourseController::class, 'edit'])->name('courses.edit');
+        Route::put('courses/{course}',    [CourseController::class, 'update'])->name('courses.update');
+        Route::delete('courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+
+        // =========================
         // Invoices
         // =========================
         Route::prefix('invoices')->name('invoices.')->group(function () {
@@ -161,21 +172,10 @@ Route::middleware(['auth'])->group(function () {
             });
         });
 
-        // Các menu admin CHƯA làm → placeholder
-        Route::get('/students', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Học viên',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('students');
-
         Route::get('/attendance', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Điểm danh',
             'note'  => 'Tính năng đang phát triển.',
         ]))->name('attendance');
-
-        Route::get('/courses', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Khóa học',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('courses');
 
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Báo cáo',
