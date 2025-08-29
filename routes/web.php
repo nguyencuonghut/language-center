@@ -148,6 +148,16 @@ Route::middleware(['auth'])->group(function () {
             // -------- Payments (nested) --------
             Route::post('/{invoice}/payments',                      [PaymentController::class, 'store'])->name('payments.store');
             Route::delete('/{invoice}/payments/{payment}',          [PaymentController::class, 'destroy'])->name('payments.destroy');
+
+            // -------- Invoice Items (nested) --------
+            Route::prefix('/{invoice}')->group(function () {
+                Route::post('items', [InvoiceItemController::class, 'store'])
+                    ->name('items.store');
+                Route::put('items/{item}', [InvoiceItemController::class, 'update'])
+                    ->name('items.update');
+                Route::delete('items/{item}', [InvoiceItemController::class, 'destroy'])
+                    ->name('items.destroy');
+            });
         });
 
         // Các menu admin CHƯA làm → placeholder
