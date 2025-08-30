@@ -16,6 +16,7 @@ use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\StudentController;
+use App\Http\Controllers\Manager\TeacherController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -318,6 +319,10 @@ Route::middleware(['auth'])->group(function () {
 
          // STUDENTS
          Route::resource('students', StudentController::class);
+
+        // TEACHERS
+        Route::resource('teachers', TeacherController::class);
+        Route::get('teachers/search', [TeacherController::class, 'search'])->name('teachers.search');
 
         // TEACHING ASSIGNMENTS (Phân công dạy)
         Route::prefix('classrooms/{classroom}')->as('classrooms.')->group(function () {

@@ -1,0 +1,94 @@
+<script setup>
+import { reactive } from 'vue'
+import { Head, Link, router } from '@inertiajs/vue3'
+import AppLayout from '@/Layouts/AppLayout.vue'
+
+// PrimeVue
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+
+defineOptions({ layout: AppLayout })
+
+const form = reactive({
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  errors: {},
+  saving: false,
+})
+
+function save() {
+  form.errors = {}
+  form.saving = true
+
+  router.post(route('manager.teachers.store'), {
+    name: form.name || '',
+    email: form.email || '',
+    phone: form.phone || null,
+    password: form.password || '',
+  }, {
+    preserveScroll: true,
+    onFinish: () => { form.saving = false },
+    onError: (errors) => { form.errors = errors || {} },
+  })
+}
+</script>
+
+<template>
+  <Head title="Thêm giáo viên" />
+
+  <div class="mb-3 flex items-center justify-between">
+    <h1 class="text-xl md:text-2xl font-heading font-semibold">Thêm giáo viên</h1>
+    <Link
+      :href="route('manager.teachers.index')"
+      class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+    >
+      ← Danh sách
+    </Link>
+  </div>
+
+  <div class="max-w-2xl mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+    <div class="flex flex-col gap-4">
+      <!-- Họ tên -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Họ và tên</label>
+        <InputText v-model="form.name" class="w-full" placeholder="VD: Nguyễn Văn A" />
+        <div v-if="form.errors?.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</div>
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <InputText v-model="form.email" class="w-full" placeholder="email@domain.com" />
+        <div v-if="form.errors?.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</div>
+      </div>
+
+      <!-- Số điện thoại (tuỳ chọn) -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Số điện thoại (tuỳ chọn)</label>
+        <InputText v-model="form.phone" class="w-full" placeholder="VD: 09xx xxx xxx" />
+        <div v-if="form.errors?.phone" class="text-red-500 text-xs mt-1">{{ form.errors.phone }}</div>
+      </div>
+
+      <!-- Mật khẩu -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Mật khẩu</label>
+        <Password v-model="form.password" class="w-full" :feedback="false" toggleMask placeholder="Tối thiểu 6 ký tự" />
+        <div v-if="form.errors?.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2 mt-2">
+        <Link
+          :href="route('manager.teachers.index')"
+          class="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          Huỷ
+        </Link>
+        <Button label="Lưu" icon="pi pi-check" :loading="form.saving" @click="save" />
+      </div>
+    </div>
+  </div>
+</template>
