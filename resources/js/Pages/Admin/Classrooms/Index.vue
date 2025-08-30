@@ -179,6 +179,15 @@ function statusSeverity(s) {
       <Column header="" style="width: 360px">
         <template #body="{ data }">
             <div class="flex flex-wrap gap-2 justify-end">
+            <!-- Đi đến phân công giáo viên -->
+            <Link
+                :href="route('manager.classrooms.assignments.index', { classroom: data.id })"
+                class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
+                    dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
+            >
+            <i class="pi pi-user-edit mr-1"></i> Phân công GV
+            </Link>
+
             <!-- Đi đến danh sách buổi -->
             <Link
                 :href="route('admin.classrooms.sessions.index', { classroom: data.id })"

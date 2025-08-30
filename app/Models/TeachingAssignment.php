@@ -15,4 +15,14 @@ class TeachingAssignment extends Model
         'assigned_at',
         'rate_per_session',
     ];
+
+    public function teacher()
+    {
+        return $this->belongsTo(User::class, 'teacher_id');
+    }
+
+    public function classroom()
+    {
+        return $this->belongsTo(Classroom::class);
+    }
 }

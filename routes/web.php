@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Manager\TeachingAssignmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -322,6 +323,16 @@ Route::middleware(['auth'])->group(function () {
          Route::get('students/{student}/edit', [StudentController::class, 'edit'])->name('students.edit');
          Route::put('students/{student}',      [StudentController::class, 'update'])->name('students.update');
          Route::delete('students/{student}',   [StudentController::class, 'destroy'])->name('students.destroy');
+
+        // TEACHING ASSIGNMENTS (Phân công dạy)
+        Route::prefix('classrooms/{classroom}')->as('classrooms.')->group(function () {
+            Route::get('assignments',                [TeachingAssignmentController::class, 'index'])->name('assignments.index');
+            Route::get('assignments/create',         [TeachingAssignmentController::class, 'create'])->name('assignments.create');
+            Route::post('assignments',               [TeachingAssignmentController::class, 'store'])->name('assignments.store');
+            Route::get('assignments/{assignment}/edit', [TeachingAssignmentController::class, 'edit'])->name('assignments.edit');
+            Route::put('assignments/{assignment}',   [TeachingAssignmentController::class, 'update'])->name('assignments.update');
+            Route::delete('assignments/{assignment}',[TeachingAssignmentController::class, 'destroy'])->name('assignments.destroy');
+        });
 
          // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
          Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');

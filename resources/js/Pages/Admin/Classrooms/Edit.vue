@@ -84,6 +84,15 @@ function onSubmit() {
     </div>
 
     <div class="flex flex-wrap gap-2">
+      <!-- Nút đi đến Phân công giáo viên -->
+      <Link
+        :href="route('manager.classrooms.assignments.index', { classroom: classroom.id })"
+        class="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50
+                dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
+        >
+        <i class="pi pi-user-edit mr-1"></i> Phân công giáo viên
+      </Link>
+
       <!-- Nút đi đến Buổi học -->
       <Link
         :href="route('admin.classrooms.sessions.index', { classroom: classroom.id })"
