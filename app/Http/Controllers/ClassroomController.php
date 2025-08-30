@@ -42,8 +42,7 @@ class ClassroomController extends Controller
             ->leftJoin('teaching_assignments', function($join) {
                 $join->on('classrooms.id', '=', 'teaching_assignments.class_id')
                     ->where(function($q) {
-                        $q->whereNull('teaching_assignments.effective_from')
-                            ->orWhere('teaching_assignments.effective_from', '<=', now());
+                        $q->where('teaching_assignments.effective_from', '<=', now());
                     })
                     ->where(function($q) {
                         $q->whereNull('teaching_assignments.effective_to')

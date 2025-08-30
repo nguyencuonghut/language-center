@@ -34,7 +34,7 @@ class UpdateTeachingAssignmentRequest extends FormRequest
             'teacher_id'        => ['required','integer','exists:users,id'],
             'rate_per_session'  => ['required','integer','min:0'],
 
-            'effective_from'    => ['nullable','date'],
+            'effective_from'    => ['required','date'],
             'effective_to'      => ['nullable','date','after_or_equal:effective_from'],
         ];
     }
@@ -48,7 +48,7 @@ class UpdateTeachingAssignmentRequest extends FormRequest
             $id        = $this->route('assignment')?->id ?? $this->route('teaching_assignment')?->id ?? null;
             $classId   = (int) $this->input('class_id');
             $teacherId = (int) $this->input('teacher_id');
-            $effFrom   = $this->input('effective_from'); // có thể null
+            $effFrom   = $this->input('effective_from');
 
             // Kiểm tra trùng (class_id, teacher_id, effective_from), bỏ qua chính nó khi update
             $dup = DB::table('teaching_assignments')
@@ -57,7 +57,7 @@ class UpdateTeachingAssignmentRequest extends FormRequest
                 ->where(function ($q) use ($effFrom) {
                     // Cho phép null == null
                     if ($effFrom === null || $effFrom === '') {
-                        $q->whereNull('effective_from');
+                        // $q->whereNull('effective_from');
                     } else {
                         $q->where('effective_from', $effFrom);
                     }

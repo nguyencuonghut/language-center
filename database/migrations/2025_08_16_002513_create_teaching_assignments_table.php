@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('class_id')->constrained('classrooms')->cascadeOnUpdate()->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
             $table->unsignedBigInteger('rate_per_session'); // VND
-            $table->date('effective_from')->nullable(); // nếu muốn thay đổi theo mốc thời gian
+            $table->date('effective_from');
             $table->date('effective_to')->nullable();
             $table->timestamps();
 

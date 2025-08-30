@@ -65,7 +65,7 @@ const editingId = ref(null)
 const form = reactive({
   teacher_id: null,
   rate_per_session: null,
-  effective_from: null,
+  effective_from: new Date(),
   effective_to: null,
   errors: {},
   saving: false
@@ -76,14 +76,14 @@ function openCreate() {
   editingId.value = null
   form.teacher_id = null
   form.rate_per_session = null
-  form.effective_from = null
+  form.effective_from = new Date()
   form.effective_to = null
   form.errors = {}
   showDialog.value = true
 }
 function openEdit(row) {
   console.log('Raw date data:', {
-    effective_from: row.effective_from,
+  effective_from: row.effective_from,
     effective_to: row.effective_to
   });
 
@@ -97,7 +97,7 @@ function openEdit(row) {
     const date = new Date(row.effective_from)
     form.effective_from = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
   } else {
-    form.effective_from = null
+    form.effective_from = new Date()
   }
 
   if (row.effective_to) {
@@ -108,7 +108,7 @@ function openEdit(row) {
   }
 
   console.log('Parsed dates:', {
-    effective_from: form.effective_from,
+  effective_from: form.effective_from,
     effective_to: form.effective_to
   });
 
@@ -125,14 +125,17 @@ function save() {
   const payload = {
     teacher_id: Number(form.teacher_id),
     rate_per_session: Number(form.rate_per_session),
-    effective_from: form.effective_from ? toYmdLocal(form.effective_from) : null,
+  effective_from: toYmdLocal(form.effective_from),
     effective_to:   form.effective_to   ? toYmdLocal(form.effective_to)   : null,
   }
 
   if (!isEditing.value) {
     svc.create(props.classroom.id, payload, {
       onFinish: () => { form.saving = false },
-      onSuccess: () => { showDialog.value = false }
+      onSuccess: () => { showDialog.value = false },
+      onError: (errors) => {
+        form.errors = errors || {}
+      }
     })
   } else {
     svc.update(props.classroom.id, editingId.value, payload, {
@@ -253,6 +256,7 @@ function destroy(id) {
         <label class="block text-sm font-medium mb-1">Hiệu lực từ</label>
         <DatePicker
           v-model="form.effective_from"
+          :required="true"
           dateFormat="dd/mm/yy"
           :showTime="false"
           :manualInput="false"
@@ -260,6 +264,7 @@ function destroy(id) {
           iconDisplay="input"
           class="w-full"
         />
+        <div v-if="form.errors?.effective_from" class="text-red-500 text-xs mt-1">{{ form.errors.effective_from }}</div>
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Đến (tuỳ chọn)</label>

@@ -122,7 +122,7 @@ class TeachingAssignmentController extends Controller
                 'id'               => $assignment->id,
                 'teacher_id'       => $assignment->teacher_id,
                 'rate_per_session' => (int)$assignment->rate_per_session,
-                'effective_from'   => optional($assignment->effective_from)->toDateString(),
+                'effective_from'   => $assignment->effective_from ? $assignment->effective_from->toDateString() : '',
                 'effective_to'     => optional($assignment->effective_to)->toDateString(),
             ],
             'teachers'   => $teachers,

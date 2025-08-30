@@ -131,7 +131,7 @@ class DemoDataSeeder extends Seeder
                     $teacher = $teachers->random();
                     $rate = Arr::random([200000, 250000, 300000]); // Rate per session
 
-                    $effectiveFrom = $i === 0 ? null : $startDate->copy()->addDays(rand(15, 30))->toDateString();
+                    $effectiveFrom = $i === 0 ? $startDate->toDateString() : $startDate->copy()->addDays(rand(15, 30))->toDateString();
                     $effectiveTo = $i === ($numAssignments - 1) ? null : $startDate->copy()->addDays(rand(31, 45))->toDateString();
 
                     TeachingAssignment::create([
