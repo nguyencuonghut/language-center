@@ -162,7 +162,12 @@ function statusSeverity(s) {
 
       <Column header="Giáo viên" field="teacher_name" style="width: 220px" :sortable="true">
         <template #body="{ data }">
-          <span>{{ data.teacher_name ?? '—' }}</span>
+          <div>
+            <span>{{ data.teacher_name ?? '—' }}</span>
+            <span v-if="data.rate_per_session" class="text-sm text-gray-500 ml-1">
+              ({{ new Intl.NumberFormat('vi-VN').format(data.rate_per_session) }}đ/buổi)
+            </span>
+          </div>
         </template>
       </Column>
 

@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('term_code')->nullable(); // K1/K2/...
             $table->foreignId('course_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
             $table->foreignId('branch_id')->constrained()->cascadeOnUpdate()->restrictOnDelete();
-            $table->foreignId('teacher_id')->nullable()->constrained('users')->nullOnDelete(); // GV chính (tùy chọn)
             $table->date('start_date');
             $table->unsignedSmallInteger('sessions_total'); // tổng buổi dự kiến
             $table->unsignedBigInteger('tuition_fee'); // VND

@@ -16,10 +16,9 @@ import Tag from 'primevue/tag'
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
-  classroom: Object,     // { id, code, name, branch_id, course_id, teacher_id, start_date, sessions_total, tuition_fee, status, note }
+  classroom: Object,     // { id, code, name, branch_id, course_id, start_date, sessions_total, tuition_fee, status, note }
   branches: Array,       // [{id,name}]
   courses: Array,        // [{id,name}]
-  teachers: Array,       // [{id,name}]
   errors: Object,        // Inertia validation errors
 })
 
@@ -32,7 +31,6 @@ const state = reactive({
   name: props.classroom?.name ?? '',
   branch_id: props.classroom?.branch_id ? String(props.classroom.branch_id) : null,
   course_id: props.classroom?.course_id ? String(props.classroom.course_id) : null,
-  teacher_id: props.classroom?.teacher_id ? String(props.classroom.teacher_id) : null,
   start_date: props.classroom?.start_date ? new Date(props.classroom.start_date + 'T00:00:00') : null,
   sessions_total: props.classroom?.sessions_total ?? 24,
   tuition_fee: props.classroom?.tuition_fee ?? 0,
@@ -44,7 +42,6 @@ const state = reactive({
 /* ----- Options ----- */
 const branchOptions = (props.branches || []).map(b => ({ label: b.name, value: String(b.id) }))
 const courseOptions = (props.courses || []).map(c => ({ label: c.name, value: String(c.id) }))
-const teacherOptions = (props.teachers || []).map(t => ({ label: t.name, value: String(t.id) }))
 const statusOptions = [
   { label: 'Đang mở', value: 'open' },
   { label: 'Đóng', value: 'closed' },
@@ -58,7 +55,6 @@ function onSubmit() {
     name: state.name,
     branch_id: state.branch_id ? Number(state.branch_id) : null,
     course_id: state.course_id ? Number(state.course_id) : null,
-    teacher_id: state.teacher_id ? Number(state.teacher_id) : null,
     start_date: state.start_date ? new Date(state.start_date).toISOString().slice(0,10) : null,
     sessions_total: Number(state.sessions_total) || 0,
     tuition_fee: Number(state.tuition_fee) || 0,
@@ -150,12 +146,6 @@ function onSubmit() {
         <label class="block text-sm font-medium mb-1">Khóa học</label>
         <Select v-model="state.course_id" :options="courseOptions" optionLabel="label" optionValue="value" class="w-full" />
         <div v-if="errors?.course_id" class="text-red-500 text-xs mt-1">{{ errors.course_id }}</div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1">Giáo viên</label>
-        <Select v-model="state.teacher_id" :options="teacherOptions" optionLabel="label" optionValue="value" class="w-full" showClear />
-        <div v-if="errors?.teacher_id" class="text-red-500 text-xs mt-1">{{ errors.teacher_id }}</div>
       </div>
 
       <div>

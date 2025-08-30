@@ -20,7 +20,6 @@ defineOptions({ layout: AppLayout })
 const props = defineProps({
   branches: Array,
   courses: Array,
-  teachers: Array,
   suggestBranchId: Number,
   errors: Object,
 })
@@ -31,7 +30,6 @@ const form = useForm({
   term_code: '',
   course_id: null,
   branch_id: props.suggestBranchId ?? null,
-  teacher_id: null,
   start_date: null,
   sessions_total: 24,
   tuition_fee: 0,
@@ -107,19 +105,6 @@ function submit() {
             :pt="{ root: { class: 'w-full' } }"
           />
           <small v-if="form.errors.branch_id" class="text-red-500">{{ form.errors.branch_id }}</small>
-        </div>
-
-        <div>
-          <FormLabel value="Giáo viên (tuỳ chọn)" />
-          <Select
-            v-model="form.teacher_id"
-            :options="(props.teachers||[]).map(x=>({label:x.name,value:x.id}))"
-            optionLabel="label" optionValue="value"
-            placeholder="Chọn giáo viên"
-            showClear
-            :pt="{ root: { class: 'w-full' } }"
-          />
-          <small v-if="form.errors.teacher_id" class="text-red-500">{{ form.errors.teacher_id }}</small>
         </div>
 
         <div>

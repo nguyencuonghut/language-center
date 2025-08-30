@@ -16,8 +16,6 @@ class ClassroomFactory extends Factory
 
     public function definition(): array
     {
-        $teacherId = User::role('teacher')->inRandomOrder()->value('id');
-
         $sessions = $this->faker->randomElement([16, 20, 24]);
         return [
             'code'           => strtoupper($this->faker->unique()->bothify('CL##??')),
@@ -25,7 +23,6 @@ class ClassroomFactory extends Factory
             'term_code'      => 'K'.$this->faker->numberBetween(1,3),
             'course_id'      => Course::inRandomOrder()->value('id') ?? Course::factory(),
             'branch_id'      => Branch::inRandomOrder()->value('id') ?? Branch::factory(),
-            'teacher_id'     => $teacherId,
             'start_date'     => $this->faker->dateTimeBetween('-1 month', '+1 month')->format('Y-m-d'),
             'sessions_total' => $sessions,
             'tuition_fee'    => $sessions * $this->faker->randomElement([200000, 250000, 300000]),

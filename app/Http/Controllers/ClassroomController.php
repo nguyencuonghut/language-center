@@ -30,14 +30,27 @@ class ClassroomController extends Controller
             'status'         => 'classrooms.status',
             'branch'         => 'branches.name',
             'course'         => 'courses.name',
-            'teacher'        => 'users.name',
+            'teacher'        => 'teachers.name',
+
         ];
         $sortCol = $sortableMap[$sort] ?? null;
 
         $query = Classroom::query()
             ->leftJoin('branches', 'branches.id', '=', 'classrooms.branch_id')
             ->leftJoin('courses',  'courses.id',  '=', 'classrooms.course_id')
-            ->leftJoin('users',    'users.id',    '=', 'classrooms.teacher_id')
+            // Join với TeachingAssignment để lấy giáo viên hiện tại
+            ->leftJoin('teaching_assignments', function($join) {
+                $join->on('classrooms.id', '=', 'teaching_assignments.class_id')
+                    ->where(function($q) {
+                        $q->whereNull('teaching_assignments.effective_from')
+                            ->orWhere('teaching_assignments.effective_from', '<=', now());
+                    })
+                    ->where(function($q) {
+                        $q->whereNull('teaching_assignments.effective_to')
+                            ->orWhere('teaching_assignments.effective_to', '>=', now());
+                    });
+            })
+            ->leftJoin('users as teachers', 'teachers.id', '=', 'teaching_assignments.teacher_id')
             ->when($branchParam && $branchParam !== 'all', fn($qB) => $qB->where('classrooms.branch_id', (int) $branchParam))
             ->when($q !== '', function ($qq) use ($q) {
                 $qq->where(function ($sub) use ($q) {
@@ -66,8 +79,9 @@ class ClassroomController extends Controller
                 'branches.name as branch_name',
                 'courses.id as course_id',
                 'courses.name as course_name',
-                'users.id as teacher_id',
-                'users.name as teacher_name',
+                'teachers.id as teacher_id',
+                'teachers.name as teacher_name',
+                'teaching_assignments.rate_per_session',
             ])
             ->paginate(max(1, $perPage))
             ->withQueryString();
@@ -92,7 +106,6 @@ class ClassroomController extends Controller
     {
         $branches = Branch::select('id','name')->orderBy('name')->get();
         $courses  = Course::select('id','name')->orderBy('name')->get();
-        $teachers = User::role('teacher')->select('id','name')->orderBy('name')->get();
 
         // gợi ý branch từ query ?branch=
         $suggestBranch = $request->query('branch');
@@ -101,7 +114,6 @@ class ClassroomController extends Controller
         return Inertia::render('Admin/Classrooms/Create', [
             'branches'        => $branches,
             'courses'         => $courses,
-            'teachers'        => $teachers,
             'suggestBranchId' => $suggestBranchId,
         ]);
     }
@@ -122,16 +134,14 @@ class ClassroomController extends Controller
     {
         $branches = Branch::select('id','name')->orderBy('name')->get();
         $courses  = Course::select('id','name')->orderBy('name')->get();
-        $teachers = User::role('teacher')->select('id','name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Classrooms/Edit', [
             'classroom' => $classroom->only([
-                'id','code','name','term_code','course_id','branch_id','teacher_id',
+                'id','code','name','term_code','course_id','branch_id',
                 'start_date','sessions_total','tuition_fee','status'
             ]),
             'branches'  => $branches,
             'courses'   => $courses,
-            'teachers'  => $teachers,
         ]);
     }
 

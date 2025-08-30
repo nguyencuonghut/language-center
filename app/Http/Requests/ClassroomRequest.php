@@ -4,12 +4,13 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class ClassroomRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check(); // (sẽ siết bằng Policy/Middleware ở bước sau)
+        return Auth::check(); // (sẽ siết bằng Policy/Middleware ở bước sau)
     }
 
     public function rules(): array
@@ -42,7 +43,6 @@ class ClassroomRequest extends FormRequest
             'term_code'      => 'học kỳ',
             'course_id'      => 'khóa học',
             'branch_id'      => 'chi nhánh',
-            'teacher_id'     => 'giáo viên',
             'start_date'     => 'ngày bắt đầu',
             'sessions_total' => 'số buổi',
             'tuition_fee'    => 'học phí',
@@ -63,7 +63,6 @@ class ClassroomRequest extends FormRequest
             'course_id.exists'        => 'Khóa học không tồn tại trong hệ thống.',
             'branch_id.required'      => 'Chi nhánh là bắt buộc.',
             'branch_id.exists'        => 'Chi nhánh không tồn tại trong hệ thống.',
-            'teacher_id.exists'     => 'Giáo viên không tồn tại trong hệ thống.',
             'start_date.required'     => 'Ngày bắt đầu là bắt buộc.',
             'start_date.date'       => 'Ngày bắt đầu phải là một ngày hợp lệ.',
             'sessions_total.required' => 'Số buổi là bắt buộc.',

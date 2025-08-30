@@ -95,7 +95,6 @@ class DemoDataSeeder extends Seeder
                     Classroom::factory()->count(4)->create([
                         'branch_id'  => $branch->id,
                         'course_id'  => $courses->random()->id,
-                        'teacher_id' => optional($teachers->random())->id, // có thể null (xử lý phía dưới)
                     ])
                 );
             }
@@ -116,21 +115,37 @@ class DemoDataSeeder extends Seeder
                     ]);
                 }
 
-                // assignment + rate mặc định (nếu có teacher gốc)
-                if ($class->teacher_id) {
-                    TeachingAssignment::create([
-                        'class_id'         => $class->id,
-                        'teacher_id'       => $class->teacher_id,
-                        'rate_per_session' => Arr::random([200000, 250000, 300000]),
-                    ]);
-                }
-
                 // Generate sessions theo lịch tuần cho đến đủ sessions_total
                 $this->generateSessions($class->id, $class->start_date, (int) $class->sessions_total);
             }
 
             // -----------------------------------------------------
-            // 4.1) SEEDER: SESSION SUBSTITUTIONS (dạy thay)  (NEW)
+            // 4.1) SEEDER: TEACHING ASSIGNMENTS (phân công giảng dạy)
+            // -----------------------------------------------------
+            foreach ($classes as $class) {
+                // Random một số lớp sẽ có lịch sử thay đổi giáo viên (1-2 lần)
+                $numAssignments = rand(1, 2);
+                $startDate = Carbon::parse($class->start_date);
+
+                for ($i = 0; $i < $numAssignments; $i++) {
+                    $teacher = $teachers->random();
+                    $rate = Arr::random([200000, 250000, 300000]); // Rate per session
+
+                    $effectiveFrom = $i === 0 ? null : $startDate->copy()->addDays(rand(15, 30))->toDateString();
+                    $effectiveTo = $i === ($numAssignments - 1) ? null : $startDate->copy()->addDays(rand(31, 45))->toDateString();
+
+                    TeachingAssignment::create([
+                        'class_id' => $class->id,
+                        'teacher_id' => $teacher->id,
+                        'effective_from' => $effectiveFrom,
+                        'effective_to' => $effectiveTo,
+                        'rate_per_session' => $rate,
+                    ]);
+                }
+            }
+
+            // -----------------------------------------------------
+            // 4.2) SEEDER: SESSION SUBSTITUTIONS (dạy thay)  (NEW)
             // -----------------------------------------------------
             // Quy ước: mỗi lớp chọn ngẫu nhiên 0–2 buổi để có giáo viên dạy thay;
             // Chọn teacher khác teacher gốc; rate_override ~ 50% trường hợp.
@@ -143,10 +158,8 @@ class DemoDataSeeder extends Seeder
 
                 if ($sessionIds->isEmpty()) continue;
 
-                // Chọn teacher thay thế khác teacher gốc (nếu có)
-                $originalId = $class->teacher_id;
+                // Chọn một giáo viên ngẫu nhiên để dạy thay
                 $subTeacher = User::role('teacher')
-                    ->when($originalId, fn($q) => $q->where('id', '!=', $originalId))
                     ->inRandomOrder()
                     ->first();
 
