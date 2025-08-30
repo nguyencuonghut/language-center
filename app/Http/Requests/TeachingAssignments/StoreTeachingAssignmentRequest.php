@@ -20,7 +20,7 @@ class StoreTeachingAssignmentRequest extends FormRequest
         $effFrom   = $this->input('effective_from');
 
         return [
-            'class_id' => ['required','integer','exists:classes,id'],
+            'class_id' => ['required','integer','exists:classrooms,id'],
             'teacher_id' => ['required','integer','exists:users,id'],
             'rate_per_session' => ['required','integer','min:0'],
 

@@ -134,6 +134,7 @@ class TeachingAssignmentController extends Controller
      */
     public function update(UpdateTeachingAssignmentRequest $request, Classroom $classroom, TeachingAssignment $assignment)
     {
+        \Illuminate\Support\Facades\Log::info($request->all());
         // đảm bảo assignment thuộc classroom
         if ($assignment->class_id !== $classroom->id) {
             abort(404);

@@ -14,6 +14,13 @@ class TeachingAssignment extends Model
         'class_id',
         'assigned_at',
         'rate_per_session',
+        'effective_from',
+        'effective_to',
+    ];
+
+    protected $casts = [
+        'effective_from' => 'datetime',
+        'effective_to' => 'datetime',
     ];
 
     public function teacher()

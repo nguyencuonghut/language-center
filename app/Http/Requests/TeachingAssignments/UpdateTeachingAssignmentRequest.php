@@ -3,6 +3,7 @@
 namespace App\Http\Requests\TeachingAssignments;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class UpdateTeachingAssignmentRequest extends FormRequest
@@ -13,40 +14,59 @@ class UpdateTeachingAssignmentRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Lấy class_id từ route nếu FE không gửi kèm.
+     */
+    protected function prepareForValidation(): void
+    {
+        $routeClassId = $this->route('classroom')?->id; // route('admin.classrooms.assignments.update', { classroom, assignment })
+        if ($routeClassId && !$this->filled('class_id')) {
+            $this->merge(['class_id' => (int) $routeClassId]);
+        }
+    }
+
     public function rules(): array
     {
-        $id       = $this->route('assignment')?->id ?? $this->route('teaching_assignment')?->id ?? null;
-        $classId  = $this->input('class_id');
-        $teacherId= $this->input('teacher_id');
-        $effFrom  = $this->input('effective_from');
+        $id        = $this->route('assignment')?->id ?? $this->route('teaching_assignment')?->id ?? null;
 
         return [
-            'class_id' => ['required','integer','exists:classes,id'],
-            'teacher_id' => ['required','integer','exists:users,id'],
-            'rate_per_session' => ['required','integer','min:0'],
+            'class_id'          => ['required','integer','exists:classrooms,id'],
+            'teacher_id'        => ['required','integer','exists:users,id'],
+            'rate_per_session'  => ['required','integer','min:0'],
 
-            'effective_from' => ['nullable','date'],
-            'effective_to'   => ['nullable','date','after_or_equal:effective_from'],
-
-            // Unique composite (bỏ qua chính nó khi update)
-            'unique_comp' => [
-                Rule::unique('teaching_assignments')
-                    ->ignore($id)
-                    ->where(fn($q) =>
-                        $q->where('class_id', $classId)
-                          ->where('teacher_id', $teacherId)
-                          ->where('effective_from', $effFrom)
-                    )
-            ],
+            'effective_from'    => ['nullable','date'],
+            'effective_to'      => ['nullable','date','after_or_equal:effective_from'],
         ];
     }
 
     public function withValidator($validator)
     {
         $validator->after(function ($v) {
-            if ($v->errors()->has('unique_comp')) {
+            // Nếu đã có lỗi cơ bản thì bỏ qua check unique composite
+            if ($v->errors()->isNotEmpty()) return;
+
+            $id        = $this->route('assignment')?->id ?? $this->route('teaching_assignment')?->id ?? null;
+            $classId   = (int) $this->input('class_id');
+            $teacherId = (int) $this->input('teacher_id');
+            $effFrom   = $this->input('effective_from'); // có thể null
+
+            // Kiểm tra trùng (class_id, teacher_id, effective_from), bỏ qua chính nó khi update
+            $dup = DB::table('teaching_assignments')
+                ->where('class_id', $classId)
+                ->where('teacher_id', $teacherId)
+                ->where(function ($q) use ($effFrom) {
+                    // Cho phép null == null
+                    if ($effFrom === null || $effFrom === '') {
+                        $q->whereNull('effective_from');
+                    } else {
+                        $q->where('effective_from', $effFrom);
+                    }
+                })
+                ->when($id, fn($q) => $q->where('id', '!=', $id))
+                ->exists();
+
+            if ($dup) {
                 $v->errors()->add('effective_from', 'Bản ghi phân công đã tồn tại (cùng lớp, giáo viên và ngày hiệu lực).');
-                $v->errors()->forget('unique_comp');
             }
         });
     }

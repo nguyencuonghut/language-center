@@ -82,12 +82,36 @@ function openCreate() {
   showDialog.value = true
 }
 function openEdit(row) {
+  console.log('Raw date data:', {
+    effective_from: row.effective_from,
+    effective_to: row.effective_to
+  });
+
   isEditing.value = true
   editingId.value = row.id
   form.teacher_id = String(row.teacher_id)
   form.rate_per_session = Number(row.rate_per_session ?? 0)
-  form.effective_from = row.effective_from ? new Date(row.effective_from + 'T00:00:00') : null
-  form.effective_to   = row.effective_to   ? new Date(row.effective_to   + 'T00:00:00') : null
+
+  // Handle dates with timezone adjustment
+  if (row.effective_from) {
+    const date = new Date(row.effective_from)
+    form.effective_from = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+  } else {
+    form.effective_from = null
+  }
+
+  if (row.effective_to) {
+    const date = new Date(row.effective_to)
+    form.effective_to = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+  } else {
+    form.effective_to = null
+  }
+
+  console.log('Parsed dates:', {
+    effective_from: form.effective_from,
+    effective_to: form.effective_to
+  });
+
   form.errors = {}
   showDialog.value = true
 }
@@ -170,8 +194,16 @@ function destroy(id) {
           {{ new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(data.rate_per_session||0) }}
         </template>
       </Column>
-      <Column field="effective_from" header="Hiệu lực từ" style="width: 140px" />
-      <Column field="effective_to" header="Đến" style="width: 140px" />
+      <Column field="effective_from" header="Hiệu lực từ" style="width: 140px">
+        <template #body="{ data }">
+          {{ data.effective_from ? new Date(data.effective_from).toLocaleDateString('vi-VN') : '' }}
+        </template>
+      </Column>
+      <Column field="effective_to" header="Đến" style="width: 140px">
+        <template #body="{ data }">
+          {{ data.effective_to ? new Date(data.effective_to).toLocaleDateString('vi-VN') : '' }}
+        </template>
+      </Column>
       <Column header="" style="width: 220px">
         <template #body="{ data }">
           <div class="flex justify-end gap-2">
@@ -193,7 +225,13 @@ function destroy(id) {
   </div>
 
   <!-- Dialog: Create / Edit -->
-  <Dialog v-model:visible="showDialog" modal :header="isEditing ? 'Sửa phân công' : 'Thêm phân công'" :style="{ width: '560px' }">
+  <Dialog
+    v-model:visible="showDialog"
+    modal
+    :header="isEditing ? 'Sửa phân công' : 'Thêm phân công'"
+    :style="{ width: '560px' }"
+    @hide="form.saving = false"
+  >
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="md:col-span-2">
         <label class="block text-sm font-medium mb-1">Giáo viên</label>
@@ -213,11 +251,27 @@ function destroy(id) {
 
       <div>
         <label class="block text-sm font-medium mb-1">Hiệu lực từ</label>
-        <DatePicker v-model="form.effective_from" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
+        <DatePicker
+          v-model="form.effective_from"
+          dateFormat="dd/mm/yy"
+          :showTime="false"
+          :manualInput="false"
+          showIcon
+          iconDisplay="input"
+          class="w-full"
+        />
       </div>
       <div>
         <label class="block text-sm font-medium mb-1">Đến (tuỳ chọn)</label>
-        <DatePicker v-model="form.effective_to" dateFormat="dd/mm/yy" showIcon iconDisplay="input" class="w-full" />
+        <DatePicker
+          v-model="form.effective_to"
+          dateFormat="dd/mm/yy"
+          :showTime="false"
+          :manualInput="false"
+          showIcon
+          iconDisplay="input"
+          class="w-full"
+        />
       </div>
     </div>
 

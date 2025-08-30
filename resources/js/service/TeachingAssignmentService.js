@@ -1,37 +1,37 @@
 import { router } from '@inertiajs/vue3'
 
 export const createTeachingAssignmentService = () => ({
+  // List
   getList(classroomId, params = {}) {
     router.visit(route('manager.classrooms.assignments.index', { classroom: classroomId, ...params }), {
       preserveScroll: true,
-      preserveState: true,
+      preserveState: true
     })
   },
 
+  // Create
   create(classroomId, data, callbacks = {}) {
     router.post(route('manager.classrooms.assignments.store', { classroom: classroomId }), data, {
-      onFinish: () => callbacks.onFinish?.(),
       onSuccess: () => callbacks.onSuccess?.(),
-      onError: (errors) => callbacks.onError?.(errors),
-      preserveScroll: true,
+      onError: (errors) => callbacks.onError?.(errors)
     })
   },
 
+  // Update
   update(classroomId, id, data, callbacks = {}) {
     router.put(route('manager.classrooms.assignments.update', { classroom: classroomId, assignment: id }), data, {
-      onFinish: () => callbacks.onFinish?.(),
       onSuccess: () => callbacks.onSuccess?.(),
-      onError: (errors) => callbacks.onError?.(errors),
-      preserveScroll: true,
+      onError: (errors) => callbacks.onError?.(errors)
     })
   },
 
+  // Delete
   delete(classroomId, id, callbacks = {}) {
+    if (!confirm('Xác nhận xoá phân công này?')) return
     router.delete(route('manager.classrooms.assignments.destroy', { classroom: classroomId, assignment: id }), {
-      onFinish: () => callbacks.onFinish?.(),
-      onSuccess: () => callbacks.onSuccess?.(),
-      onError: (errors) => callbacks.onError?.(errors),
       preserveScroll: true,
+      onSuccess: () => callbacks.onSuccess?.(),
+      onError: (errors) => callbacks.onError?.(errors)
     })
-  },
+  }
 })
