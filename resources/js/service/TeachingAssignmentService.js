@@ -27,7 +27,6 @@ export const createTeachingAssignmentService = () => ({
 
   // Delete
   delete(classroomId, id, callbacks = {}) {
-    if (!confirm('Xác nhận xoá phân công này?')) return
     router.delete(route('manager.classrooms.assignments.destroy', { classroom: classroomId, assignment: id }), {
       preserveScroll: true,
       onSuccess: () => callbacks.onSuccess?.(),

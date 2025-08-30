@@ -3,6 +3,7 @@
 namespace App\Http\Requests\TeachingAssignments;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class StoreTeachingAssignmentRequest extends FormRequest
@@ -13,42 +14,51 @@ class StoreTeachingAssignmentRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $routeClassId = $this->route('classroom')?->id;
+        if ($routeClassId && !$this->filled('class_id')) {
+            $this->merge(['class_id' => (int) $routeClassId]);
+        }
+    }
+
     public function rules(): array
     {
-        $classId   = $this->input('class_id');
-        $teacherId = $this->input('teacher_id');
-        $effFrom   = $this->input('effective_from');
-
         return [
             'class_id' => ['required','integer','exists:classrooms,id'],
             'teacher_id' => ['required','integer','exists:users,id'],
             'rate_per_session' => ['required','integer','min:0'],
-
             'effective_from' => ['nullable','date'],
             'effective_to'   => ['nullable','date','after_or_equal:effective_from'],
-
-            // Đảm bảo không trùng (class_id, teacher_id, effective_from)
-            // (trùng với ràng buộc unique ở DB: assign_unique)
-            // Lưu ý: nếu effective_from = null, DB vẫn chấp nhận unique theo (class, teacher, null)
-            // nên ở đây cũng kiểm tra tương tự.
-            'unique_comp' => [
-                Rule::unique('teaching_assignments')
-                    ->where(fn($q) =>
-                        $q->where('class_id', $classId)
-                          ->where('teacher_id', $teacherId)
-                          ->where('effective_from', $effFrom)
-                    )
-            ],
         ];
     }
 
     public function withValidator($validator)
     {
-        // Di chuyển lỗi từ unique_comp sang field dễ hiểu (effective_from)
         $validator->after(function ($v) {
-            if ($v->errors()->has('unique_comp')) {
+            // Nếu đã có lỗi cơ bản thì bỏ qua check unique composite
+            if ($v->errors()->isNotEmpty()) return;
+
+            $classId   = (int) $this->input('class_id');
+            $teacherId = (int) $this->input('teacher_id');
+            $effFrom   = $this->input('effective_from'); // có thể null
+
+            // Kiểm tra trùng (class_id, teacher_id, effective_from)
+            $dup = DB::table('teaching_assignments')
+                ->where('class_id', $classId)
+                ->where('teacher_id', $teacherId)
+                ->where(function ($q) use ($effFrom) {
+                    // Cho phép null == null
+                    if ($effFrom === null || $effFrom === '') {
+                        $q->whereNull('effective_from');
+                    } else {
+                        $q->where('effective_from', $effFrom);
+                    }
+                })
+                ->exists();
+
+            if ($dup) {
                 $v->errors()->add('effective_from', 'Bản ghi phân công đã tồn tại (cùng lớp, giáo viên và ngày hiệu lực).');
-                $v->errors()->forget('unique_comp');
             }
         });
     }
