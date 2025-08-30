@@ -169,9 +169,15 @@ function activeSeverity(active) {
         </template>
       </Column>
 
-      <Column header="" style="width: 220px">
+      <Column header="" style="width: 280px">
         <template #body="{ data }">
           <div class="flex gap-2 justify-end">
+            <Link
+              :href="route('manager.students.show', data.id)"
+              class="px-3 py-1.5 rounded border border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900/20"
+            >
+              Chi tiết
+            </Link>
             <Link
               :href="route('manager.students.edit', data.id)"
               class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50

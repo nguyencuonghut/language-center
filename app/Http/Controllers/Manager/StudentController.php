@@ -7,8 +7,11 @@ use App\Http\Requests\Students\StoreStudentRequest;
 use App\Http\Requests\Students\UpdateStudentRequest;
 use App\Models\Enrollment;
 use App\Models\Student;
+use App\Models\Invoice;
+use App\Models\Attendance;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class StudentController extends Controller
@@ -86,6 +89,83 @@ class StudentController extends Controller
                 ['label' => 'Nữ',   'value' => 'Nữ'],
                 ['label' => 'Khác', 'value' => 'Khác'],
             ],
+        ]);
+    }
+
+/**
+     * Hiển thị trang 360° của học viên
+     */
+    public function show(Student $student)
+    {
+        // ENROLLMENTS: kèm code/name lớp để hiển thị nhanh
+        $enrollments = Enrollment::query()
+            ->where('student_id', $student->id)
+            ->leftJoin('classrooms', 'enrollments.class_id', '=', 'classrooms.id') // nếu bảng là "classrooms", đổi lại cho khớp
+            ->orderByDesc('enrolled_at')
+            ->get([
+                'enrollments.id',
+                'enrollments.class_id',
+                'enrollments.start_session_no',
+                'enrollments.enrolled_at',
+                'enrollments.status',
+                DB::raw('classrooms.code as class_code'),
+                DB::raw('classrooms.name as class_name'),
+            ])
+            ->map(function ($e) {
+                return [
+                    'id'                => (int) $e->id,
+                    'class_id'          => (int) $e->class_id,
+                    'class_code'        => $e->class_code,
+                    'class_name'        => $e->class_name,
+                    'start_session_no'  => (int) $e->start_session_no,
+                    'enrolled_at'       => optional($e->enrolled_at)->toDateString(),
+                    'status'            => $e->status,
+                ];
+            });
+
+        // INVOICES: kèm items + payments + branch + classroom + student (nhẹ)
+        // Lưu ý: Model Invoice nên có quan hệ classroom()->belongsTo(Classroom::class,'class_id')
+        $invoices = Invoice::query()
+            ->with([
+                'invoiceItems:id,invoice_id,type,description,qty,unit_price,amount,created_at,updated_at',
+                'payments:id,invoice_id,method,paid_at,amount,ref_no,created_at,updated_at',
+                'branch:id,name',
+                'classroom:id,code,name',   // nếu bạn dùng bảng "classes" → sửa lại quan hệ & fields cho khớp
+                'student:id,code,name',
+            ])
+            ->where('student_id', $student->id)
+            ->orderByDesc('id')
+            ->get([
+                'id','branch_id','student_id','class_id','total','status','due_date','created_at'
+            ]);
+
+        // ATTENDANCE SUMMARY: đếm theo status
+        $attCounts = Attendance::query()
+            ->where('student_id', $student->id)
+            ->select('status', DB::raw('COUNT(*) as c'))
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        $attendanceSummary = [
+            'present' => (int) ($attCounts['present'] ?? 0),
+            'absent'  => (int) ($attCounts['absent'] ?? 0),
+            'late'    => (int) ($attCounts['late'] ?? 0),
+            'excused' => (int) ($attCounts['excused'] ?? 0),
+        ];
+
+        return Inertia::render('Manager/Students/Show', [
+            'student'            => [
+                'id'     => $student->id,
+                'code'   => $student->code,
+                'name'   => $student->name,
+                'phone'  => $student->phone,
+                'email'  => $student->email,
+                'active' => (bool) $student->active,
+                'created_at' => optional($student->created_at)->toDateTimeString(),
+            ],
+            'enrollments'        => $enrollments,
+            'invoices'           => $invoices,
+            'attendanceSummary'  => $attendanceSummary,
         ]);
     }
 
