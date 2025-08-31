@@ -56,4 +56,20 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Branch::class, 'manager_branch')->withTimestamps();
     }
+
+    /**
+     * Get roles in Vietnamese
+     */
+    public function getRoleNamesViAttribute(): array
+    {
+        $roleTranslations = [
+            'teacher' => 'Giáo viên',
+            'manager' => 'Quản lý',
+            'admin' => 'Quản trị viên',
+        ];
+
+        return $this->roles->map(function ($role) use ($roleTranslations) {
+            return $roleTranslations[$role->name] ?? $role->name;
+        })->toArray();
+    }
 }

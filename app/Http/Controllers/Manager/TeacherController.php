@@ -98,14 +98,15 @@ class TeacherController extends Controller
 
         return inertia('Manager/Teachers/Show', [
             'teacher'     => [
-                'id'         => $teacher->id,
-                'name'       => $teacher->name,
-                'email'      => $teacher->email,
-                'phone'      => $teacher->phone,
-                'active'     => $teacher->active,
-                'created_at' => $teacher->created_at?->toDateString(),
-                'updated_at' => $teacher->updated_at?->toDateString(),
-                'roles'      => $teacher->roles->map(fn($r) => ['id'=>$r->id, 'name'=>$r->name]),
+                'id'            => $teacher->id,
+                'name'          => $teacher->name,
+                'email'         => $teacher->email,
+                'phone'         => $teacher->phone,
+                'active'        => $teacher->active,
+                'created_at'    => $teacher->created_at?->toDateString(),
+                'updated_at'    => $teacher->updated_at?->toDateString(),
+                'roles'         => $teacher->roles->map(fn($r) => ['id'=>$r->id, 'name'=>$r->name]),
+                'role_names_vi' => $teacher->role_names_vi, // Thêm accessor tiếng Việt
             ],
             'assignments' => $assignments,
         ]);

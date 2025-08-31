@@ -39,9 +39,8 @@ function toDdMmYyyy(d) {
 }
 
 const roleChips = computed(() => {
-  const arr = Array.isArray(props.teacher?.roles) ? props.teacher.roles : []
-  // roles có thể là mảng string hoặc object {name:...}
-  return arr.map(r => (typeof r === 'string' ? r : r?.name)).filter(Boolean)
+  // Sử dụng role_names_vi từ accessor trong Model User
+  return props.teacher?.role_names_vi || []
 })
 
 const itemsValue = computed(() => props.assignments || [])
