@@ -20,8 +20,7 @@ class UpdateTeacherRequest extends FormRequest
             'name'      => ['required', 'string', 'max:191'],
             'email'     => ['nullable', 'email', 'max:191', Rule::unique('users', 'email')->ignore($teacherId)],
             'phone'     => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($teacherId)],
-            'rate'      => ['required', 'integer', 'min:0'],
-            'active'    => ['boolean'],
+            'password'  => ['nullable', 'string', 'min:8'], // Optional cho update
         ];
     }
 
@@ -40,30 +39,31 @@ class UpdateTeacherRequest extends FormRequest
             'phone.max'       => 'Số điện thoại tối đa 20 ký tự.',
             'phone.unique'    => 'Số điện thoại này đã được sử dụng.',
 
-            'rate.required'   => 'Vui lòng nhập đơn giá/buổi.',
-            'rate.integer'    => 'Đơn giá/buổi phải là số nguyên.',
-            'rate.min'        => 'Đơn giá/buổi không được âm.',
-
-            'active.boolean'  => 'Trạng thái không hợp lệ.',
+            'password.string' => 'Mật khẩu không hợp lệ.',
+            'password.min'    => 'Mật khẩu phải có ít nhất 8 ký tự.',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'name'   => 'tên giáo viên',
-            'email'  => 'email',
-            'phone'  => 'số điện thoại',
-            'rate'   => 'đơn giá/buổi',
-            'active' => 'trạng thái',
+            'name'     => 'tên giáo viên',
+            'email'    => 'email',
+            'phone'    => 'số điện thoại',
+            'password' => 'mật khẩu',
         ];
     }
 
     public function validated($key = null, $default = null)
     {
         $data = parent::validated();
-        $data['rate']   = (int) $data['rate'];
-        $data['active'] = isset($data['active']) ? (bool) $data['active'] : true;
+        // Hash password nếu có và không rỗng
+        if (!empty($data['password'])) {
+            $data['password'] = bcrypt($data['password']);
+        } else {
+            // Loại bỏ password khỏi data nếu không có giá trị
+            unset($data['password']);
+        }
         return $data;
     }
 }

@@ -40,7 +40,7 @@ function save() {
   const payload = {
     name: form.name || '',
     email: form.email || '',
-    phone: form.phone || null,
+    phone: form.phone || '',
   }
   // chỉ gửi password nếu điền
   if (form.password && form.password.length > 0) {
@@ -86,8 +86,16 @@ function save() {
 
       <!-- Số điện thoại -->
       <div>
-        <label class="block text-sm font-medium mb-1">Số điện thoại (tuỳ chọn)</label>
-        <InputText v-model="form.phone" class="w-full" placeholder="VD: 09xx xxx xxx" />
+        <label class="block text-sm font-medium mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+        <InputText
+          v-model="form.phone"
+          class="w-full"
+          placeholder="VD: 0974936497"
+          maxlength="10"
+          pattern="0[0-9]{9}"
+          required
+        />
+        <div class="text-xs text-slate-500 mt-1">Định dạng: 10 số bắt đầu bằng 0</div>
         <div v-if="form.errors?.phone" class="text-red-500 text-xs mt-1">{{ form.errors.phone }}</div>
       </div>
 

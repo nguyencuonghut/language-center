@@ -33,14 +33,22 @@ class DemoDataSeeder extends Seeder
             // ---------------------------
             $admin = User::firstOrCreate(
                 ['email' => 'nguyenvancuong@honghafeed.com.vn'],
-                ['name' => 'Tony Nguyen', 'password' => Hash::make('Hongha@123')]
+                [
+                    'name' => 'Tony Nguyen',
+                    'phone' => '0974936497',
+                    'password' => Hash::make('Hongha@123')
+                ]
             );
             $admin->assignRole('admin');
 
             $managers = collect(range(1, 2))->map(function ($i) {
                 $u = User::firstOrCreate(
                     ['email' => "manager{$i}@honghafeed.com.vn"],
-                    ['name' => "Manager {$i}", 'password' => Hash::make('Hongha@123')]
+                    [
+                        'name' => "Manager {$i}",
+                        'phone' => '097493649' . $i,
+                        'password' => Hash::make('Hongha@123')
+                    ]
                 );
                 $u->assignRole('manager');
                 return $u;
@@ -49,7 +57,11 @@ class DemoDataSeeder extends Seeder
             $teachers = collect(range(1, 5))->map(function ($i) {
                 $u = User::firstOrCreate(
                     ['email' => "teacher{$i}@honghafeed.com.vn"],
-                    ['name' => "Teacher {$i}", 'password' => Hash::make('Hongha@123')]
+                    [
+                        'name' => "Teacher {$i}",
+                        'phone' => '098765432' . $i,
+                        'password' => Hash::make('Hongha@123')
+                    ]
                 );
                 $u->assignRole('teacher');
                 return $u;

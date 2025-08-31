@@ -49,20 +49,14 @@ class TeacherController extends Controller
         $data = $request->validated();
 
         $teacher = User::create([
-            'name'   => $data['name'],
-            'email'  => $data['email'] ?? null,
-            'phone'  => $data['phone'] ?? null,
-            'password' => bcrypt('12345678'), // Mật khẩu mặc định
+            'name'     => $data['name'],
+            'email'    => $data['email'] ?? null,
+            'phone'    => $data['phone'] ?? null,
+            'password' => $data['password'], // Đã được hash trong StoreTeacherRequest
         ]);
 
         // Gán role teacher
         $teacher->assignRole('teacher');
-
-        // Lưu đơn giá/buổi vào bảng profile hoặc meta nếu có
-        $teacher->profile()->updateOrCreate([], [
-            'rate_per_session' => $data['rate'],
-            'active'           => $data['active']
-        ]);
 
         return redirect()->route('manager.teachers.index')
             ->with('success', 'Đã thêm giáo viên thành công.');
@@ -127,8 +121,6 @@ class TeacherController extends Controller
                 'name'   => $teacher->name,
                 'email'  => $teacher->email,
                 'phone'  => $teacher->phone,
-                'rate'   => optional($teacher->profile)->rate_per_session,
-                'active' => optional($teacher->profile)->active,
             ]
         ]);
     }
@@ -142,16 +134,19 @@ class TeacherController extends Controller
 
         $data = $request->validated();
 
-        $teacher->update([
+        // Cập nhật thông tin cơ bản
+        $updateData = [
             'name'  => $data['name'],
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'] ?? null,
-        ]);
+        ];
 
-        $teacher->profile()->updateOrCreate([], [
-            'rate_per_session' => $data['rate'],
-            'active'           => $data['active'],
-        ]);
+        // Thêm password nếu có
+        if (isset($data['password'])) {
+            $updateData['password'] = $data['password'];
+        }
+
+        $teacher->update($updateData);
 
         return back()->with('success', 'Đã cập nhật giáo viên thành công.');
     }
