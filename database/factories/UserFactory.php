@@ -29,6 +29,7 @@ class UserFactory extends Factory
             'phone' => '0' . fake()->numerify('#########'), // Generate 10-digit phone starting with 0
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'active' => true, // Default to active
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +41,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user should be inactive.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'active' => false,
         ]);
     }
 }

@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 // PrimeVue
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
+import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 
 defineOptions({ layout: AppLayout })
@@ -21,6 +22,7 @@ const form = reactive({
   name: props.teacher?.name ?? '',
   email: props.teacher?.email ?? '',
   phone: props.teacher?.phone ?? '',
+  active: props.teacher?.active ?? true,
   password: '', // optional
   errors: {},
   saving: false,
@@ -30,6 +32,7 @@ watch(() => props.teacher, (t) => {
   form.name  = t?.name ?? ''
   form.email = t?.email ?? ''
   form.phone = t?.phone ?? ''
+  form.active = t?.active ?? true
   form.password = ''
 }, { immediate: true })
 
@@ -41,6 +44,7 @@ function save() {
     name: form.name || '',
     email: form.email || '',
     phone: form.phone || '',
+    active: form.active,
   }
   // chỉ gửi password nếu điền
   if (form.password && form.password.length > 0) {
@@ -104,6 +108,16 @@ function save() {
         <label class="block text-sm font-medium mb-1">Mật khẩu mới (tuỳ chọn)</label>
         <Password v-model="form.password" class="w-full" :feedback="false" toggleMask placeholder="Để trống nếu không đổi" />
         <div v-if="form.errors?.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</div>
+      </div>
+
+      <!-- Trạng thái hoạt động -->
+      <div>
+        <div class="flex items-center gap-2">
+          <Checkbox v-model="form.active" :binary="true" inputId="active" />
+          <label for="active" class="text-sm font-medium">Hoạt động</label>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">Bỏ chọn để tạm khóa giáo viên</div>
+        <div v-if="form.errors?.active" class="text-red-500 text-xs mt-1">{{ form.errors.active }}</div>
       </div>
 
       <!-- Actions -->

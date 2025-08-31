@@ -36,7 +36,8 @@ class DemoDataSeeder extends Seeder
                 [
                     'name' => 'Tony Nguyen',
                     'phone' => '0974936497',
-                    'password' => Hash::make('Hongha@123')
+                    'password' => Hash::make('Hongha@123'),
+                    'active' => true,
                 ]
             );
             $admin->assignRole('admin');
@@ -47,7 +48,8 @@ class DemoDataSeeder extends Seeder
                     [
                         'name' => "Manager {$i}",
                         'phone' => '097493649' . $i,
-                        'password' => Hash::make('Hongha@123')
+                        'password' => Hash::make('Hongha@123'),
+                        'active' => true,
                     ]
                 );
                 $u->assignRole('manager');
@@ -60,7 +62,8 @@ class DemoDataSeeder extends Seeder
                     [
                         'name' => "Teacher {$i}",
                         'phone' => '098765432' . $i,
-                        'password' => Hash::make('Hongha@123')
+                        'password' => Hash::make('Hongha@123'),
+                        'active' => true,
                     ]
                 );
                 $u->assignRole('teacher');

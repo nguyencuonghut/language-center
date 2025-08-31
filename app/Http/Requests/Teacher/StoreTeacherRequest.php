@@ -19,6 +19,7 @@ class StoreTeacherRequest extends FormRequest
             'email'     => ['nullable', 'email', 'max:191', 'unique:users,email'],
             'phone'     => ['nullable', 'string', 'max:20', 'unique:users,phone'],
             'password'  => ['required', 'string', 'min:8'],
+            'active'    => ['boolean'],
         ];
     }
 
@@ -50,6 +51,7 @@ class StoreTeacherRequest extends FormRequest
             'email'    => 'email',
             'phone'    => 'số điện thoại',
             'password' => 'mật khẩu',
+            'active'   => 'trạng thái hoạt động',
         ];
     }
 

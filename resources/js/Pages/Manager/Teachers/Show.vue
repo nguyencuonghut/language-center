@@ -101,6 +101,17 @@ const itemsValue = computed(() => props.assignments || [])
       <div class="space-y-1">
         <div><span class="text-slate-500 dark:text-slate-400">Email:</span> <span class="font-medium">{{ teacher?.email ?? '—' }}</span></div>
         <div><span class="text-slate-500 dark:text-slate-400">Điện thoại:</span> <span class="font-medium">{{ teacher?.phone ?? '—' }}</span></div>
+        <div>
+          <span class="text-slate-500 dark:text-slate-400">Trạng thái:</span>
+          <span
+            :class="teacher?.active
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+              : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'"
+            class="ml-1 px-2 py-1 rounded-full text-xs font-medium"
+          >
+            {{ teacher?.active ? 'Hoạt động' : 'Không hoạt động' }}
+          </span>
+        </div>
       </div>
     </div>
   </div>

@@ -103,6 +103,19 @@ function destroyTeacher(id) {
         </template>
       </Column>
 
+      <Column field="active" header="Trạng thái" style="min-width: 120px">
+        <template #body="{ data }">
+          <span
+            :class="data.active
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+              : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'"
+            class="px-2 py-1 rounded-full text-xs font-medium"
+          >
+            {{ data.active ? 'Hoạt động' : 'Không hoạt động' }}
+          </span>
+        </template>
+      </Column>
+
       <Column header="Thao tác" style="width: 240px">
         <template #body="{ data }">
           <div class="flex justify-end gap-2">

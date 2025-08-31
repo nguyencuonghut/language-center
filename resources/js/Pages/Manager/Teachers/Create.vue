@@ -6,6 +6,7 @@ import AppLayout from '@/Layouts/AppLayout.vue'
 // PrimeVue
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
+import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 
 defineOptions({ layout: AppLayout })
@@ -15,6 +16,7 @@ const form = reactive({
   email: '',
   phone: '',
   password: '',
+  active: true,
   errors: {},
   saving: false,
 })
@@ -28,6 +30,7 @@ function save() {
     email: form.email || '',
     phone: form.phone || '',
     password: form.password || '',
+    active: form.active,
   }, {
     preserveScroll: true,
     onFinish: () => { form.saving = false },
@@ -68,10 +71,10 @@ function save() {
       <!-- Số điện thoại -->
       <div>
         <label class="block text-sm font-medium mb-1">Số điện thoại <span class="text-red-500">*</span></label>
-        <InputText 
-          v-model="form.phone" 
-          class="w-full" 
-          placeholder="VD: 0974936497" 
+        <InputText
+          v-model="form.phone"
+          class="w-full"
+          placeholder="VD: 0974936497"
           maxlength="10"
           pattern="0[0-9]{9}"
           required
@@ -85,6 +88,16 @@ function save() {
         <label class="block text-sm font-medium mb-1">Mật khẩu</label>
         <Password v-model="form.password" class="w-full" :feedback="false" toggleMask placeholder="Tối thiểu 6 ký tự" />
         <div v-if="form.errors?.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</div>
+      </div>
+
+      <!-- Trạng thái hoạt động -->
+      <div>
+        <div class="flex items-center gap-2">
+          <Checkbox v-model="form.active" :binary="true" inputId="active" />
+          <label for="active" class="text-sm font-medium">Hoạt động</label>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">Bỏ chọn để tạm khóa giáo viên</div>
+        <div v-if="form.errors?.active" class="text-red-500 text-xs mt-1">{{ form.errors.active }}</div>
       </div>
 
       <!-- Actions -->

@@ -21,6 +21,7 @@ class UpdateTeacherRequest extends FormRequest
             'email'     => ['nullable', 'email', 'max:191', Rule::unique('users', 'email')->ignore($teacherId)],
             'phone'     => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($teacherId)],
             'password'  => ['nullable', 'string', 'min:8'], // Optional cho update
+            'active'    => ['boolean'],
         ];
     }
 
@@ -51,6 +52,7 @@ class UpdateTeacherRequest extends FormRequest
             'email'    => 'email',
             'phone'    => 'số điện thoại',
             'password' => 'mật khẩu',
+            'active'   => 'trạng thái hoạt động',
         ];
     }
 

@@ -23,6 +23,7 @@ class TeacherController extends Controller
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%");
             })
+            ->select('id', 'name', 'email', 'phone', 'active')
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -53,6 +54,7 @@ class TeacherController extends Controller
             'email'    => $data['email'] ?? null,
             'phone'    => $data['phone'] ?? null,
             'password' => $data['password'], // Đã được hash trong StoreTeacherRequest
+            'active'   => $data['active'] ?? true, // Default active
         ]);
 
         // Gán role teacher
@@ -100,6 +102,7 @@ class TeacherController extends Controller
                 'name'       => $teacher->name,
                 'email'      => $teacher->email,
                 'phone'      => $teacher->phone,
+                'active'     => $teacher->active,
                 'created_at' => $teacher->created_at?->toDateString(),
                 'updated_at' => $teacher->updated_at?->toDateString(),
                 'roles'      => $teacher->roles->map(fn($r) => ['id'=>$r->id, 'name'=>$r->name]),
@@ -121,6 +124,7 @@ class TeacherController extends Controller
                 'name'   => $teacher->name,
                 'email'  => $teacher->email,
                 'phone'  => $teacher->phone,
+                'active' => $teacher->active,
             ]
         ]);
     }
@@ -136,9 +140,10 @@ class TeacherController extends Controller
 
         // Cập nhật thông tin cơ bản
         $updateData = [
-            'name'  => $data['name'],
-            'email' => $data['email'] ?? null,
-            'phone' => $data['phone'] ?? null,
+            'name'   => $data['name'],
+            'email'  => $data['email'] ?? null,
+            'phone'  => $data['phone'] ?? null,
+            'active' => $data['active'] ?? true,
         ];
 
         // Thêm password nếu có

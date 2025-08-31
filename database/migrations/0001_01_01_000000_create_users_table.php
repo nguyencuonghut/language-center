@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('phone', 10); // Required, 10 digits, Vietnam format
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('active')->default(true); // User active status
             $table->rememberToken();
             $table->timestamps();
         });
