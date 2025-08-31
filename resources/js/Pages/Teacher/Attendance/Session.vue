@@ -81,6 +81,12 @@ function toHHmm(t){ return String(t||'').slice(0,5) }
           <InputText v-model="data.note" placeholder="Nhập ghi chú..." class="w-full" />
         </template>
       </Column>
+
+      <template #empty>
+        <div class="p-6 text-center text-slate-500 dark:text-slate-400">
+          Chưa có học viên nào trong lớp.
+        </div>
+      </template>
     </DataTable>
   </div>
 </template>

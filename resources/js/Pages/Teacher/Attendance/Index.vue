@@ -44,6 +44,12 @@ function toHHmm(t){ return String(t||'').slice(0,5) }
           </Link>
         </template>
       </Column>
+
+      <template #empty>
+        <div class="p-6 text-center text-slate-500 dark:text-slate-400">
+          Chưa có buổi dạy nào.
+        </div>
+      </template>
     </DataTable>
   </div>
 </template>
