@@ -16,14 +16,25 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
-    // Danh sách buổi của giáo viên (bản tối giản: lấy buổi thuộc các lớp có teacher_id = tôi)
+    // Danh sách buổi của giáo viên (lấy buổi thuộc các lớp mà giáo viên được phân công)
     public function index(Request $request)
     {
         $teacherId = Auth::id();
 
         $sessions = ClassSession::query()
             ->with(['classroom:id,code,name'])
-            ->whereHas('classroom', fn($q) => $q->where('teacher_id', $teacherId))
+            ->whereHas('classroom', function($q) use ($teacherId) {
+                $q->whereExists(function($query) use ($teacherId) {
+                    $query->select(DB::raw(1))
+                          ->from('teaching_assignments')
+                          ->whereColumn('teaching_assignments.class_id', 'classrooms.id')
+                          ->where('teaching_assignments.teacher_id', $teacherId)
+                          ->where(function($q) {
+                              $q->whereNull('effective_to')
+                                ->orWhere('effective_to', '>=', now()->toDateString());
+                          });
+                });
+            })
             ->orderBy('date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(20)
@@ -163,8 +174,14 @@ class AttendanceController extends Controller
     {
         $teacherId = Auth::id();
 
-        // Tối giản: buổi thuộc lớp mà tôi là teacher
-        $belongs = optional($session->classroom)->teacher_id === $teacherId;
+        // Kiểm tra buổi thuộc lớp mà giáo viên được phân công
+        $belongs = TeachingAssignment::where('class_id', $session->class_id)
+            ->where('teacher_id', $teacherId)
+            ->where(function($q) {
+                $q->whereNull('effective_to')
+                  ->orWhere('effective_to', '>=', now()->toDateString());
+            })
+            ->exists();
 
         // TODO (bước sau): tính cả dạy thay qua bảng session_substitutions
         if (!$belongs) {
