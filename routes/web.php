@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Manager\TeachingAssignmentController;
 use App\Http\Controllers\Manager\StudentTransferController;
+use App\Http\Controllers\Manager\TransferController;
 
 /*
 |--------------------------------------------------------------------------
@@ -338,6 +339,9 @@ Route::middleware(['auth'])->group(function () {
         // TRANSFERS
         Route::post('students/{student}/transfer', [StudentTransferController::class, 'store'])
             ->name('students.transfer');
+        Route::post('transfers/revert',   [TransferController::class, 'revert'])->name('transfers.revert');
+        Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');
+
 
          // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
          Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');

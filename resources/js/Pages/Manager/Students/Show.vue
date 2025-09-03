@@ -50,6 +50,18 @@ const showTransferDialog = ref(false)
 const transferSaving = ref(false)
 const availableClasses = ref([])
 
+// Retarget transfer dialog state
+const showRetargetDialog = ref(false)
+const retargetSaving = ref(false)
+const retargetEnrollment = ref(null)
+
+// Check if there are transfer operations available
+const hasActiveTransfer = computed(() => {
+  const hasTransferred = props.enrollments?.some(e => e.status === 'transferred')
+  const hasActive = props.enrollments?.some(e => e.status === 'active')
+  return hasTransferred && hasActive
+})
+
 // Get current active class from enrollments
 const currentClass = computed(() => {
   const activeEnrollment = props.enrollments?.find(e => e.status === 'active')
@@ -106,6 +118,113 @@ const handleTransferSubmit = async (transferData) => {
 
 const handleTransferCancel = () => {
   showTransferDialog.value = false
+}
+
+// Revert transfer function
+const revertTransfer = async (transferredEnrollment) => {
+  if (!confirm('Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này?')) {
+    return
+  }
+
+  // Find the current active enrollment (the target class we want to remove)
+  const activeEnrollment = props.enrollments?.find(e => e.status === 'active')
+
+  if (!activeEnrollment) {
+    alert('Không tìm thấy lớp hiện tại để hoàn tác.')
+    return
+  }
+
+  try {
+    router.post(
+      route('manager.transfers.revert'),
+      {
+        student_id: props.student.id,
+        to_class_id: activeEnrollment.class_id, // current active class (to be removed)
+        from_class_id: transferredEnrollment.class_id // original class (to be restored)
+      },
+      {
+        onSuccess: () => {
+          // Page will be refreshed with updated data
+        },
+        onError: (errors) => {
+          console.error('Revert transfer failed:', errors)
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Revert transfer error:', error)
+  }
+}
+
+// Open retarget dialog
+const openRetargetDialog = async (transferredEnrollment) => {
+  // Find the current active enrollment
+  const activeEnrollment = props.enrollments?.find(e => e.status === 'active')
+
+  if (!activeEnrollment) {
+    alert('Không tìm thấy lớp hiện tại để chuyển.')
+    return
+  }
+
+  retargetEnrollment.value = {
+    transferredEnrollment,
+    activeEnrollment
+  }
+
+  // Load available classes when opening dialog
+  try {
+    const response = await fetch(route('manager.classrooms.search') + '?available_for_transfer=1')
+    if (response.ok) {
+      const data = await response.json()
+      availableClasses.value = data
+    }
+  } catch (error) {
+    console.error('Failed to load available classes:', error)
+    availableClasses.value = []
+  }
+
+  showRetargetDialog.value = true
+}
+
+// Handle retarget transfer submit
+const handleRetargetSubmit = async (transferData) => {
+  retargetSaving.value = true
+
+  try {
+    router.post(
+      route('manager.transfers.retarget'),
+      {
+        student_id: props.student.id,
+        from_class_id: retargetEnrollment.value.transferredEnrollment.class_id, // original class
+        old_to_class_id: retargetEnrollment.value.activeEnrollment.class_id, // current wrong target
+        new_to_class_id: transferData.to_class_id, // new correct target
+        start_session_no: transferData.start_session_no,
+        due_date: transferData.effective_date,
+        note: transferData.note
+      },
+      {
+        onSuccess: () => {
+          showRetargetDialog.value = false
+          retargetEnrollment.value = null
+        },
+        onError: (errors) => {
+          console.error('Retarget transfer failed:', errors)
+        },
+        onFinish: () => {
+          retargetSaving.value = false
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Retarget transfer error:', error)
+    retargetSaving.value = false
+  }
+}
+
+// Handle retarget cancel
+const handleRetargetCancel = () => {
+  showRetargetDialog.value = false
+  retargetEnrollment.value = null
 }
 </script>
 
@@ -190,7 +309,51 @@ const handleTransferCancel = () => {
             <Column field="enrolled_at" header="Ngày ghi danh" style="width: 160px">
               <template #body="{ data }">{{ toDdMmYyyy(data.enrolled_at) }}</template>
             </Column>
-            <Column field="status" header="Trạng thái" style="width: 140px" />
+            <Column field="status" header="Trạng thái" style="width: 140px">
+              <template #body="{ data }">
+                <Tag
+                  :value="data.status === 'active' ? 'Đang học' :
+                          data.status === 'transferred' ? 'Đã chuyển' :
+                          data.status === 'completed' ? 'Hoàn thành' :
+                          data.status === 'cancelled' ? 'Hủy' : data.status"
+                  :severity="data.status === 'active' ? 'success' :
+                            data.status === 'transferred' ? 'warning' :
+                            data.status === 'completed' ? 'info' :
+                            data.status === 'cancelled' ? 'danger' : 'secondary'"
+                />
+              </template>
+            </Column>
+            <Column header="Thao tác" style="width: 280px">
+              <template #body="{ data }">
+                <div v-if="data.status === 'transferred' && hasActiveTransfer" class="flex gap-2">
+                  <Button
+                    label="Hoàn tác"
+                    icon="pi pi-undo"
+                    size="small"
+                    severity="warning"
+                    @click="revertTransfer(data)"
+                  />
+                  <Button
+                    label="Sửa chuyển lớp"
+                    icon="pi pi-pencil"
+                    size="small"
+                    severity="info"
+                    @click="openRetargetDialog(data)"
+                  />
+                </div>
+                <div v-else-if="data.status === 'active'" class="flex gap-2">
+                  <!-- Show transfer button for active enrollments -->
+                  <Button
+                    label="Chuyển lớp"
+                    icon="pi pi-refresh"
+                    size="small"
+                    severity="info"
+                    @click="openTransferDialog"
+                    :disabled="!currentClass"
+                  />
+                </div>
+              </template>
+            </Column>
             <template #empty>
               <div class="p-4 text-center text-slate-500 dark:text-slate-400">Chưa có ghi danh.</div>
             </template>
@@ -278,5 +441,25 @@ const handleTransferCancel = () => {
     :saving="transferSaving"
     @submit="handleTransferSubmit"
     @cancel="handleTransferCancel"
+  />
+
+  <!-- Retarget Transfer Dialog -->
+  <TransferDialog
+    v-model="showRetargetDialog"
+    :student="student"
+    :fromClass="retargetEnrollment ? {
+      id: retargetEnrollment.activeEnrollment.class_id,
+      code: retargetEnrollment.activeEnrollment.class_code,
+      name: retargetEnrollment.activeEnrollment.class_name
+    } : null"
+    :classOptions="availableClasses"
+    :defaults="{
+      start_session_no: 1,
+      effective_date: new Date().toISOString().split('T')[0],
+      create_adjustments: true
+    }"
+    :saving="retargetSaving"
+    @submit="handleRetargetSubmit"
+    @cancel="handleRetargetCancel"
   />
 </template>
