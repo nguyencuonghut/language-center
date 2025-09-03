@@ -2,6 +2,7 @@
 import { reactive, ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import TransferDialog from '@/Components/TransferDialog.vue'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -23,7 +24,9 @@ const props = defineProps({
   enrollments: Object,     // paginator
   filters: Object,         // {perPage, sort, order}
   // [{label: 'STU001 · Nguyễn A (098...)', value: 1, code:'STU001', name:'Nguyễn A'}] — server gợi ý sẵn
-  suggestStudents: Array
+  suggestStudents: Array,
+  // Available classrooms for transfer (TODO: should be passed from backend)
+  availableClasses: { type: Array, default: () => [] }
 })
 
 /* ---------------- Helpers ---------------- */
@@ -187,6 +190,66 @@ function destroy(id){
     preserveScroll: true
   })
 }
+
+/* ---------------- Transfer Class Modal ---------------- */
+const showTransferModal = ref(false)
+const transferData = reactive({
+  student: {},
+  fromClass: {},
+  saving: false
+})
+
+function transferClass(id){
+  // Find enrollment data
+  const enrollment = value.value.find(e => e.id === id)
+  if (!enrollment) return
+
+  // Prepare data for TransferDialog
+  transferData.student = {
+    id: enrollment.student?.id ?? enrollment.student_id,
+    code: enrollment.student?.code ?? enrollment.student_code ?? enrollment.code,
+    name: enrollment.student?.name ?? enrollment.student_name ?? enrollment.name ?? '—'
+  }
+
+  transferData.fromClass = {
+    id: props.classroom.id,
+    code: props.classroom.code,
+    name: props.classroom.name
+  }
+
+  transferData.saving = false
+  showTransferModal.value = true
+}
+
+function onTransferSubmit(payload){
+  transferData.saving = true
+
+  // Add enrollment ID to payload
+  const submissionPayload = {
+    ...payload,
+    enrollment_id: payload.student_id ? value.value.find(e =>
+      (e.student?.id ?? e.student_id) === payload.student_id
+    )?.id : null
+  }
+
+  // TODO: Replace with actual route when backend is implemented
+  router.post(route('admin.classrooms.enrollments.transfer', {
+    classroom: props.classroom.id
+  }), submissionPayload, {
+    preserveScroll: true,
+    onFinish: () => { transferData.saving = false },
+    onSuccess: () => { showTransferModal.value = false },
+    onError: (errors) => {
+      // For now, show alert since backend route doesn't exist yet
+      alert('Chức năng chuyển lớp sẽ được triển khai sau khi có backend API.')
+      transferData.saving = false
+    }
+  })
+}
+
+function onTransferCancel(){
+  showTransferModal.value = false
+}
 </script>
 
 <template>
@@ -270,9 +333,15 @@ function destroy(id){
         </template>
       </Column>
 
-      <Column header="" style="width: 160px">
+      <Column header="" style="width: 280px">
         <template #body="{ data }">
           <div class="flex justify-end gap-2">
+            <button
+              class="px-3 py-1.5 rounded border border-amber-300 text-amber-600 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/20"
+              @click="transferClass(data.id)"
+            >
+              <i class="pi pi-arrow-right mr-1" /> Chuyển lớp
+            </button>
             <button
               class="px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
               @click="destroy(data.id)"
@@ -373,4 +442,15 @@ function destroy(id){
       <Button label="Ghi danh" icon="pi pi-check" :loading="form.saving" @click="submitEnroll" autofocus />
     </template>
   </Dialog>
+
+  <!-- Transfer Class Dialog -->
+  <TransferDialog
+    v-model="showTransferModal"
+    :student="transferData.student"
+    :fromClass="transferData.fromClass"
+    :classOptions="availableClasses"
+    :saving="transferData.saving"
+    @submit="onTransferSubmit"
+    @cancel="onTransferCancel"
+  />
 </template>

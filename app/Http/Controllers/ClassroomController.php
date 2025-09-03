@@ -164,4 +164,52 @@ class ClassroomController extends Controller
             ->route('admin.classrooms.index', request()->only('branch'))
             ->with('success', 'Đã xoá lớp.');
     }
+
+    // ========== SEARCH API ==========
+    public function search(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        $availableForTransfer = $request->boolean('available_for_transfer', false);
+
+        $query = Classroom::query()
+            ->leftJoin('branches', 'branches.id', '=', 'classrooms.branch_id')
+            ->leftJoin('courses', 'courses.id', '=', 'classrooms.course_id');
+
+        if ($q !== '') {
+            $query->where(function ($subQuery) use ($q) {
+                $subQuery->where('classrooms.code', 'like', "%{$q}%")
+                        ->orWhere('classrooms.name', 'like', "%{$q}%")
+                        ->orWhere('courses.name', 'like', "%{$q}%");
+            });
+        }
+
+        // If searching for transfer options, only show active classes
+        if ($availableForTransfer) {
+            $query->whereIn('classrooms.status', ['active', 'open']);
+        }
+
+        $classrooms = $query
+            ->orderBy('classrooms.name')
+            ->limit(50)
+            ->get([
+                'classrooms.id',
+                'classrooms.code',
+                'classrooms.name',
+                'classrooms.status',
+                'courses.name as course_name',
+                'branches.name as branch_name'
+            ])
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'code' => $c->code,
+                    'name' => $c->name,
+                    'status' => $c->status,
+                    'course_name' => $c->course_name,
+                    'branch_name' => $c->branch_name,
+                ];
+            });
+
+        return response()->json($classrooms);
+    }
 }

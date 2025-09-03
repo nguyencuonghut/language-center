@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Manager\TeachingAssignmentController;
+use App\Http\Controllers\Manager\StudentTransferController;
 
 /*
 |--------------------------------------------------------------------------
@@ -334,7 +335,14 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('assignments/{assignment}',[TeachingAssignmentController::class, 'destroy'])->name('assignments.destroy');
         });
 
+        // TRANSFERS
+        Route::post('students/{student}/transfer', [StudentTransferController::class, 'store'])
+            ->name('students.transfer');
+
          // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
          Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');
+
+         // API gợi ý tìm lớp học cho AutoComplete
+         Route::get('classrooms/search',       [ClassroomController::class, 'search'])->name('classrooms.search');
     });
 });
