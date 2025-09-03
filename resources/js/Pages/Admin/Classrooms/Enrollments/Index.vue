@@ -25,8 +25,6 @@ const props = defineProps({
   filters: Object,         // {perPage, sort, order}
   // [{label: 'STU001 · Nguyễn A (098...)', value: 1, code:'STU001', name:'Nguyễn A'}] — server gợi ý sẵn
   suggestStudents: Array,
-  // Available classrooms for transfer (TODO: should be passed from backend)
-  availableClasses: { type: Array, default: () => [] }
 })
 
 /* ---------------- Helpers ---------------- */
@@ -193,13 +191,14 @@ function destroy(id){
 
 /* ---------------- Transfer Class Modal ---------------- */
 const showTransferModal = ref(false)
+const availableClasses = ref([])
 const transferData = reactive({
   student: {},
   fromClass: {},
   saving: false
 })
 
-function transferClass(id){
+async function transferClass(id){
   // Find enrollment data
   const enrollment = value.value.find(e => e.id === id)
   if (!enrollment) return
@@ -218,31 +217,33 @@ function transferClass(id){
   }
 
   transferData.saving = false
+
+  // Load available classes when opening dialog
+  try {
+    const response = await fetch(route('manager.classrooms.search') + '?available_for_transfer=1')
+    if (response.ok) {
+      const data = await response.json()
+      availableClasses.value = data
+    }
+  } catch (error) {
+    console.error('Failed to load available classes:', error)
+    // Fallback to empty array
+    availableClasses.value = []
+  }
+
   showTransferModal.value = true
 }
 
 function onTransferSubmit(payload){
   transferData.saving = true
 
-  // Add enrollment ID to payload
-  const submissionPayload = {
-    ...payload,
-    enrollment_id: payload.student_id ? value.value.find(e =>
-      (e.student?.id ?? e.student_id) === payload.student_id
-    )?.id : null
-  }
-
-  // TODO: Replace with actual route when backend is implemented
-  router.post(route('admin.classrooms.enrollments.transfer', {
-    classroom: props.classroom.id
-  }), submissionPayload, {
+  // Use the student transfer route instead of enrollment transfer
+  router.post(route('manager.students.transfer', transferData.student.id), payload, {
     preserveScroll: true,
     onFinish: () => { transferData.saving = false },
     onSuccess: () => { showTransferModal.value = false },
     onError: (errors) => {
-      // For now, show alert since backend route doesn't exist yet
-      alert('Chức năng chuyển lớp sẽ được triển khai sau khi có backend API.')
-      transferData.saving = false
+      console.error('Transfer failed:', errors)
     }
   })
 }
@@ -449,6 +450,11 @@ function onTransferCancel(){
     :student="transferData.student"
     :fromClass="transferData.fromClass"
     :classOptions="availableClasses"
+    :defaults="{
+      start_session_no: 1,
+      effective_date: new Date().toISOString().split('T')[0],
+      create_adjustments: true
+    }"
     :saving="transferData.saving"
     @submit="onTransferSubmit"
     @cancel="onTransferCancel"
