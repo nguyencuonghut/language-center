@@ -694,6 +694,7 @@ function formatPercentage(value) {
               <template #content>
                 <div class="h-80">
                   <Chart
+                    :key="`performance-chart-${filters.report_type}`"
                     type="bar"
                     :data="performanceChartData"
                     :options="chartOptions"
@@ -729,14 +730,14 @@ function formatPercentage(value) {
                       <div class="flex items-center gap-3">
                         <div class="flex-1 min-w-0">
                           <ProgressBar
-                            :value="Math.min(data.success_rate || 0, 100)"
+                            :value="Math.min(parseFloat(data.success_rate) || 0, 100)"
                             class="w-full h-3"
                             :showValue="false"
                           />
                         </div>
                         <div class="flex-shrink-0">
                           <span class="font-medium text-sm text-blue-600 min-w-[50px] text-right">
-                            {{ (data.success_rate || 0).toFixed(1) }}%
+                            {{ (parseFloat(data.success_rate) || 0).toFixed(1) }}%
                           </span>
                         </div>
                       </div>
@@ -756,7 +757,7 @@ function formatPercentage(value) {
               <DataTable
                 :value="currentReportData.transfers || []"
                 :paginator="true"
-                :rows="20"
+                :rows="10"
                 stripedRows
                 size="small"
                 class="p-datatable-sm"
