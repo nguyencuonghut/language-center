@@ -2,7 +2,7 @@
 import { reactive, ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import TransferDialog from '@/Components/TransferDialog.vue'
+import TransferFormModal from '@/Components/TransferFormModal.vue'
 import { createTransferService } from '@/service/TransferService.js'
 
 // PrimeVue
@@ -195,11 +195,9 @@ function destroy(id){
 
 /* ---------------- Transfer Class Modal ---------------- */
 const showTransferModal = ref(false)
-const availableClasses = ref([])
 const transferData = reactive({
   student: {},
-  fromClass: {},
-  saving: false
+  fromClass: {}
 })
 
 async function transferClass(id){
@@ -207,7 +205,7 @@ async function transferClass(id){
   const enrollment = value.value.find(e => e.id === id)
   if (!enrollment) return
 
-  // Prepare data for TransferDialog
+  // Prepare data for TransferFormModal
   transferData.student = {
     id: enrollment.student?.id ?? enrollment.student_id,
     code: enrollment.student?.code ?? enrollment.student_code ?? enrollment.code,
@@ -220,45 +218,14 @@ async function transferClass(id){
     name: props.classroom.name
   }
 
-  transferData.saving = false
-
-  // Load available classes when opening dialog
-  try {
-    const response = await fetch(route('manager.classrooms.search') + '?available_for_transfer=1')
-    if (response.ok) {
-      const data = await response.json()
-      availableClasses.value = data
-    }
-  } catch (error) {
-    console.error('Failed to load available classes:', error)
-    // Fallback to empty array
-    availableClasses.value = []
-  }
-
   showTransferModal.value = true
 }
 
-function onTransferSubmit(payload){
-  transferData.saving = true
-
-  // Use TransferService for consistency
-  transferService.createForStudent(transferData.student.id, payload, {
-    onSuccess: () => {
-      showTransferModal.value = false
-    },
-    onError: (errors) => {
-      console.error('Transfer failed:', errors)
-    }
-  })
-
-  // Reset saving state
-  setTimeout(() => {
-    transferData.saving = false
-  }, 100)
-}
-
-function onTransferCancel(){
+function onTransferSuccess(){
   showTransferModal.value = false
+  // Refresh the enrollments data
+  router.visit(route('admin.classrooms.enrollments.index', { classroom: props.classroom.id, ...buildQuery() }),
+    { preserveScroll: true, preserveState: true })
 }
 </script>
 
@@ -453,19 +420,11 @@ function onTransferCancel(){
     </template>
   </Dialog>
 
-  <!-- Transfer Class Dialog -->
-  <TransferDialog
-    v-model="showTransferModal"
+  <!-- Transfer Class Modal -->
+  <TransferFormModal
+    v-model:visible="showTransferModal"
     :student="transferData.student"
-    :fromClass="transferData.fromClass"
-    :classOptions="availableClasses"
-    :defaults="{
-      start_session_no: 1,
-      effective_date: new Date().toISOString().split('T')[0],
-      create_adjustments: true
-    }"
-    :saving="transferData.saving"
-    @submit="onTransferSubmit"
-    @cancel="onTransferCancel"
+    :from-class="transferData.fromClass"
+    @success="onTransferSuccess"
   />
 </template>

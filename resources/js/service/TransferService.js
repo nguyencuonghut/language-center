@@ -137,12 +137,12 @@ export const createTransferService = () => ({
    */
   async searchClassrooms(query, options = {}) {
     try {
-      const params = { 
+      const params = {
         q: query,
         available_for_transfer: options.available_for_transfer || true,
         ...options
       }
-      
+
       const response = await window.axios.get(route('manager.classrooms.search'), {
         params
       })

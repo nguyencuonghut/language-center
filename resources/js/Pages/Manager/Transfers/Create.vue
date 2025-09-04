@@ -54,7 +54,7 @@ watch(selectedStudentObj, async (newStudent) => {
     form.student_id = newStudent.value || newStudent.id
     form.from_class_id = null
     form.to_class_id = null
-    
+
     // Fetch full student details with enrollments if we only have basic info
     if (!newStudent.enrollments && (newStudent.value || newStudent.id)) {
       try {
@@ -97,7 +97,7 @@ const fromClassOptions = computed(() => {
 
 const toClassOptions = computed(() => {
   if (!props.classrooms) return []
-  
+
   return props.classrooms
     .filter(c => c.id !== form.from_class_id)
     .map(c => ({

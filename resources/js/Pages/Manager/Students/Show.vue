@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import TransferDialog from '@/Components/TransferDialog.vue'
+import TransferFormModal from '@/Components/TransferFormModal.vue'
 
 // PrimeVue
 import Tag from 'primevue/tag'
@@ -45,9 +45,8 @@ const balance  = (inv) => Math.max(0, (Number(inv.total)||0) - totalPaid(inv))
 
 const att = computed(()=> props.attendanceSummary || {present:0,absent:0,late:0,excused:0})
 
-// Transfer dialog state
-const showTransferDialog = ref(false)
-const transferSaving = ref(false)
+// Transfer modal state
+const showTransferModal = ref(false)
 const availableClasses = ref([])
 
 // Retarget transfer dialog state
@@ -74,8 +73,8 @@ const currentClass = computed(() => {
   }
 })
 
-const openTransferDialog = async () => {
-  // Load available classes when opening dialog
+const openTransferModal = async () => {
+  // Load available classes when opening modal
   try {
     const response = await fetch(route('manager.classrooms.search') + '?available_for_transfer=1')
     if (response.ok) {
@@ -84,40 +83,19 @@ const openTransferDialog = async () => {
     }
   } catch (error) {
     console.error('Failed to load available classes:', error)
-    // Fallback to empty array
     availableClasses.value = []
   }
 
-  showTransferDialog.value = true
+  showTransferModal.value = true
 }
 
-const handleTransferSubmit = async (transferData) => {
-  transferSaving.value = true
-
-  try {
-    router.post(
-      route('manager.students.transfer', props.student.id),
-      transferData,
-      {
-        onSuccess: () => {
-          showTransferDialog.value = false
-        },
-        onError: (errors) => {
-          console.error('Transfer failed:', errors)
-        },
-        onFinish: () => {
-          transferSaving.value = false
-        }
-      }
-    )
-  } catch (error) {
-    console.error('Transfer error:', error)
-    transferSaving.value = false
-  }
+const handleTransferSuccess = () => {
+  // Reload page to show updated data
+  router.reload({ only: ['student', 'enrollments'] })
 }
 
 const handleTransferCancel = () => {
-  showTransferDialog.value = false
+  showTransferModal.value = false
 }
 
 // Revert transfer function
@@ -248,7 +226,7 @@ const handleRetargetCancel = () => {
 
     <div class="flex flex-wrap items-center gap-2">
       <button
-        @click="openTransferDialog"
+        @click="openTransferModal"
         class="px-3 py-1.5 rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50
                dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20"
         :disabled="!currentClass"
@@ -348,7 +326,7 @@ const handleRetargetCancel = () => {
                     icon="pi pi-refresh"
                     size="small"
                     severity="info"
-                    @click="openTransferDialog"
+                    @click="openTransferModal"
                     :disabled="!currentClass"
                   />
                 </div>
@@ -427,39 +405,22 @@ const handleRetargetCancel = () => {
     </TabPanels>
   </Tabs>
 
-  <!-- Transfer Dialog -->
-  <TransferDialog
-    v-model="showTransferDialog"
+  <!-- Transfer Form Modal -->
+  <TransferFormModal
+    v-model:visible="showTransferModal"
     :student="student"
-    :fromClass="currentClass"
-    :classOptions="availableClasses"
-    :defaults="{
-      start_session_no: 1,
-      effective_date: new Date().toISOString().split('T')[0],
-      create_adjustments: true
-    }"
-    :saving="transferSaving"
-    @submit="handleTransferSubmit"
-    @cancel="handleTransferCancel"
+    :classrooms="availableClasses"
+    @success="handleTransferSuccess"
   />
 
-  <!-- Retarget Transfer Dialog -->
-  <TransferDialog
-    v-model="showRetargetDialog"
-    :student="student"
-    :fromClass="retargetEnrollment ? {
-      id: retargetEnrollment.activeEnrollment.class_id,
-      code: retargetEnrollment.activeEnrollment.class_code,
-      name: retargetEnrollment.activeEnrollment.class_name
-    } : null"
-    :classOptions="availableClasses"
-    :defaults="{
-      start_session_no: 1,
-      effective_date: new Date().toISOString().split('T')[0],
-      create_adjustments: true
-    }"
-    :saving="retargetSaving"
-    @submit="handleRetargetSubmit"
-    @cancel="handleRetargetCancel"
-  />
+  <!-- TODO: Retarget functionality can be added later -->
 </template>
+
+<script>
+// Register components
+export default {
+  components: {
+    TransferFormModal
+  }
+}
+</script>
