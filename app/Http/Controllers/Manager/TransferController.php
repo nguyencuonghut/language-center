@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transfer\RevertTransferRequest;
 use App\Http\Requests\Transfer\RetargetTransferRequest;
-use App\Models\Enrollment;
-use App\Models\Invoice;
 use App\Models\Attendance;
 use App\Models\Classroom;
+use App\Models\Enrollment;
+use App\Models\Invoice;
 use App\Models\Student;
+use App\Models\Transfer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class TransferController extends Controller
 {
@@ -25,21 +27,25 @@ class TransferController extends Controller
         $fromClass = Classroom::findOrFail($fromId);
         $toClass   = Classroom::findOrFail($toId);
 
-        DB::transaction(function () use ($student, $fromClass, $toClass) {
+        // Tìm transfer record active
+        $transfer = Transfer::active()
+            ->where('student_id', $studentId)
+            ->where('from_class_id', $fromId)
+            ->where('to_class_id', $toId)
+            ->first();
+
+        if (!$transfer) {
+            return back()->with('error', 'Không tìm thấy transfer record để hoàn tác.');
+        }
+
+        if (!$transfer->canRevert()) {
+            return back()->with('error', 'Không thể hoàn tác: học viên đã có điểm danh ở lớp đích.');
+        }
+
+        DB::transaction(function () use ($student, $fromClass, $toClass, $transfer) {
             // 1) Kiểm tra enrollment ở lớp đích (để xoá)
             $toEnroll = Enrollment::where('student_id', $student->id)->where('class_id', $toClass->id)->first();
             if ($toEnroll) {
-                // Cấm hoàn tác nếu đã có điểm danh ở buổi thuộc lớp đích
-                $hasAttendance = Attendance::whereHas('session', function($q) use ($toClass) {
-                        $q->where('class_id', $toClass->id);
-                    })
-                    ->where('student_id', $student->id)
-                    ->exists();
-
-                if ($hasAttendance) {
-                    abort(422, 'Không thể hoàn tác: học viên đã có điểm danh ở lớp đích.');
-                }
-
                 // Xoá enrollment lớp đích
                 $toEnroll->delete();
             }
@@ -64,23 +70,21 @@ class TransferController extends Controller
                 ]);
             }
 
-            // 3) Hoá đơn chuyển lớp (nếu có): tìm invoice của học viên liên quan lớp đích và chưa thanh toán → xoá
-            $invoices = Invoice::where('student_id', $student->id)
-                ->where(function($q) use ($toClass) {
-                    $q->where('class_id', $toClass->id)->orWhereNull('class_id');
-                })
-                ->whereIn('status', ['unpaid'])
-                ->get();
-
-            foreach ($invoices as $inv) {
-                // Nếu chỉ là invoice riêng cho phí chuyển / điều chỉnh thì có thể xoá
-                // Nếu bạn muốn chắc chắn là invoice này do chuyển lớp tạo ra, có thể dò thêm invoice_items type 'transfer_in'/'transfer_out'.
-                $hasPayments = $inv->payments()->exists();
-                if (!$hasPayments) {
-                    $inv->invoiceItems()->delete();
-                    $inv->delete();
+            // 3) Hoá đơn chuyển lớp liên quan (nếu có): xoá
+            if ($transfer->invoice_id) {
+                $invoice = Invoice::find($transfer->invoice_id);
+                if ($invoice && $invoice->status === 'unpaid' && !$invoice->payments()->exists()) {
+                    $invoice->invoiceItems()->delete();
+                    $invoice->delete();
                 }
             }
+
+            // 4) Cập nhật transfer status
+            $transfer->update([
+                'status' => 'reverted',
+                'reverted_at' => now(),
+                'reverted_by' => Auth::id(),
+            ]);
         });
 
         return back()->with('success', 'Đã hoàn tác chuyển lớp và khôi phục ghi danh.');
@@ -95,32 +99,35 @@ class TransferController extends Controller
         $oldTo     = Classroom::findOrFail($data['old_to_class_id']);
         $newTo     = Classroom::findOrFail($data['new_to_class_id']);
 
-        DB::transaction(function () use ($student, $fromClass, $oldTo, $newTo, $data) {
+        // Tìm transfer record active
+        $transfer = Transfer::active()
+            ->where('student_id', $student->id)
+            ->where('from_class_id', $fromClass->id)
+            ->where('to_class_id', $oldTo->id)
+            ->first();
+
+        if (!$transfer) {
+            return back()->with('error', 'Không tìm thấy transfer record để retarget.');
+        }
+
+        if (!$transfer->canRetarget()) {
+            return back()->with('error', 'Không thể sửa: học viên đã có điểm danh ở lớp đích cũ.');
+        }
+
+        DB::transaction(function () use ($student, $fromClass, $oldTo, $newTo, $data, $transfer) {
             // 1) Giống revert: gỡ enrollment/lợi tức ở lớp đích cũ (chưa có attendance & chưa thu tiền)
             $oldToEnroll = Enrollment::where('student_id', $student->id)->where('class_id', $oldTo->id)->first();
 
             if ($oldToEnroll) {
-                $hasAttendance = Attendance::whereHas('session', fn($q) => $q->where('class_id', $oldTo->id))
-                    ->where('student_id', $student->id)
-                    ->exists();
-                if ($hasAttendance) {
-                    abort(422, 'Không thể sửa: học viên đã có điểm danh ở lớp đích cũ.');
-                }
                 $oldToEnroll->delete();
             }
 
             // Hoá đơn liên quan lớp đích cũ (unpaid) → xoá
-            $oldInv = Invoice::where('student_id', $student->id)
-                ->where(function($q) use ($oldTo) {
-                    $q->where('class_id', $oldTo->id)->orWhereNull('class_id');
-                })
-                ->where('status', 'unpaid')
-                ->get();
-
-            foreach ($oldInv as $inv) {
-                if (!$inv->payments()->exists()) {
-                    $inv->invoiceItems()->delete();
-                    $inv->delete();
+            if ($transfer->invoice_id) {
+                $invoice = Invoice::find($transfer->invoice_id);
+                if ($invoice && $invoice->status === 'unpaid' && !$invoice->payments()->exists()) {
+                    $invoice->invoiceItems()->delete();
+                    $invoice->delete();
                 }
             }
 
@@ -133,7 +140,15 @@ class TransferController extends Controller
                 'status'           => 'active',
             ]);
 
-            // 3) (Tuỳ chính sách) tạo invoice phí chuyển mới nếu có yêu cầu
+            // 3) Cập nhật transfer record
+            $updateData = [
+                'status' => 'retargeted',
+                'retargeted_to_class_id' => $newTo->id,
+                'retargeted_at' => now(),
+                'retargeted_by' => Auth::id(),
+            ];
+
+            // 4) Tạo invoice phí chuyển mới nếu có yêu cầu
             if (isset($data['amount']) && (int)$data['amount'] > 0) {
                 $due = !empty($data['due_date']) ? $data['due_date'] : now()->addDays(7)->toDateString();
                 $inv = Invoice::create([
@@ -147,16 +162,11 @@ class TransferController extends Controller
                     'code'      => 'INV-' . $student->code . '-' . $newTo->code, // thống nhất quy tắc code
                 ]);
 
-                // (tuỳ chọn) thêm invoice_items chi tiết
-                // InvoiceItem::create([
-                //     'invoice_id'  => $inv->id,
-                //     'type'        => 'transfer_in',
-                //     'description' => 'Phí chuyển lớp',
-                //     'qty'         => 1,
-                //     'unit_price'  => (int)$data['amount'],
-                //     'amount'      => (int)$data['amount'],
-                // ]);
+                $updateData['invoice_id'] = $inv->id;
+                $updateData['transfer_fee'] = (int)$data['amount'];
             }
+
+            $transfer->update($updateData);
         });
 
         return back()->with('success', 'Đã cập nhật chuyển lớp sang lớp mới.');

@@ -9,7 +9,9 @@ use App\Models\Classroom;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Student;
+use App\Models\Transfer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class StudentTransferController extends Controller
 {
@@ -44,13 +46,27 @@ class StudentTransferController extends Controller
 
         $student   = Student::findOrFail($student->id);
         $classroom = !empty($data['to_class_id']) ? Classroom::findOrFail($data['to_class_id']) : null;
+
         DB::transaction(function () use ($student, $data, $fromClass, $toClass, $fromEnroll, $classroom) {
-            // 1) Đánh dấu ghi danh cũ là "transferred"
+            // 1) Tạo record transfer trước
+            $transfer = Transfer::create([
+                'student_id' => $student->id,
+                'from_class_id' => $fromClass->id,
+                'to_class_id' => $toClass->id,
+                'effective_date' => $data['effective_date'],
+                'start_session_no' => (int) $data['start_session_no'],
+                'reason' => $data['note'] ?? null,
+                'status' => 'active',
+                'created_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            // 2) Đánh dấu ghi danh cũ là "transferred"
             $fromEnroll->update([
                 'status' => 'transferred',
             ]);
 
-            // 2) Tạo ghi danh mới ở lớp đích
+            // 3) Tạo ghi danh mới ở lớp đích
             Enrollment::create([
                 'student_id'       => $student->id,
                 'class_id'         => $toClass->id,
@@ -59,10 +75,10 @@ class StudentTransferController extends Controller
                 'status'           => 'active',
             ]);
 
-            // 3) (Tùy chọn) Tạo hoá đơn điều chỉnh (0đ) để kế toán xử lý sau
+            // 4) (Tùy chọn) Tạo hoá đơn điều chỉnh
             if (!empty($data['create_adjustments'])) {
                 $invoice = Invoice::create([
-                    'branch_id'  => $toClass->branch_id,  // gán về chi nhánh lớp đích
+                    'branch_id'  => $toClass->branch_id,
                     'student_id' => $student->id,
                     'class_id'   => null, // để trống, vì là chứng từ điều chỉnh
                     'total'      => 0,
@@ -70,6 +86,9 @@ class StudentTransferController extends Controller
                     'due_date'   => null,
                     'code'      => 'INV-' . $student->code . ($classroom ? ('-' . $classroom->code) : ''),
                 ]);
+
+                // Link invoice với transfer
+                $transfer->update(['invoice_id' => $invoice->id]);
 
                 // Ghi chú điều chỉnh out/in – amount = 0 (để người phụ trách tính tiếp)
                 InvoiceItem::create([
