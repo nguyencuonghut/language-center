@@ -271,8 +271,15 @@ class TransferAdvancedController extends Controller
         }
 
         // Priority filter
-        if ($request->has('priority') && $request->get('priority') !== '') {
-            $query->where('is_priority', (bool) $request->get('priority'));
+        if ($request->has('priority') && $request->get('priority') !== null && $request->get('priority') !== '') {
+            $priority = $request->get('priority');
+            
+            // Handle string boolean values from frontend
+            if ($priority === 'true' || $priority === true) {
+                $query->where('is_priority', true);
+            } elseif ($priority === 'false' || $priority === false) {
+                $query->where('is_priority', false);
+            }
         }
 
         // Source system filter

@@ -83,7 +83,13 @@ function search(page = 1) {
   }
 
   // Remove empty parameters to avoid sending status='' to backend
+  // Note: Keep boolean false values for priority filter
   Object.keys(params).forEach(key => {
+    // Keep boolean values (true/false) for priority
+    if (key === 'priority' && typeof params[key] === 'boolean') {
+      return
+    }
+
     if (params[key] === '' || params[key] === null || params[key] === undefined) {
       delete params[key]
     }
@@ -245,7 +251,7 @@ function onSort(event) {
               <span class="font-medium text-slate-700 dark:text-slate-300">Bộ lọc nâng cao</span>
               <Badge v-if="hasActiveFilters" :value="Object.keys(filters).filter(k => filters[k]).length" severity="info" />
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Date Range -->
               <div>
