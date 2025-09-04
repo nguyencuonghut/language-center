@@ -456,50 +456,50 @@ function formatPercentage(value) {
           <div class="space-y-6">
             <!-- Key Metrics -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card class="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <Card class="bg-gradient-to-br from-blue-500 to-blue-600">
                 <template #content>
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-2xl font-bold">{{ formatNumber(summaryData.total_transfers) }}</div>
-                      <div class="text-blue-100">Tổng chuyển lớp</div>
+                      <div class="text-2xl font-bold text-slate-800 dark:text-white">{{ formatNumber(summaryData.total_transfers) }}</div>
+                      <div class="text-slate-700 dark:text-white/90">Tổng chuyển lớp</div>
                     </div>
-                    <i class="pi pi-refresh text-3xl opacity-80"></i>
+                    <i class="pi pi-refresh text-3xl opacity-80 text-slate-600 dark:text-white"></i>
                   </div>
                 </template>
               </Card>
 
-              <Card class="bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <Card class="bg-gradient-to-br from-green-500 to-green-600">
                 <template #content>
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-2xl font-bold">{{ formatNumber(summaryData.active_transfers) }}</div>
-                      <div class="text-green-100">Đang hoạt động</div>
+                      <div class="text-2xl font-bold text-slate-800 dark:text-white">{{ formatNumber(summaryData.active_transfers) }}</div>
+                      <div class="text-slate-700 dark:text-white/90">Đang hoạt động</div>
                     </div>
-                    <i class="pi pi-check-circle text-3xl opacity-80"></i>
+                    <i class="pi pi-check-circle text-3xl opacity-80 text-slate-600 dark:text-white"></i>
                   </div>
                 </template>
               </Card>
 
-              <Card class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <Card class="bg-gradient-to-br from-orange-500 to-orange-600">
                 <template #content>
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-2xl font-bold">{{ formatNumber(summaryData.reverted_transfers) }}</div>
-                      <div class="text-orange-100">Đã hoàn tác</div>
+                      <div class="text-2xl font-bold text-slate-800 dark:text-white">{{ formatNumber(summaryData.reverted_transfers) }}</div>
+                      <div class="text-slate-700 dark:text-white/90">Đã hoàn tác</div>
                     </div>
-                    <i class="pi pi-undo text-3xl opacity-80"></i>
+                    <i class="pi pi-undo text-3xl opacity-80 text-slate-600 dark:text-white"></i>
                   </div>
                 </template>
               </Card>
 
-              <Card class="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <Card class="bg-gradient-to-br from-purple-500 to-purple-600">
                 <template #content>
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="text-2xl font-bold">{{ formatCurrency(summaryData.total_fees) }}</div>
-                      <div class="text-purple-100">Tổng phí thu</div>
+                      <div class="text-2xl font-bold text-slate-800 dark:text-white">{{ formatCurrency(summaryData.total_fees) }}</div>
+                      <div class="text-slate-700 dark:text-white/90">Tổng phí thu</div>
                     </div>
-                    <i class="pi pi-wallet text-3xl opacity-80"></i>
+                    <i class="pi pi-wallet text-3xl opacity-80 text-slate-600 dark:text-white"></i>
                   </div>
                 </template>
               </Card>
