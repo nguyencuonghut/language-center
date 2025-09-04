@@ -11,7 +11,10 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Chart from 'primevue/chart'
-import TabView from 'primevue/tabview'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import ProgressBar from 'primevue/progressbar'
 
@@ -228,9 +231,17 @@ function formatPercentage(value) {
 
     <!-- Report Content -->
     <div v-if="reportData">
-      <TabView>
-        <!-- Summary Tab -->
-        <TabPanel header="Tổng quan" v-if="filters.report_type === 'summary'">
+      <Tabs :value="filters.report_type || 'summary'">
+        <TabList>
+          <Tab value="summary">Tổng quan</Tab>
+          <Tab value="trends">Xu hướng</Tab>
+          <Tab value="performance">Hiệu suất</Tab>
+          <Tab value="detailed">Chi tiết</Tab>
+        </TabList>
+
+        <TabPanels>
+          <!-- Summary Tab -->
+          <TabPanel value="summary">
           <div class="space-y-6">
             <!-- Key Metrics -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -341,7 +352,7 @@ function formatPercentage(value) {
         </TabPanel>
 
         <!-- Trends Tab -->
-        <TabPanel header="Xu hướng" v-if="filters.report_type === 'trends'">
+        <TabPanel value="trends">
           <div class="space-y-6">
             <!-- Trend Chart -->
             <Card class="bg-white dark:bg-slate-800">
@@ -401,7 +412,7 @@ function formatPercentage(value) {
         </TabPanel>
 
         <!-- Performance Tab -->
-        <TabPanel header="Hiệu suất" v-if="filters.report_type === 'performance'">
+        <TabPanel value="performance">
           <div class="space-y-6">
             <!-- Success Rate -->
             <Card class="bg-white dark:bg-slate-800">
@@ -492,7 +503,7 @@ function formatPercentage(value) {
         </TabPanel>
 
         <!-- Detailed Tab -->
-        <TabPanel header="Chi tiết" v-if="filters.report_type === 'detailed'">
+        <TabPanel value="detailed">
           <Card class="bg-white dark:bg-slate-800">
             <template #title>Transfers chi tiết</template>
             <template #content>
@@ -527,7 +538,8 @@ function formatPercentage(value) {
             </template>
           </Card>
         </TabPanel>
-      </TabView>
+        </TabPanels>
+      </Tabs>
     </div>
 
     <!-- Empty State -->
