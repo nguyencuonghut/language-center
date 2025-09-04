@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createTransferService } from '@/service/TransferService.js'
 
@@ -398,12 +398,12 @@ function onSort(event) {
 
           <Column field="student.code" header="Mã HV" :sortable="true">
             <template #body="{ data }">
-              <router-link
-                :to="route('manager.students.show', data.student_id)"
+              <Link
+                :href="route('manager.students.show', data.student_id)"
                 class="text-blue-600 hover:text-blue-800 font-medium"
               >
                 {{ data.student?.code }}
-              </router-link>
+              </Link>
             </template>
           </Column>
 
@@ -472,20 +472,20 @@ function onSort(event) {
           <Column header="Thao tác" style="width: 100px">
             <template #body="{ data }">
               <div class="flex gap-1">
-                <router-link
-                  :to="route('manager.transfers.show', data.id)"
+                <Link
+                  :href="route('manager.transfers.show', data.id)"
                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                   title="Xem chi tiết"
                 >
                   <i class="pi pi-eye"></i>
-                </router-link>
-                <router-link
-                  :to="route('manager.students.transfer-history', data.student_id)"
+                </Link>
+                <Link
+                  :href="route('manager.students.transfer-history', data.student_id)"
                   class="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
                   title="Lịch sử chuyển lớp"
                 >
                   <i class="pi pi-history"></i>
-                </router-link>
+                </Link>
               </div>
             </template>
           </Column>
