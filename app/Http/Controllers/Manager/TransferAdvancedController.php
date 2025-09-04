@@ -259,7 +259,8 @@ class TransferAdvancedController extends Controller
         if ($search = $request->get('search')) {
             $query->whereHas('student', function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%");
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
             })->orWhere('reason', 'like', "%{$search}%")
               ->orWhere('notes', 'like', "%{$search}%")
               ->orWhere('admin_notes', 'like', "%{$search}%");
@@ -653,5 +654,97 @@ class TransferAdvancedController extends Controller
         ];
 
         return $data;
+    }
+
+    /**
+     * Export transfer search results to CSV
+     */
+    public function exportReports(Request $request)
+    {
+        // Get filtered transfers
+        $query = Transfer::with(['student', 'fromClass.course', 'toClass.course', 'fromClass.branch', 'toClass.branch', 'createdBy']);
+
+        // Apply same filters as search method
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('student', function ($subQ) use ($search) {
+                    $subQ->where('name', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('reason', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('is_priority', $request->priority === 'true' || $request->priority === '1');
+        }
+
+        if ($request->filled('source_system')) {
+            $query->where('source_system', $request->source_system);
+        }
+
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->created_by);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->filled('fee_min')) {
+            $query->where('transfer_fee', '>=', $request->fee_min);
+        }
+
+        if ($request->filled('fee_max')) {
+            $query->where('transfer_fee', '<=', $request->fee_max);
+        }
+
+        if ($request->filled('reason')) {
+            $query->where('reason', 'like', "%{$request->reason}%");
+        }
+
+        // Get all results for export
+        $transfers = $query->orderBy('created_at', 'desc')->get();
+
+        // Create CSV content
+        $filename = 'transfer_advanced_search_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        $csv = "Kết quả tìm kiếm nâng cao - Chuyển lớp\n";
+        $csv .= "Xuất lúc: " . now()->format('d/m/Y H:i:s') . "\n";
+        $csv .= "Tổng số bản ghi: " . $transfers->count() . "\n\n";
+        
+        $csv .= "Học viên,Số điện thoại,Từ lớp,Đến lớp,Trạng thái,Ưu tiên,Phí chuyển,Lý do,Ngày tạo,Người tạo\n";
+
+        foreach ($transfers as $transfer) {
+            $csv .= '"' . ($transfer->student->name ?? 'N/A') . '",';
+            $csv .= '"' . ($transfer->student->phone ?? 'N/A') . '",';
+            $csv .= '"' . (($transfer->fromClass->course->name ?? 'N/A') . ' - ' . ($transfer->fromClass->branch->name ?? 'N/A')) . '",';
+            $csv .= '"' . (($transfer->toClass->course->name ?? 'N/A') . ' - ' . ($transfer->toClass->branch->name ?? 'N/A')) . '",';
+            $csv .= '"' . match($transfer->status) {
+                'active' => 'Đang hoạt động',
+                'reverted' => 'Đã hoàn tác', 
+                'retargeted' => 'Đã đổi hướng',
+                default => $transfer->status
+            } . '",';
+            $csv .= '"' . ($transfer->is_priority ? 'Ưu tiên' : 'Thường') . '",';
+            $csv .= '"' . number_format($transfer->transfer_fee, 0, ',', '.') . ' VND",';
+            $csv .= '"' . ($transfer->reason ?? 'N/A') . '",';
+            $csv .= '"' . $transfer->created_at->format('d/m/Y H:i') . '",';
+            $csv .= '"' . ($transfer->createdBy->name ?? 'N/A') . '"';
+            $csv .= "\n";
+        }
+
+        return response($csv)
+            ->header('Content-Type', 'text/csv; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 }
