@@ -60,7 +60,7 @@ const hasActiveFilters = computed(() => {
 })
 
 // Methods
-function search() {
+function search(page = 1) {
   const params = { ...filters }
 
   // Convert dates to strings using local timezone (avoiding UTC conversion issues)
@@ -89,10 +89,19 @@ function search() {
     }
   })
 
+  if (page > 1) {
+    params.page = page
+  }
+
   router.get(route('manager.transfers.advanced.search'), params, {
     preserveState: true,
     preserveScroll: true,
   })
+}
+
+function onPage(event) {
+  const page = event.page + 1 // PrimeVue uses 0-based indexing
+  search(page)
 }
 
 function resetFilters() {
@@ -379,6 +388,7 @@ function onSort(event) {
           :rows="transfers.per_page"
           :totalRecords="transfers.total"
           :first="(transfers.current_page - 1) * transfers.per_page"
+          @page="onPage"
           @sort="onSort"
           stripedRows
           size="small"
