@@ -14,18 +14,23 @@ class StoreTransferRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'student_id'         => ['required', 'integer', 'exists:students,id'],
             'from_class_id'      => ['required', 'integer', 'exists:classrooms,id'],
             'to_class_id'        => ['required', 'integer', 'different:from_class_id', 'exists:classrooms,id'],
             'start_session_no'   => ['required', 'integer', 'min:1'],
             'effective_date'     => ['required', 'date'],
             'create_adjustments' => ['boolean'],
-            'note'               => ['nullable', 'string', 'max:255'],
+            'reason'             => ['nullable', 'string', 'max:500'],
+            'notes'              => ['nullable', 'string', 'max:500'],
+            'transfer_fee'       => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
     public function messages(): array
     {
         return [
+            'student_id.required'    => 'Vui lòng chọn học viên.',
+            'student_id.exists'      => 'Học viên không tồn tại.',
             'from_class_id.required' => 'Thiếu thông tin lớp hiện tại.',
             'from_class_id.exists'   => 'Lớp hiện tại không tồn tại.',
             'to_class_id.required'   => 'Vui lòng chọn lớp cần chuyển tới.',
@@ -36,7 +41,10 @@ class StoreTransferRequest extends FormRequest
             'effective_date.required'   => 'Vui lòng chọn ngày hiệu lực.',
             'effective_date.date'       => 'Ngày hiệu lực không hợp lệ.',
             'create_adjustments.boolean'=> 'Giá trị điều chỉnh phải đúng định dạng.',
-            'note.max'                  => 'Ghi chú tối đa 255 ký tự.',
+            'reason.max'                => 'Lý do tối đa 500 ký tự.',
+            'notes.max'                 => 'Ghi chú tối đa 500 ký tự.',
+            'transfer_fee.numeric'      => 'Phí chuyển lớp phải là số.',
+            'transfer_fee.min'          => 'Phí chuyển lớp không được âm.',
         ];
     }
 }
