@@ -22,6 +22,7 @@ defineOptions({ layout: AppLayout })
 
 const props = defineProps({
   reportData: Object,
+  allReportsData: Object,
   filters: Object,
   reportOptions: Object,
 })
@@ -49,6 +50,14 @@ watch(() => props.filters, (newFilters) => {
     filters.teacher_id = newFilters.teacher_id ?? null
   }
 }, { immediate: true, deep: true })
+
+// Watch for group_by changes to auto-regenerate trends report
+watch(() => filters.group_by, (newValue, oldValue) => {
+  // Only auto-generate if we're on trends tab and value actually changed
+  if (filters.report_type === 'trends' && newValue !== oldValue && oldValue !== undefined) {
+    generateReport()
+  }
+})
 
 const isLoading = ref(false)
 
@@ -129,69 +138,126 @@ const doughnutOptions = {
   }
 }
 
-// Computed
-const summaryData = computed(() => props.reportData?.totals || {})
-const trendsData = computed(() => props.reportData?.trends || [])
+// Computed với data động theo tab active
+const currentReportData = computed(() => {
+  if (props.allReportsData) {
+    return props.allReportsData[filters.report_type] || props.allReportsData.summary
+  }
+  return props.reportData || {}
+})
+
+const summaryData = computed(() => currentReportData.value?.totals || {})
+const trendsData = computed(() => {
+  // Nếu đang ở tab trends, sử dụng currentReportData
+  if (filters.report_type === 'trends') {
+    return currentReportData.value?.trends || []
+  }
+  // Cho các tab khác, sử dụng trends data từ allReportsData
+  return props.allReportsData?.trends?.trends || []
+})
 const chartData = computed(() => {
-  const baseData = props.reportData?.chart_data || { labels: [], datasets: [] }
+  // Nếu là tab trends và có chart_data từ backend
+  if (filters.report_type === 'trends' && currentReportData.value?.chart_data) {
+    const baseData = currentReportData.value.chart_data
 
-  // Cải thiện màu sắc và style cho line chart
-  if (baseData.datasets && baseData.datasets.length > 0) {
-    return {
-      labels: baseData.labels,
-      datasets: baseData.datasets.map((dataset, index) => {
-        const colors = [
-          {
-            // Tổng chuyển lớp - Blue
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderColor: 'rgb(59, 130, 246)',
-            pointBackgroundColor: 'rgb(59, 130, 246)',
-            pointBorderColor: '#fff',
-          },
-          {
-            // Đang hoạt động - Green
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            borderColor: 'rgb(16, 185, 129)',
-            pointBackgroundColor: 'rgb(16, 185, 129)',
-            pointBorderColor: '#fff',
-          },
-          {
-            // Hoàn tác - Orange
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            borderColor: 'rgb(245, 158, 11)',
-            pointBackgroundColor: 'rgb(245, 158, 11)',
-            pointBorderColor: '#fff',
-          },
-          {
-            // Ưu tiên - Purple
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            borderColor: 'rgb(139, 92, 246)',
-            pointBackgroundColor: 'rgb(139, 92, 246)',
-            pointBorderColor: '#fff',
+    // Cải thiện màu sắc và style cho line chart
+    if (baseData.datasets && baseData.datasets.length > 0) {
+      return {
+        labels: baseData.labels,
+        datasets: baseData.datasets.map((dataset, index) => {
+          const colors = [
+            {
+              // Tổng chuyển lớp - Blue
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderColor: 'rgb(59, 130, 246)',
+              pointBackgroundColor: 'rgb(59, 130, 246)',
+              pointBorderColor: '#fff',
+            },
+            {
+              // Đang hoạt động - Green
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderColor: 'rgb(16, 185, 129)',
+              pointBackgroundColor: 'rgb(16, 185, 129)',
+              pointBorderColor: '#fff',
+            },
+            {
+              // Hoàn tác - Orange
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              borderColor: 'rgb(245, 158, 11)',
+              pointBackgroundColor: 'rgb(245, 158, 11)',
+              pointBorderColor: '#fff',
+            },
+            {
+              // Ưu tiên - Purple
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              borderColor: 'rgb(139, 92, 246)',
+              pointBackgroundColor: 'rgb(139, 92, 246)',
+              pointBorderColor: '#fff',
+            }
+          ]
+
+          return {
+            ...dataset,
+            ...colors[index % colors.length],
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBorderWidth: 2,
+            fill: true,
+            tension: 0.4
           }
-        ]
-
-        return {
-          ...dataset,
-          ...colors[index % colors.length],
-          borderWidth: 3,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBorderWidth: 2,
-          fill: true,
-          tension: 0.4
-        }
-      })
+        })
+      }
     }
+    return baseData
   }
 
-  return baseData
+  // Cho các tab khác, tạo chart data từ trends data trong allReportsData
+  if (props.allReportsData?.trends?.chart_data) {
+    const trendsData = props.allReportsData.trends.chart_data
+    
+    if (trendsData.datasets && trendsData.datasets.length > 0) {
+      return {
+        labels: trendsData.labels,
+        datasets: trendsData.datasets.map((dataset, index) => {
+          const colors = [
+            {
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderColor: 'rgb(59, 130, 246)',
+              pointBackgroundColor: 'rgb(59, 130, 246)',
+              pointBorderColor: '#fff',
+            },
+            {
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderColor: 'rgb(16, 185, 129)',
+              pointBackgroundColor: 'rgb(16, 185, 129)',
+              pointBorderColor: '#fff',
+            }
+          ]
+
+          return {
+            ...dataset,
+            ...colors[index % colors.length],
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBorderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }
+        })
+      }
+    }
+    return trendsData
+  }
+
+  return { labels: [], datasets: [] }
 })
 
 const performanceChartData = computed(() => {
-  if (!props.reportData?.user_performance) return { labels: [], datasets: [] }
+  if (!currentReportData.value?.user_performance) return { labels: [], datasets: [] }
 
-  const users = props.reportData.user_performance
+  const users = currentReportData.value.user_performance
   return {
     labels: users.map(u => u.name),
     datasets: [
@@ -250,6 +316,12 @@ function generateReport() {
       isLoading.value = false
     }
   })
+}
+
+function handleTabChange(tabValue) {
+  filters.report_type = tabValue
+  // Không tự động generate report khi đổi tab
+  // Để user có thể chuyển đổi giữa các tab mà vẫn giữ data
 }
 
 function exportReport() {
@@ -312,18 +384,7 @@ function formatPercentage(value) {
     <!-- Report Filters -->
     <Card class="bg-white dark:bg-slate-800">
       <template #content>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Loại báo cáo</label>
-            <Select
-              v-model="filters.report_type"
-              :options="reportOptions.reportTypes"
-              optionLabel="label"
-              optionValue="value"
-              class="w-full"
-            />
-          </div>
-
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1">Từ ngày</label>
             <DatePicker
@@ -342,13 +403,14 @@ function formatPercentage(value) {
             />
           </div>
 
-          <div v-if="filters.report_type === 'trends'">
+          <div v-if="filters.report_type === 'trends'" class="trends-filter">
             <label class="block text-sm font-medium mb-1">Nhóm theo</label>
             <Select
               v-model="filters.group_by"
               :options="reportOptions.groupOptions"
               optionLabel="label"
               optionValue="value"
+              placeholder="Chọn cách nhóm dữ liệu"
               class="w-full"
             />
           </div>
@@ -367,13 +429,25 @@ function formatPercentage(value) {
     </Card>
 
     <!-- Report Content -->
-    <div v-if="reportData">
-      <Tabs :value="filters.report_type || 'summary'">
+    <div v-if="currentReportData && Object.keys(currentReportData).length > 0">
+      <Tabs :value="filters.report_type || 'summary'" @update:value="handleTabChange">
         <TabList>
-          <Tab value="summary">Tổng quan</Tab>
-          <Tab value="trends">Xu hướng</Tab>
-          <Tab value="performance">Hiệu suất</Tab>
-          <Tab value="detailed">Chi tiết</Tab>
+          <Tab value="summary" @click="() => handleTabChange('summary')">
+            <i class="pi pi-chart-pie mr-2"></i>
+            Tổng quan
+          </Tab>
+          <Tab value="trends" @click="() => handleTabChange('trends')">
+            <i class="pi pi-chart-line mr-2"></i>
+            Xu hướng
+          </Tab>
+          <Tab value="performance" @click="() => handleTabChange('performance')">
+            <i class="pi pi-users mr-2"></i>
+            Hiệu suất
+          </Tab>
+          <Tab value="detailed" @click="() => handleTabChange('detailed')">
+            <i class="pi pi-table mr-2"></i>
+            Chi tiết
+          </Tab>
         </TabList>
 
         <TabPanels>
@@ -441,9 +515,9 @@ function formatPercentage(value) {
                     <Chart
                       type="doughnut"
                       :data="{
-                        labels: reportData.by_source?.map(s => s.source_system) || [],
+                        labels: currentReportData.by_source?.map(s => s.source_system) || [],
                         datasets: [{
-                          data: reportData.by_source?.map(s => s.count) || [],
+                          data: currentReportData.by_source?.map(s => s.count) || [],
                           backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
                         }]
                       }"
@@ -459,7 +533,7 @@ function formatPercentage(value) {
                 <template #title>Lý do chuyển lớp phổ biến</template>
                 <template #content>
                   <DataTable
-                    :value="reportData.top_reasons || []"
+                    :value="currentReportData.top_reasons || []"
                     :paginator="false"
                     size="small"
                   >
@@ -583,27 +657,27 @@ function formatPercentage(value) {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div class="text-center">
                     <div class="text-4xl font-bold text-green-600">
-                      {{ formatPercentage(reportData.success_rate?.rate) }}
+                      {{ formatPercentage(currentReportData.success_rate?.rate) }}
                     </div>
                     <div class="text-slate-600">Tỷ lệ thành công</div>
                     <div class="text-sm text-slate-500 mt-1">
-                      {{ reportData.success_rate?.successful }} / {{ reportData.success_rate?.total }} transfers
+                      {{ currentReportData.success_rate?.successful }} / {{ currentReportData.success_rate?.total }} transfers
                     </div>
                   </div>
 
                   <div class="text-center">
                     <div class="text-4xl font-bold text-blue-600">
-                      {{ formatNumber(reportData.processing_time?.average_hours) }}h
+                      {{ formatNumber(currentReportData.processing_time?.average_hours) }}h
                     </div>
                     <div class="text-slate-600">Thời gian xử lý TB</div>
                     <div class="text-sm text-slate-500 mt-1">
-                      {{ reportData.processing_time?.min_hours }}h - {{ reportData.processing_time?.max_hours }}h
+                      {{ currentReportData.processing_time?.min_hours }}h - {{ currentReportData.processing_time?.max_hours }}h
                     </div>
                   </div>
 
                   <div class="text-center">
                     <div class="text-4xl font-bold text-purple-600">
-                      {{ formatNumber(reportData.user_performance?.length) }}
+                      {{ formatNumber(currentReportData.user_performance?.length) }}
                     </div>
                     <div class="text-slate-600">Người xử lý</div>
                     <div class="text-sm text-slate-500 mt-1">
@@ -634,7 +708,7 @@ function formatPercentage(value) {
               <template #title>Chi tiết hiệu suất</template>
               <template #content>
                 <DataTable
-                  :value="reportData.user_performance || []"
+                  :value="currentReportData.user_performance || []"
                   :paginator="false"
                   stripedRows
                   size="small"
@@ -680,7 +754,7 @@ function formatPercentage(value) {
             <template #title>Transfers chi tiết</template>
             <template #content>
               <DataTable
-                :value="reportData.transfers || []"
+                :value="currentReportData.transfers || []"
                 :paginator="true"
                 :rows="20"
                 stripedRows
@@ -719,8 +793,8 @@ function formatPercentage(value) {
       <template #content>
         <div class="text-center py-12 text-slate-500">
           <i class="pi pi-chart-bar text-6xl mb-4"></i>
-          <div class="text-xl font-medium">Chọn tham số và tạo báo cáo</div>
-          <div class="text-sm mt-2">Điều chỉnh các bộ lọc và nhấn "Tạo báo cáo" để xem dữ liệu</div>
+          <div class="text-xl font-medium">Chọn tab báo cáo và điều chỉnh tham số</div>
+          <div class="text-sm mt-2">Nhấn vào các tab ở trên để xem các loại báo cáo khác nhau</div>
         </div>
       </template>
     </Card>

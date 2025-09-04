@@ -102,23 +102,20 @@ class TransferAdvancedController extends Controller
 
         $reportData = null;
 
-        switch ($reportType) {
-            case 'summary':
-                $reportData = $this->getSummaryReport($dateFrom, $dateTo);
-                break;
-            case 'trends':
-                $reportData = $this->getTrendsReport($dateFrom, $dateTo, $groupBy);
-                break;
-            case 'performance':
-                $reportData = $this->getPerformanceReport($dateFrom, $dateTo);
-                break;
-            case 'detailed':
-                $reportData = $this->getDetailedReport($request, $dateFrom, $dateTo);
-                break;
-        }
+        // Generate all reports data at once for better UX
+        $reportData = [
+            'summary' => $this->getSummaryReport($dateFrom, $dateTo),
+            'trends' => $this->getTrendsReport($dateFrom, $dateTo, $groupBy),
+            'performance' => $this->getPerformanceReport($dateFrom, $dateTo),
+            'detailed' => $this->getDetailedReport($dateFrom, $dateTo, $request)
+        ];
+
+        // Extract data for current report type for backward compatibility
+        $currentReportData = $reportData[$reportType] ?? $reportData['summary'];
 
         return Inertia::render('Manager/Transfers/Reports', [
-            'reportData' => $reportData,
+            'reportData' => $currentReportData,
+            'allReportsData' => $reportData,
             'filters' => $request->all(),
             'reportOptions' => [
                 'reportTypes' => [
@@ -535,18 +532,19 @@ class TransferAdvancedController extends Controller
 
     private function getClassPerformanceStats(string $dateFrom, string $dateTo): array
     {
-        return Transfer::whereBetween('created_at', [$dateFrom, $dateTo])
+        return Transfer::whereBetween('transfers.created_at', [$dateFrom, $dateTo])
             ->join('classrooms as from_class', 'transfers.from_class_id', '=', 'from_class.id')
             ->select(
                 'from_class.code as class_code',
                 'from_class.name as class_name',
                 DB::raw('COUNT(*) as transfers_out'),
-                DB::raw('COUNT(CASE WHEN status = "reverted" THEN 1 END) as reverted')
+                DB::raw('COUNT(CASE WHEN transfers.status = "reverted" THEN 1 END) as reverted')
             )
             ->groupBy('from_class.id', 'from_class.code', 'from_class.name')
             ->orderByDesc('transfers_out')
             ->limit(10)
-            ->get();
+            ->get()
+            ->toArray();
     }
 
     /**
