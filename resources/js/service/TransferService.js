@@ -116,18 +116,61 @@ export const createTransferService = () => ({
    */
   async searchStudents(query) {
     try {
-      const response = await fetch(route('manager.students.search') + `?q=${encodeURIComponent(query)}`)
-      if (response.ok) {
-        const data = await response.json()
-        return data.map(student => ({
-          ...student,
-          label: `${student.code} - ${student.name}`
-        }))
-      }
-      return []
+      // Use axios instance that comes with Laravel (has CSRF setup)
+      const response = await window.axios.get(route('manager.students.search'), {
+        params: { q: query }
+      })
+
+      // Return the data directly
+      return response.data || []
     } catch (error) {
       console.error('Failed to search students:', error)
       return []
+    }
+  },
+
+  /**
+   * Search classrooms for autocomplete
+   * @param {String} query Search query
+   * @param {Object} options { available_for_transfer: true }
+   * @returns {Promise<Array>} Classrooms array
+   */
+  async searchClassrooms(query, options = {}) {
+    try {
+      const params = { 
+        q: query,
+        available_for_transfer: options.available_for_transfer || true,
+        ...options
+      }
+      
+      const response = await window.axios.get(route('manager.classrooms.search'), {
+        params
+      })
+
+      // Transform data for AutoComplete component
+      return (response.data || []).map(c => ({
+        label: `${c.code} - ${c.name}`,
+        value: c.id,
+        classroom: c
+      }))
+    } catch (error) {
+      console.error('Failed to search classrooms:', error)
+      return []
+    }
+  },
+
+  /**
+   * Get student details with enrollments
+   * @param {Number} studentId
+   * @returns {Promise<Object|null>} Student with enrollments
+   */
+  async getStudentWithEnrollments(studentId) {
+    try {
+      const response = await window.axios.get(route('manager.students.show', studentId))
+      return response.data || null
+    } catch (error) {
+      console.error('Failed to get student details:', error)
+      return null
     }
   },
 

@@ -318,6 +318,9 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{payroll}/export',  [PayrollController::class, 'export'])->name('export');
         });
 
+         // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
+         Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');
+
          // STUDENTS
          Route::resource('students', StudentController::class);
 
@@ -343,10 +346,6 @@ Route::middleware(['auth'])->group(function () {
         // Legacy support for student transfer
         Route::post('students/{student}/transfer', [TransferController::class, 'storeForStudent'])
             ->name('students.transfer');
-
-
-         // (tuỳ chọn) API gợi ý tìm học viên cho AutoComplete
-         Route::get('students/search',         [StudentController::class, 'search'])->name('students.search');
 
          // API gợi ý tìm lớp học cho AutoComplete
          Route::get('classrooms/search',       [ClassroomController::class, 'search'])->name('classrooms.search');

@@ -85,7 +85,7 @@ class TransferController extends Controller
         }
 
         $classrooms = Classroom::with('branch:id,name')
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'open'])
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'branch_id']);
 
@@ -147,7 +147,7 @@ class TransferController extends Controller
         try {
             $data = $request->validated();
             $data['student_id'] = $student->id;
-            
+
             $transfer = $this->transferService->createTransfer($data);
 
             return back()->with('success', 'Chuyển lớp thành công!');
@@ -159,7 +159,7 @@ class TransferController extends Controller
     public function revert(RevertTransferRequest $request)
     {
         $data = $request->validated();
-        
+
         // Tìm transfer record
         $transfer = Transfer::active()
             ->where('student_id', $data['student_id'])
@@ -183,7 +183,7 @@ class TransferController extends Controller
     public function retarget(RetargetTransferRequest $request)
     {
         $data = $request->validated();
-        
+
         // Tìm transfer record
         $transfer = Transfer::active()
             ->where('student_id', $data['student_id'])
@@ -198,7 +198,7 @@ class TransferController extends Controller
         try {
             $newTargetClass = Classroom::findOrFail($data['new_to_class_id']);
             $this->transferService->retargetTransfer($transfer, $newTargetClass, $data);
-            
+
             return back()->with('success', 'Đã cập nhật chuyển lớp sang lớp mới.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

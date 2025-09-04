@@ -92,7 +92,7 @@ class StudentController extends Controller
         ]);
     }
 
-/**
+    /**
      * Hiển thị trang 360° của học viên
      */
     public function show(Student $student)
@@ -120,8 +120,27 @@ class StudentController extends Controller
                     'start_session_no'  => (int) $e->start_session_no,
                     'enrolled_at'       => optional($e->enrolled_at)->toDateString(),
                     'status'            => $e->status,
+                    // Add classroom object for compatibility with Create.vue
+                    'classroom'         => [
+                        'id'   => (int) $e->class_id,
+                        'code' => $e->class_code,
+                        'name' => $e->class_name,
+                    ]
                 ];
             });
+
+        // If it's an AJAX request, return JSON (for TransferService)
+        if (request()->expectsJson()) {
+            return response()->json([
+                'id'     => $student->id,
+                'code'   => $student->code,
+                'name'   => $student->name,
+                'phone'  => $student->phone,
+                'email'  => $student->email,
+                'active' => (bool) $student->active,
+                'enrollments' => $enrollments,
+            ]);
+        }
 
         // INVOICES: kèm items + payments + branch + classroom + student (nhẹ)
         // Lưu ý: Model Invoice nên có quan hệ classroom()->belongsTo(Classroom::class,'class_id')

@@ -1,6 +1,6 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createTransferService } from '@/service/TransferService.js'
 
@@ -30,7 +30,7 @@ const form = reactive({
   student_id: props.student?.id ?? null,
   from_class_id: null,
   to_class_id: null,
-  effective_date: new Date().toISOString().split('T')[0],
+  effective_date: new Date(), // Use Date object for DatePicker
   start_session_no: 1,
   reason: '',
   notes: '',
@@ -44,6 +44,43 @@ const form = reactive({
 const studentQuery = ref('')
 const studentSuggestions = ref([])
 const selectedStudent = ref(props.student)
+const selectedStudentObj = ref(null) // For AutoComplete v-model
+
+// Watch for AutoComplete selection changes
+watch(selectedStudentObj, async (newStudent) => {
+  if (newStudent && typeof newStudent === 'object') {
+    // Set basic info first
+    selectedStudent.value = newStudent
+    form.student_id = newStudent.value || newStudent.id
+    form.from_class_id = null
+    form.to_class_id = null
+    
+    // Fetch full student details with enrollments if we only have basic info
+    if (!newStudent.enrollments && (newStudent.value || newStudent.id)) {
+      try {
+        const fullStudentData = await transferService.getStudentWithEnrollments(newStudent.value || newStudent.id)
+        if (fullStudentData && fullStudentData.enrollments) {
+          selectedStudent.value = {
+            ...newStudent,
+            enrollments: fullStudentData.enrollments
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load student enrollments:', error)
+      }
+    }
+  }
+})
+
+// Date helpers (consistent with StudentService pattern)
+function toYmdLocal(d) {
+  if (!d) return null
+  const dt = new Date(d)
+  const y = dt.getFullYear()
+  const m = String(dt.getMonth() + 1).padStart(2, '0')
+  const day = String(dt.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 // Available classes for from/to
 const fromClassOptions = computed(() => {
@@ -59,6 +96,8 @@ const fromClassOptions = computed(() => {
 })
 
 const toClassOptions = computed(() => {
+  if (!props.classrooms) return []
+  
   return props.classrooms
     .filter(c => c.id !== form.from_class_id)
     .map(c => ({
@@ -70,14 +109,8 @@ const toClassOptions = computed(() => {
 
 // Methods using TransferService
 async function searchStudents(event) {
-  studentSuggestions.value = await transferService.searchStudents(event.query)
-}
-
-function onStudentSelect(student) {
-  selectedStudent.value = student
-  form.student_id = student.id
-  form.from_class_id = null
-  form.to_class_id = null
+  const results = await transferService.searchStudents(event.query)
+  studentSuggestions.value = results
 }
 
 function submit() {
@@ -88,7 +121,7 @@ function submit() {
     student_id: form.student_id,
     from_class_id: form.from_class_id,
     to_class_id: form.to_class_id,
-    effective_date: form.effective_date,
+    effective_date: toYmdLocal(form.effective_date),
     start_session_no: form.start_session_no,
     reason: form.reason,
     notes: form.notes,
@@ -112,7 +145,12 @@ function submit() {
 // Initialize student query if student is pre-selected
 onMounted(() => {
   if (props.student) {
-    studentQuery.value = `${props.student.code} - ${props.student.name}`
+    selectedStudentObj.value = {
+      value: props.student.id,
+      label: `${props.student.code} - ${props.student.name}`,
+      code: props.student.code,
+      name: props.student.name
+    }
   }
 })
 </script>
@@ -135,14 +173,15 @@ onMounted(() => {
           <div>
             <label class="block text-sm font-medium mb-2">Học viên *</label>
             <AutoComplete
-              v-model="studentQuery"
+              v-model="selectedStudentObj"
               :suggestions="studentSuggestions"
-              option-label="label"
-              @complete="searchStudents"
-              @option-select="onStudentSelect"
-              placeholder="Tìm học viên..."
+              optionLabel="label"
+              dropdown
               class="w-full"
+              placeholder="Tìm học viên..."
+              @complete="searchStudents"
               :disabled="!!props.student"
+              :forceSelection="true"
             />
             <div v-if="form.errors?.student_id" class="text-red-500 text-sm mt-1">
               {{ form.errors.student_id }}
@@ -170,10 +209,11 @@ onMounted(() => {
             <Select
               v-model="form.from_class_id"
               :options="fromClassOptions"
-              option-label="label"
-              option-value="value"
+              optionLabel="label"
+              optionValue="value"
               placeholder="Chọn lớp hiện tại"
               class="w-full"
+              showClear
             />
             <div v-if="form.errors?.from_class_id" class="text-red-500 text-sm mt-1">
               {{ form.errors.from_class_id }}
@@ -186,10 +226,11 @@ onMounted(() => {
             <Select
               v-model="form.to_class_id"
               :options="toClassOptions"
-              option-label="label"
-              option-value="value"
+              optionLabel="label"
+              optionValue="value"
               placeholder="Chọn lớp đích"
               class="w-full"
+              showClear
             />
             <div v-if="form.errors?.to_class_id" class="text-red-500 text-sm mt-1">
               {{ form.errors.to_class_id }}
@@ -201,10 +242,11 @@ onMounted(() => {
             <label class="block text-sm font-medium mb-2">Ngày hiệu lực *</label>
             <DatePicker
               v-model="form.effective_date"
-              date-format="yy-mm-dd"
-              show-icon
-              icon-display="input"
+              dateFormat="dd/mm/yy"
+              showIcon
+              iconDisplay="input"
               class="w-full"
+              placeholder="dd/mm/yyyy"
             />
             <div v-if="form.errors?.effective_date" class="text-red-500 text-sm mt-1">
               {{ form.errors.effective_date }}
