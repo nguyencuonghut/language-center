@@ -58,15 +58,63 @@ const chartOptions = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'bottom'
+      position: 'bottom',
+      labels: {
+        usePointStyle: true,
+        padding: 20,
+        font: {
+          size: 12
+        }
+      }
+    },
+    tooltip: {
+      mode: 'index',
+      intersect: false,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderWidth: 1
     }
   },
   scales: {
+    x: {
+      grid: {
+        color: 'rgba(0, 0, 0, 0.1)',
+        drawBorder: false
+      },
+      ticks: {
+        font: {
+          size: 11
+        }
+      }
+    },
     y: {
       beginAtZero: true,
+      grid: {
+        color: 'rgba(0, 0, 0, 0.1)',
+        drawBorder: false
+      },
       ticks: {
-        stepSize: 1
+        stepSize: 1,
+        font: {
+          size: 11
+        }
       }
+    }
+  },
+  interaction: {
+    mode: 'nearest',
+    axis: 'x',
+    intersect: false
+  },
+  elements: {
+    line: {
+      tension: 0.4
+    },
+    point: {
+      radius: 4,
+      hoverRadius: 6
     }
   }
 }
@@ -84,7 +132,61 @@ const doughnutOptions = {
 // Computed
 const summaryData = computed(() => props.reportData?.totals || {})
 const trendsData = computed(() => props.reportData?.trends || [])
-const chartData = computed(() => props.reportData?.chart_data || { labels: [], datasets: [] })
+const chartData = computed(() => {
+  const baseData = props.reportData?.chart_data || { labels: [], datasets: [] }
+
+  // Cải thiện màu sắc và style cho line chart
+  if (baseData.datasets && baseData.datasets.length > 0) {
+    return {
+      labels: baseData.labels,
+      datasets: baseData.datasets.map((dataset, index) => {
+        const colors = [
+          {
+            // Tổng chuyển lớp - Blue
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: 'rgb(59, 130, 246)',
+            pointBackgroundColor: 'rgb(59, 130, 246)',
+            pointBorderColor: '#fff',
+          },
+          {
+            // Đang hoạt động - Green
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: 'rgb(16, 185, 129)',
+            pointBackgroundColor: 'rgb(16, 185, 129)',
+            pointBorderColor: '#fff',
+          },
+          {
+            // Hoàn tác - Orange
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            borderColor: 'rgb(245, 158, 11)',
+            pointBackgroundColor: 'rgb(245, 158, 11)',
+            pointBorderColor: '#fff',
+          },
+          {
+            // Ưu tiên - Purple
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            borderColor: 'rgb(139, 92, 246)',
+            pointBackgroundColor: 'rgb(139, 92, 246)',
+            pointBorderColor: '#fff',
+          }
+        ]
+
+        return {
+          ...dataset,
+          ...colors[index % colors.length],
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBorderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }
+      })
+    }
+  }
+
+  return baseData
+})
 
 const performanceChartData = computed(() => {
   if (!props.reportData?.user_performance) return { labels: [], datasets: [] }
@@ -118,6 +220,17 @@ function formatDateForServer(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+// Helper function to translate group_by to Vietnamese
+function getGroupByLabel(groupBy) {
+  const labels = {
+    'day': 'ngày',
+    'week': 'tuần',
+    'month': 'tháng',
+    'quarter': 'quý'
+  }
+  return labels[groupBy] || groupBy
 }
 
 // Methods
@@ -387,54 +500,71 @@ function formatPercentage(value) {
         <TabPanel value="trends">
           <div class="space-y-6">
             <!-- Trend Chart -->
-            <Card class="bg-white dark:bg-slate-800">
-              <template #title>Xu hướng chuyển lớp theo {{ filters.group_by }}</template>
+            <Card class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <template #title>
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-chart-line text-blue-600"></i>
+                  <span>Xu hướng chuyển lớp theo {{ getGroupByLabel(filters.group_by) }}</span>
+                </div>
+              </template>
               <template #content>
-                <div class="h-96">
+                <div class="h-96 p-4">
                   <Chart
                     type="line"
                     :data="chartData"
                     :options="chartOptions"
-                    class="h-full"
+                    class="h-full w-full"
                   />
                 </div>
               </template>
             </Card>
 
             <!-- Trends Table -->
-            <Card class="bg-white dark:bg-slate-800">
-              <template #title>Chi tiết xu hướng</template>
+            <Card class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <template #title>
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-table text-purple-600"></i>
+                  <span>Chi tiết xu hướng</span>
+                </div>
+              </template>
               <template #content>
                 <DataTable
                   :value="trendsData"
                   :paginator="false"
                   stripedRows
                   size="small"
+                  class="rounded-lg overflow-hidden"
                 >
-                  <Column field="period" header="Kỳ" :sortable="true" />
+                  <Column field="period" header="Kỳ" :sortable="true">
+                    <template #body="{ data }">
+                      <span class="font-medium text-slate-900 dark:text-slate-100">{{ data.period }}</span>
+                    </template>
+                  </Column>
                   <Column field="total" header="Tổng" :sortable="true">
                     <template #body="{ data }">
-                      <span class="font-medium">{{ data.total }}</span>
+                      <span class="font-bold text-blue-600 dark:text-blue-400">{{ data.total }}</span>
                     </template>
                   </Column>
                   <Column field="active" header="Hoạt động" :sortable="true">
                     <template #body="{ data }">
-                      <span class="text-green-600 font-medium">{{ data.active }}</span>
+                      <span class="font-bold text-green-600 dark:text-green-400">{{ data.active }}</span>
                     </template>
                   </Column>
                   <Column field="reverted" header="Hoàn tác" :sortable="true">
                     <template #body="{ data }">
-                      <span class="text-orange-600 font-medium">{{ data.reverted }}</span>
+                      <span class="font-bold text-orange-600 dark:text-orange-400">{{ data.reverted }}</span>
                     </template>
                   </Column>
                   <Column field="priority" header="Ưu tiên" :sortable="true">
                     <template #body="{ data }">
-                      <span class="text-purple-600 font-medium">{{ data.priority }}</span>
+                      <span class="font-bold text-purple-600 dark:text-purple-400">{{ data.priority }}</span>
                     </template>
                   </Column>
                   <Column field="total_fees" header="Tổng phí" :sortable="true">
                     <template #body="{ data }">
-                      {{ formatCurrency(data.total_fees) }}
+                      <span class="font-medium text-slate-700 dark:text-slate-300">
+                        {{ formatCurrency(data.total_fees) }}
+                      </span>
                     </template>
                   </Column>
                 </DataTable>
