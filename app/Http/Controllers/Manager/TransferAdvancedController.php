@@ -389,18 +389,18 @@ class TransferAdvancedController extends Controller
 
         return [
             'totals' => [
-                'total_transfers' => $baseQuery->count(),
-                'active_transfers' => $baseQuery->where('status', 'active')->count(),
-                'reverted_transfers' => $baseQuery->where('status', 'reverted')->count(),
-                'retargeted_transfers' => $baseQuery->where('status', 'retargeted')->count(),
-                'priority_transfers' => $baseQuery->where('is_priority', true)->count(),
-                'total_fees' => $baseQuery->sum('transfer_fee'),
-                'average_fee' => $baseQuery->avg('transfer_fee'),
+                'total_transfers' => (clone $baseQuery)->count(),
+                'active_transfers' => (clone $baseQuery)->where('status', 'active')->count(),
+                'reverted_transfers' => (clone $baseQuery)->where('status', 'reverted')->count(),
+                'retargeted_transfers' => (clone $baseQuery)->where('status', 'retargeted')->count(),
+                'priority_transfers' => (clone $baseQuery)->where('is_priority', true)->count(),
+                'total_fees' => (clone $baseQuery)->sum('transfer_fee'),
+                'average_fee' => (clone $baseQuery)->avg('transfer_fee'),
             ],
-            'by_source' => $baseQuery->select('source_system', DB::raw('COUNT(*) as count'))
+            'by_source' => (clone $baseQuery)->select('source_system', DB::raw('COUNT(*) as count'))
                 ->groupBy('source_system')
                 ->get(),
-            'top_reasons' => $baseQuery->select('reason', DB::raw('COUNT(*) as count'))
+            'top_reasons' => (clone $baseQuery)->select('reason', DB::raw('COUNT(*) as count'))
                 ->whereNotNull('reason')
                 ->groupBy('reason')
                 ->orderByDesc('count')
@@ -518,18 +518,19 @@ class TransferAdvancedController extends Controller
 
     private function getUserPerformanceStats(string $dateFrom, string $dateTo): array
     {
-        return Transfer::whereBetween('created_at', [$dateFrom, $dateTo])
+        return Transfer::whereBetween('transfers.created_at', [$dateFrom, $dateTo])
             ->join('users', 'transfers.created_by', '=', 'users.id')
             ->select(
                 'users.name',
                 DB::raw('COUNT(*) as total_transfers'),
-                DB::raw('COUNT(CASE WHEN status = "active" THEN 1 END) as successful'),
-                DB::raw('ROUND(COUNT(CASE WHEN status = "active" THEN 1 END) / COUNT(*) * 100, 2) as success_rate')
+                DB::raw('COUNT(CASE WHEN transfers.status = "active" THEN 1 END) as successful'),
+                DB::raw('ROUND(COUNT(CASE WHEN transfers.status = "active" THEN 1 END) / COUNT(*) * 100, 2) as success_rate')
             )
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('total_transfers')
             ->limit(10)
-            ->get();
+            ->get()
+            ->toArray();
     }
 
     private function getClassPerformanceStats(string $dateFrom, string $dateTo): array
@@ -717,11 +718,11 @@ class TransferAdvancedController extends Controller
 
         // Create CSV content
         $filename = 'transfer_advanced_search_' . date('Y-m-d_H-i-s') . '.csv';
-        
+
         $csv = "Kết quả tìm kiếm nâng cao - Chuyển lớp\n";
         $csv .= "Xuất lúc: " . now()->format('d/m/Y H:i:s') . "\n";
         $csv .= "Tổng số bản ghi: " . $transfers->count() . "\n\n";
-        
+
         $csv .= "Học viên,Số điện thoại,Từ lớp,Đến lớp,Trạng thái,Ưu tiên,Phí chuyển,Lý do,Ngày tạo,Người tạo\n";
 
         foreach ($transfers as $transfer) {
@@ -731,7 +732,7 @@ class TransferAdvancedController extends Controller
             $csv .= '"' . (($transfer->toClass->course->name ?? 'N/A') . ' - ' . ($transfer->toClass->branch->name ?? 'N/A')) . '",';
             $csv .= '"' . match($transfer->status) {
                 'active' => 'Đang hoạt động',
-                'reverted' => 'Đã hoàn tác', 
+                'reverted' => 'Đã hoàn tác',
                 'retargeted' => 'Đã đổi hướng',
                 default => $transfer->status
             } . '",';

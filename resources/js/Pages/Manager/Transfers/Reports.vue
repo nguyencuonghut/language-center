@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
@@ -36,6 +36,19 @@ const filters = reactive({
   class_id: props.filters?.class_id ?? null,
   teacher_id: props.filters?.teacher_id ?? null,
 })
+
+// Watch for props changes and update filters
+watch(() => props.filters, (newFilters) => {
+  if (newFilters) {
+    filters.report_type = newFilters.report_type ?? 'summary'
+    filters.date_from = newFilters.date_from ? new Date(newFilters.date_from) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    filters.date_to = newFilters.date_to ? new Date(newFilters.date_to) : new Date()
+    filters.group_by = newFilters.group_by ?? 'month'
+    filters.branch_id = newFilters.branch_id ?? null
+    filters.class_id = newFilters.class_id ?? null
+    filters.teacher_id = newFilters.teacher_id ?? null
+  }
+}, { immediate: true, deep: true })
 
 const isLoading = ref(false)
 
@@ -98,16 +111,27 @@ const performanceChartData = computed(() => {
   }
 })
 
+// Helper function to format date without timezone issues
+function formatDateForServer(date) {
+  if (!date) return null
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Methods
 function generateReport() {
   isLoading.value = true
 
   const params = { ...filters }
-  if (params.date_from) params.date_from = params.date_from.toISOString().split('T')[0]
-  if (params.date_to) params.date_to = params.date_to.toISOString().split('T')[0]
+  if (params.date_from) params.date_from = formatDateForServer(params.date_from)
+  if (params.date_to) params.date_to = formatDateForServer(params.date_to)
 
-  router.visit(route('manager.transfers.advanced.reports'), params, {
-    preserveState: true,
+  router.visit(route('manager.transfers.advanced.reports'), {
+    method: 'get',
+    data: params,
+    preserveState: false,
     preserveScroll: true,
     onFinish: () => {
       isLoading.value = false
@@ -117,8 +141,8 @@ function generateReport() {
 
 function exportReport() {
   const params = { ...filters }
-  if (params.date_from) params.date_from = params.date_from.toISOString().split('T')[0]
-  if (params.date_to) params.date_to = params.date_to.toISOString().split('T')[0]
+  if (params.date_from) params.date_from = formatDateForServer(params.date_from)
+  if (params.date_to) params.date_to = formatDateForServer(params.date_to)
 
   window.open(route('manager.transfers.advanced.reports.export', params), '_blank')
 }
@@ -335,12 +359,20 @@ function formatPercentage(value) {
                     </Column>
                     <Column field="count" header="Số lượng">
                       <template #body="{ data }">
-                        <div class="flex items-center gap-2">
-                          <ProgressBar
-                            :value="(data.count / summaryData.total_transfers) * 100"
-                            class="w-16 h-2"
-                          />
-                          <span class="font-medium">{{ data.count }}</span>
+                        <div class="flex items-center gap-3">
+                          <div class="flex-1 min-w-0">
+                            <ProgressBar
+                              :value="summaryData.total_transfers > 0 ? ((data.count / summaryData.total_transfers) * 100) : 0"
+                              class="w-full h-3"
+                              :showValue="false"
+                            />
+                          </div>
+                          <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="font-medium text-sm">{{ data.count }}</span>
+                            <span class="text-xs text-blue-600 font-medium min-w-[40px] text-right">
+                              {{ summaryData.total_transfers > 0 ? ((data.count / summaryData.total_transfers) * 100).toFixed(1) : '0.0' }}%
+                            </span>
+                          </div>
                         </div>
                       </template>
                     </Column>
@@ -490,9 +522,19 @@ function formatPercentage(value) {
                   </Column>
                   <Column field="success_rate" header="Tỷ lệ %" :sortable="true">
                     <template #body="{ data }">
-                      <div class="flex items-center gap-2">
-                        <ProgressBar :value="data.success_rate" class="w-20 h-2" />
-                        <span class="font-medium">{{ formatPercentage(data.success_rate) }}</span>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 min-w-0">
+                          <ProgressBar 
+                            :value="Math.min(data.success_rate || 0, 100)" 
+                            class="w-full h-3"
+                            :showValue="false"
+                          />
+                        </div>
+                        <div class="flex-shrink-0">
+                          <span class="font-medium text-sm text-blue-600 min-w-[50px] text-right">
+                            {{ (data.success_rate || 0).toFixed(1) }}%
+                          </span>
+                        </div>
                       </div>
                     </template>
                   </Column>

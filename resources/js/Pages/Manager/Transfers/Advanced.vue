@@ -122,10 +122,19 @@ function resetFilters() {
   search()
 }
 
+// Helper function to format date without timezone issues
+function formatDateForServer(date) {
+  if (!date) return null
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function exportResults() {
   const params = { ...filters }
-  if (params.date_from) params.date_from = params.date_from.toISOString().split('T')[0]
-  if (params.date_to) params.date_to = params.date_to.toISOString().split('T')[0]
+  if (params.date_from) params.date_from = formatDateForServer(params.date_from)
+  if (params.date_to) params.date_to = formatDateForServer(params.date_to)
 
   window.open(route('manager.transfers.advanced.reports.export', params), '_blank')
 }
