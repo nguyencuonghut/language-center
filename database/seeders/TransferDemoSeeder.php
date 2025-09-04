@@ -158,17 +158,17 @@ class TransferDemoSeeder extends Seeder
             $creator = $managers->random();
             $lastModifier = $managers->random();
             $isPriority = rand(1, 100) <= 15; // 15% priority transfers
-            
+
             // Create realistic status history
             $statusHistory = $this->generateStatusHistory($status, $createdAt, $creator);
-            
+
             // Create realistic change log
             $changeLog = $this->generateChangeLog($createdAt, $creator, $reason);
-            
+
             // Source system variations
             $sourceSystems = ['manual' => 70, 'api' => 20, 'import' => 10];
             $sourceSystem = $this->weightedRandom($sourceSystems);
-            
+
             $transfer = Transfer::create([
                 'student_id' => $availableEnrollment->student_id,
                 'from_class_id' => $availableEnrollment->class_id,
@@ -180,7 +180,7 @@ class TransferDemoSeeder extends Seeder
                 'transfer_fee' => $transferFee,
                 'created_by' => $creator->id,
                 'processed_at' => $createdAt->copy()->addHours(rand(1, 48)),
-                
+
                 // New audit trail columns
                 'status_history' => $statusHistory,
                 'change_log' => $changeLog,
@@ -189,7 +189,7 @@ class TransferDemoSeeder extends Seeder
                 'source_system' => $sourceSystem,
                 'admin_notes' => $isPriority ? $this->generateAdminNotes() : null,
                 'is_priority' => $isPriority,
-                
+
                 'created_at' => $createdAt,
                 'updated_at' => $createdAt,
             ]);

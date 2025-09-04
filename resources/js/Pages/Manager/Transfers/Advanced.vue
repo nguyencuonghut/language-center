@@ -2,6 +2,7 @@
 import { reactive, ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { createTransferService } from '@/service/TransferService.js'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -10,13 +11,10 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
 import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
-import Accordion from 'primevue/accordion'
-import AccordionPanel from 'primevue/accordionpanel'
 
 defineOptions({ layout: AppLayout })
 
@@ -26,10 +24,16 @@ const props = defineProps({
   filterOptions: Object,
 })
 
+// Initialize TransferService (no toast injection - handled by AppLayout)
+const transferService = createTransferService()
+
+// Use utility functions from service
+const { statusOptions, getStatusSeverity, getStatusLabel, formatDate } = transferService.utils
+
 // Reactive filters
 const filters = reactive({
   search: props.filters?.search ?? '',
-  status: props.filters?.status ?? null,
+  status: props.filters?.status ?? '',
   priority: props.filters?.priority ?? null,
   source_system: props.filters?.source_system ?? '',
   created_by: props.filters?.created_by ?? null,
@@ -59,13 +63,31 @@ const hasActiveFilters = computed(() => {
 function search() {
   const params = { ...filters }
 
-  // Convert dates to strings
-  if (params.date_from) {
-    params.date_from = params.date_from.toISOString().split('T')[0]
+  // Convert dates to strings using local timezone (avoiding UTC conversion issues)
+  if (params.date_from && typeof params.date_from === 'object') {
+    const year = params.date_from.getFullYear()
+    const month = String(params.date_from.getMonth() + 1).padStart(2, '0')
+    const day = String(params.date_from.getDate()).padStart(2, '0')
+    params.date_from = `${year}-${month}-${day}`
   }
-  if (params.date_to) {
-    params.date_to = params.date_to.toISOString().split('T')[0]
+  if (params.date_to && typeof params.date_to === 'object') {
+    const year = params.date_to.getFullYear()
+    const month = String(params.date_to.getMonth() + 1).padStart(2, '0')
+    const day = String(params.date_to.getDate()).padStart(2, '0')
+    params.date_to = `${year}-${month}-${day}`
   }
+
+  // Convert 'Tất cả' status to empty string for backend compatibility
+  if (params.status === 'Tất cả') {
+    params.status = ''
+  }
+
+  // Remove empty parameters to avoid sending status='' to backend
+  Object.keys(params).forEach(key => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined) {
+      delete params[key]
+    }
+  })
 
   router.get(route('manager.transfers.advanced.search'), params, {
     preserveState: true,
@@ -76,16 +98,12 @@ function search() {
 function resetFilters() {
   Object.keys(filters).forEach(key => {
     if (['sort_field', 'sort_direction'].includes(key)) return
-    filters[key] = ['status'].includes(key) ? null : ''
+    if (['priority', 'created_by', 'from_class', 'to_class', 'date_from', 'date_to', 'fee_min', 'fee_max'].includes(key)) {
+      filters[key] = null
+    } else {
+      filters[key] = ''
+    }
   })
-  filters.priority = null
-  filters.created_by = null
-  filters.from_class = null
-  filters.to_class = null
-  filters.date_from = null
-  filters.date_to = null
-  filters.fee_min = null
-  filters.fee_max = null
   search()
 }
 
@@ -97,35 +115,12 @@ function exportResults() {
   window.open(route('manager.transfers.advanced.reports.export', params), '_blank')
 }
 
-function getStatusSeverity(status) {
-  const severities = {
-    active: 'success',
-    reverted: 'warning',
-    retargeted: 'info'
-  }
-  return severities[status] || 'secondary'
-}
-
-function getStatusLabel(status) {
-  const labels = {
-    active: 'Đang hoạt động',
-    reverted: 'Đã hoàn tác',
-    retargeted: 'Đã đổi hướng'
-  }
-  return labels[status] || status
-}
-
 function formatCurrency(value) {
   if (!value) return '0 VND'
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(value)
-}
-
-function formatDate(date) {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('vi-VN')
 }
 
 function onSort(event) {
@@ -184,14 +179,14 @@ function onSort(event) {
 
             <div>
               <label class="block text-sm font-medium mb-1">Trạng thái</label>
-              <MultiSelect
+              <Select
                 v-model="filters.status"
-                :options="filterOptions.statuses"
+                :options="statusOptions"
                 optionLabel="label"
                 optionValue="value"
                 placeholder="Chọn trạng thái"
                 class="w-full"
-                :maxSelectedLabels="2"
+                @change="search"
               />
             </div>
 
@@ -219,6 +214,13 @@ function onSort(event) {
                 class="flex-1"
               />
               <Button
+                label="Reset"
+                severity="secondary"
+                @click="resetFilters"
+                outlined
+              />
+              <Button
+                :label="showAdvancedFilters ? 'Ẩn bộ lọc' : 'Bộ lọc'"
                 icon="pi pi-filter"
                 @click="showAdvancedFilters = !showAdvancedFilters"
                 :severity="hasActiveFilters ? 'info' : 'secondary'"
@@ -228,146 +230,133 @@ function onSort(event) {
           </div>
 
           <!-- Advanced Filters -->
-          <Accordion v-if="showAdvancedFilters" class="mt-4">
-            <AccordionPanel value="0">
-              <template #header>
-                <span class="flex items-center gap-2">
-                  <i class="pi pi-filter"></i>
-                  Bộ lọc nâng cao
-                  <Badge v-if="hasActiveFilters" :value="Object.keys(filters).filter(k => filters[k]).length" severity="info" />
-                </span>
-              </template>
-              <template #content>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <!-- Date Range -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Từ ngày</label>
-                    <DatePicker
-                      v-model="filters.date_from"
-                      dateFormat="dd/mm/yy"
-                      placeholder="Chọn ngày bắt đầu"
-                      class="w-full"
-                    />
-                  </div>
+          <div v-if="showAdvancedFilters" class="mt-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
+            <div class="flex items-center gap-2 mb-4">
+              <i class="pi pi-filter text-slate-600"></i>
+              <span class="font-medium text-slate-700 dark:text-slate-300">Bộ lọc nâng cao</span>
+              <Badge v-if="hasActiveFilters" :value="Object.keys(filters).filter(k => filters[k]).length" severity="info" />
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- Date Range -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Từ ngày</label>
+                <DatePicker
+                  v-model="filters.date_from"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Chọn ngày bắt đầu"
+                  class="w-full"
+                  show-clear
+                  @date-select="search"
+                  @clear="search"
+                />
+              </div>
 
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Đến ngày</label>
-                    <DatePicker
-                      v-model="filters.date_to"
-                      dateFormat="dd/mm/yy"
-                      placeholder="Chọn ngày kết thúc"
-                      class="w-full"
-                    />
-                  </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Đến ngày</label>
+                <DatePicker
+                  v-model="filters.date_to"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Chọn ngày kết thúc"
+                  class="w-full"
+                  show-clear
+                  @date-select="search"
+                  @clear="search"
+                />
+              </div>
 
-                  <!-- Fee Range -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Phí từ (VND)</label>
-                    <InputNumber
-                      v-model="filters.fee_min"
-                      placeholder="Phí tối thiểu"
-                      class="w-full"
-                      :min="0"
-                      mode="currency"
-                      currency="VND"
-                      locale="vi-VN"
-                    />
-                  </div>
+              <!-- Fee Range -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Phí từ (VND)</label>
+                <InputNumber
+                  v-model="filters.fee_min"
+                  placeholder="Phí tối thiểu"
+                  class="w-full"
+                  :min="0"
+                  mode="currency"
+                  currency="VND"
+                  locale="vi-VN"
+                />
+              </div>
 
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Phí đến (VND)</label>
-                    <InputNumber
-                      v-model="filters.fee_max"
-                      placeholder="Phí tối đa"
-                      class="w-full"
-                      :min="0"
-                      mode="currency"
-                      currency="VND"
-                      locale="vi-VN"
-                    />
-                  </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Phí đến (VND)</label>
+                <InputNumber
+                  v-model="filters.fee_max"
+                  placeholder="Phí tối đa"
+                  class="w-full"
+                  :min="0"
+                  mode="currency"
+                  currency="VND"
+                  locale="vi-VN"
+                />
+              </div>
 
-                  <!-- Source System -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Nguồn tạo</label>
-                    <Select
-                      v-model="filters.source_system"
-                      :options="filterOptions.sources"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Chọn nguồn"
-                      class="w-full"
-                    />
-                  </div>
+              <!-- Source System -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Nguồn tạo</label>
+                <Select
+                  v-model="filters.source_system"
+                  :options="filterOptions.sources"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn nguồn"
+                  class="w-full"
+                />
+              </div>
 
-                  <!-- Created By -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Người tạo</label>
-                    <Select
-                      v-model="filters.created_by"
-                      :options="filterOptions.creators"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Chọn người tạo"
-                      class="w-full"
-                      filter
-                    />
-                  </div>
+              <!-- Created By -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Người tạo</label>
+                <Select
+                  v-model="filters.created_by"
+                  :options="filterOptions.creators"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn người tạo"
+                  class="w-full"
+                  filter
+                />
+              </div>
 
-                  <!-- Classes -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Từ lớp</label>
-                    <Select
-                      v-model="filters.from_class"
-                      :options="filterOptions.classes"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Chọn lớp nguồn"
-                      class="w-full"
-                      filter
-                    />
-                  </div>
+              <!-- Classes -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Từ lớp</label>
+                <Select
+                  v-model="filters.from_class"
+                  :options="filterOptions.classes"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn lớp nguồn"
+                  class="w-full"
+                  filter
+                />
+              </div>
 
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Đến lớp</label>
-                    <Select
-                      v-model="filters.to_class"
-                      :options="filterOptions.classes"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Chọn lớp đích"
-                      class="w-full"
-                      filter
-                    />
-                  </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Đến lớp</label>
+                <Select
+                  v-model="filters.to_class"
+                  :options="filterOptions.classes"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Chọn lớp đích"
+                  class="w-full"
+                  filter
+                />
+              </div>
 
-                  <!-- Reason -->
-                  <div>
-                    <label class="block text-sm font-medium mb-1">Lý do</label>
-                    <InputText
-                      v-model="filters.reason"
-                      placeholder="Tìm theo lý do..."
-                      class="w-full"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 mt-4 pt-4 border-t">
-                  <Button
-                    label="Đặt lại"
-                    severity="secondary"
-                    @click="resetFilters"
-                    outlined
-                  />
-                  <Button
-                    label="Áp dụng lọc"
-                    icon="pi pi-search"
-                    @click="search"
-                  />
-                </div>
-              </template>
-            </AccordionPanel>
-          </Accordion>
+              <!-- Reason -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Lý do</label>
+                <InputText
+                  v-model="filters.reason"
+                  placeholder="Tìm theo lý do..."
+                  class="w-full"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </Card>

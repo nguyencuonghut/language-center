@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Inertia\Inertia;
 
@@ -36,8 +37,9 @@ class TransferAdvancedController extends Controller
         $sortDirection = $request->get('sort_direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
 
-        $transfers = $query->paginate($request->get('per_page', 15))
-            ->withQueryString();
+        // Default pagination with higher per_page to show more results initially
+        $perPage = $request->get('per_page', 20);
+        $transfers = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Manager/Transfers/Advanced', [
             'transfers' => $transfers,
@@ -264,12 +266,8 @@ class TransferAdvancedController extends Controller
         }
 
         // Status filter
-        if ($status = $request->get('status')) {
-            if (is_array($status)) {
-                $query->whereIn('status', $status);
-            } else {
-                $query->where('status', $status);
-            }
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
         }
 
         // Priority filter
@@ -324,6 +322,7 @@ class TransferAdvancedController extends Controller
     {
         return [
             'statuses' => [
+                ['label' => 'Tất cả', 'value' => ''],
                 ['label' => 'Đang hoạt động', 'value' => 'active'],
                 ['label' => 'Đã hoàn tác', 'value' => 'reverted'],
                 ['label' => 'Đã đổi hướng', 'value' => 'retargeted'],

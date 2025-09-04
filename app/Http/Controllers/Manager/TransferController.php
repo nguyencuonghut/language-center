@@ -36,7 +36,7 @@ class TransferController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Filters
-        if ($request->has('status') && $request->status !== null) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 

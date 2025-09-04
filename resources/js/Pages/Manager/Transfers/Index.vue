@@ -29,7 +29,7 @@ const transferService = createTransferService()
 // Local state
 const filters = reactive({
   q: props.filters?.q ?? '',
-  status: props.filters?.status ?? null,
+  status: props.filters?.status ?? '',
   from_date: props.filters?.from_date ?? '',
   to_date: props.filters?.to_date ?? '',
 })
@@ -37,7 +37,7 @@ const filters = reactive({
 // Methods
 function search(page = 1) {
   const params = { ...filters }
-  
+
   // Format date parameters if they exist
   if (params.from_date && typeof params.from_date === 'object') {
     // Convert to local date string without time zone conversion
@@ -53,14 +53,14 @@ function search(page = 1) {
     const day = String(params.to_date.getDate()).padStart(2, '0')
     params.to_date = `${year}-${month}-${day}`
   }
-  
+
   // Remove empty parameters to avoid sending status='' to backend
   Object.keys(params).forEach(key => {
     if (params[key] === '' || params[key] === null || params[key] === undefined) {
       delete params[key]
     }
   })
-  
+
   if (page > 1) {
     params.page = page
   }
@@ -74,7 +74,7 @@ function onPage(event) {
 
 function resetFilters() {
   Object.keys(filters).forEach(key => {
-    filters[key] = key === 'status' ? null : ''
+    filters[key] = ''
   })
   search()
 }
@@ -223,11 +223,9 @@ const successRate = computed(() => {
               :options="statusOptions"
               optionLabel="label"
               optionValue="value"
-              :placeholder="filters.status === null ? 'Tất cả' : 'Chọn trạng thái'"
+              placeholder="Chọn trạng thái"
               class="w-full"
-              showClear
               @change="search"
-              @clear="() => { filters.status = null; search(); }"
             />
           </div>
 
