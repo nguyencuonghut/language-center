@@ -524,8 +524,8 @@ function formatPercentage(value) {
                     <template #body="{ data }">
                       <div class="flex items-center gap-3">
                         <div class="flex-1 min-w-0">
-                          <ProgressBar 
-                            :value="Math.min(data.success_rate || 0, 100)" 
+                          <ProgressBar
+                            :value="Math.min(data.success_rate || 0, 100)"
                             class="w-full h-3"
                             :showValue="false"
                           />
