@@ -43,15 +43,15 @@ class TransferDemoSeeder extends Seeder
     private function createHistoricalTransfers($managers): void
     {
         $this->command->info('Creating historical transfers...');
-        
+
         for ($monthsAgo = 6; $monthsAgo >= 2; $monthsAgo--) {
             $baseDate = now()->subMonths($monthsAgo);
             $transfersForMonth = rand(3, 8); // Random number of transfers per month
-            
+
             for ($i = 0; $i < $transfersForMonth; $i++) {
                 $this->createSingleTransfer($managers, $baseDate->copy()->addDays(rand(1, 28)));
             }
-            
+
             $this->command->info("Created {$transfersForMonth} transfers for " . $baseDate->format('M Y'));
         }
     }
@@ -62,15 +62,15 @@ class TransferDemoSeeder extends Seeder
     private function createCurrentMonthTransfers($managers): void
     {
         $this->command->info('Creating current month transfers...');
-        
+
         $currentMonth = now()->startOfMonth();
         $transfersThisMonth = rand(10, 20);
-        
+
         for ($i = 0; $i < $transfersThisMonth; $i++) {
             $randomDate = $currentMonth->copy()->addDays(rand(0, now()->day - 1));
             $this->createSingleTransfer($managers, $randomDate);
         }
-        
+
         $this->command->info("Created {$transfersThisMonth} transfers for current month");
     }
 
@@ -80,14 +80,14 @@ class TransferDemoSeeder extends Seeder
     private function createRecentTransfers($managers): void
     {
         $this->command->info('Creating recent transfers...');
-        
+
         $recentTransfers = rand(5, 12);
-        
+
         for ($i = 0; $i < $recentTransfers; $i++) {
             $randomDate = now()->subDays(rand(1, 7));
             $this->createSingleTransfer($managers, $randomDate);
         }
-        
+
         $this->command->info("Created {$recentTransfers} recent transfers");
     }
 
@@ -98,7 +98,7 @@ class TransferDemoSeeder extends Seeder
     {
         // Get available enrollments (avoid creating multiple transfers for same student)
         $existingTransferStudents = Transfer::pluck('student_id')->toArray();
-        
+
         $availableEnrollment = Enrollment::with(['student', 'classroom'])
             ->whereNotIn('student_id', $existingTransferStudents)
             ->where('status', 'active')
@@ -119,16 +119,16 @@ class TransferDemoSeeder extends Seeder
         }
 
         $toClass = $targetClasses->random();
-        
+
         // Weighted random status (more active transfers)
         $statusWeights = [
             'active' => 70,     // 70% active
-            'reverted' => 20,   // 20% reverted  
+            'reverted' => 20,   // 20% reverted
             'retargeted' => 10  // 10% retargeted
         ];
-        
+
         $status = $this->weightedRandom($statusWeights);
-        
+
         // Realistic reasons with different frequencies
         $reasonWeights = [
             'Xin chuyển lịch học phù hợp hơn' => 25,
@@ -140,9 +140,9 @@ class TransferDemoSeeder extends Seeder
             'Thay đổi lịch làm việc' => 7,
             'Yêu cầu từ phụ huynh' => 5
         ];
-        
+
         $reason = $this->weightedRandom($reasonWeights);
-        
+
         // Realistic transfer fees
         $feeWeights = [
             0 => 40,        // 40% free transfers
@@ -150,10 +150,25 @@ class TransferDemoSeeder extends Seeder
             100000 => 20,   // 20% 100k fee
             150000 => 10    // 10% 150k fee
         ];
-        
+
         $transferFee = $this->weightedRandom($feeWeights);
 
         try {
+            // Generate realistic audit trail data
+            $creator = $managers->random();
+            $lastModifier = $managers->random();
+            $isPriority = rand(1, 100) <= 15; // 15% priority transfers
+            
+            // Create realistic status history
+            $statusHistory = $this->generateStatusHistory($status, $createdAt, $creator);
+            
+            // Create realistic change log
+            $changeLog = $this->generateChangeLog($createdAt, $creator, $reason);
+            
+            // Source system variations
+            $sourceSystems = ['manual' => 70, 'api' => 20, 'import' => 10];
+            $sourceSystem = $this->weightedRandom($sourceSystems);
+            
             $transfer = Transfer::create([
                 'student_id' => $availableEnrollment->student_id,
                 'from_class_id' => $availableEnrollment->class_id,
@@ -163,8 +178,18 @@ class TransferDemoSeeder extends Seeder
                 'reason' => $reason,
                 'status' => $status,
                 'transfer_fee' => $transferFee,
-                'created_by' => $managers->random()->id,
+                'created_by' => $creator->id,
                 'processed_at' => $createdAt->copy()->addHours(rand(1, 48)),
+                
+                // New audit trail columns
+                'status_history' => $statusHistory,
+                'change_log' => $changeLog,
+                'last_modified_at' => $createdAt->copy()->addHours(rand(1, 48)),
+                'last_modified_by' => $lastModifier->id,
+                'source_system' => $sourceSystem,
+                'admin_notes' => $isPriority ? $this->generateAdminNotes() : null,
+                'is_priority' => $isPriority,
+                
                 'created_at' => $createdAt,
                 'updated_at' => $createdAt,
             ]);
@@ -175,7 +200,7 @@ class TransferDemoSeeder extends Seeder
                 $existingEnrollment = Enrollment::where('student_id', $availableEnrollment->student_id)
                     ->where('class_id', $toClass->id)
                     ->first();
-                    
+
                 if (!$existingEnrollment) {
                     // Create new enrollment in target class
                     Enrollment::create([
@@ -195,7 +220,7 @@ class TransferDemoSeeder extends Seeder
                     'updated_at' => $createdAt,
                 ]);
             }
-            
+
             // Handle retargeted transfers (5% chance of having retarget data)
             if ($status === 'retargeted' && rand(1, 100) <= 50) {
                 $anotherTargetClass = $targetClasses->where('id', '!=', $toClass->id)->random();
@@ -221,14 +246,137 @@ class TransferDemoSeeder extends Seeder
     {
         $totalWeight = array_sum($weights);
         $random = rand(1, $totalWeight);
-        
+
         foreach ($weights as $item => $weight) {
             $random -= $weight;
             if ($random <= 0) {
                 return $item;
             }
         }
-        
+
         return array_key_first($weights); // fallback
+    }
+
+    /**
+     * Generate realistic status history for audit trail
+     */
+    private function generateStatusHistory(string $finalStatus, Carbon $createdAt, $creator): array
+    {
+        $history = [
+            [
+                'status' => 'pending',
+                'changed_at' => $createdAt->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer request created'
+            ]
+        ];
+
+        // Add intermediate status changes based on final status
+        if ($finalStatus === 'active') {
+            $history[] = [
+                'status' => 'approved',
+                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer approved by manager'
+            ];
+            $history[] = [
+                'status' => 'active',
+                'changed_at' => $createdAt->copy()->addHours(rand(24, 48))->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer processed and activated'
+            ];
+        } elseif ($finalStatus === 'reverted') {
+            $history[] = [
+                'status' => 'approved',
+                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer approved by manager'
+            ];
+            $history[] = [
+                'status' => 'reverted',
+                'changed_at' => $createdAt->copy()->addDays(rand(1, 14))->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer reverted due to student request'
+            ];
+        } elseif ($finalStatus === 'retargeted') {
+            $history[] = [
+                'status' => 'retargeted',
+                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
+                'changed_by' => $creator->id,
+                'changed_by_name' => $creator->name,
+                'reason' => 'Transfer retargeted to different class'
+            ];
+        }
+
+        return $history;
+    }
+
+    /**
+     * Generate realistic change log for audit trail
+     */
+    private function generateChangeLog(Carbon $createdAt, $creator, string $reason): array
+    {
+        $changes = [
+            [
+                'timestamp' => $createdAt->toISOString(),
+                'user_id' => $creator->id,
+                'user_name' => $creator->name,
+                'action' => 'created',
+                'changes' => [
+                    'reason' => ['old' => null, 'new' => $reason],
+                    'status' => ['old' => null, 'new' => 'pending']
+                ],
+                'ip_address' => $this->generateRandomIP(),
+                'user_agent' => 'Laravel Seeder'
+            ]
+        ];
+
+        // Add some random field updates
+        if (rand(1, 100) <= 30) { // 30% chance of having additional changes
+            $changes[] = [
+                'timestamp' => $createdAt->copy()->addHours(rand(1, 12))->toISOString(),
+                'user_id' => $creator->id,
+                'user_name' => $creator->name,
+                'action' => 'updated',
+                'changes' => [
+                    'reason' => ['old' => $reason, 'new' => $reason . ' (updated)']
+                ],
+                'ip_address' => $this->generateRandomIP(),
+                'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ];
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Generate admin notes for priority transfers
+     */
+    private function generateAdminNotes(): string
+    {
+        $notes = [
+            'Học viên VIP - xử lý ưu tiên',
+            'Yêu cầu khẩn cấp từ phụ huynh',
+            'Trường hợp đặc biệt - cần theo dõi',
+            'Học viên có vấn đề sức khỏe',
+            'Yêu cầu từ ban giám đốc',
+            'Học viên xuất sắc - hỗ trợ tối đa',
+            'Trường hợp phức tạp - cần giám sát'
+        ];
+
+        return $notes[array_rand($notes)];
+    }
+
+    /**
+     * Generate random IP address for audit trail
+     */
+    private function generateRandomIP(): string
+    {
+        return rand(192, 203) . '.' . rand(168, 255) . '.' . rand(1, 254) . '.' . rand(1, 254);
     }
 }

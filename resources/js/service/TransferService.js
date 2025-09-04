@@ -270,7 +270,7 @@ export const createTransferService = () => ({
      * Status options for Select component
      */
     statusOptions: [
-      { label: 'Tất cả', value: '' },
+      { label: 'Tất cả', value: null },
       { label: 'Đang hoạt động', value: 'active' },
       { label: 'Đã hoàn tác', value: 'reverted' },
       { label: 'Đã đổi hướng', value: 'retargeted' }

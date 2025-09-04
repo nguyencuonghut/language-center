@@ -22,6 +22,14 @@ class Transfer extends Model
         'processed_at',
         'transfer_fee',
         'invoice_id',
+        // New audit trail fields
+        'status_history',
+        'change_log',
+        'last_modified_at',
+        'last_modified_by',
+        'source_system',
+        'admin_notes',
+        'is_priority',
     ];
 
     protected $casts = [
@@ -30,6 +38,11 @@ class Transfer extends Model
         'reverted_at' => 'datetime',
         'retargeted_at' => 'datetime',
         'transfer_fee' => 'decimal:2',
+        'last_modified_at' => 'datetime',
+        // JSON casts for audit trail
+        'status_history' => 'array',
+        'change_log' => 'array',
+        'is_priority' => 'boolean',
     ];
 
     // Relationships
@@ -66,6 +79,11 @@ class Transfer extends Model
     public function retargetedBy()
     {
         return $this->belongsTo(User::class, 'retargeted_by');
+    }
+
+    public function lastModifiedBy()
+    {
+        return $this->belongsTo(User::class, 'last_modified_by');
     }
 
     public function invoice()
@@ -154,5 +172,100 @@ class Transfer extends Model
             ->with(['fromClass', 'toClass', 'retargetedToClass', 'createdBy'])
             ->orderBy('created_at', 'desc')
             ->get();
+    }
+
+    // Audit Trail Methods
+    public function logStatusChange(string $oldStatus, string $newStatus, int $userId, string $reason = null): void
+    {
+        $history = $this->status_history ?? [];
+        $history[] = [
+            'from_status' => $oldStatus,
+            'to_status' => $newStatus,
+            'changed_by' => $userId,
+            'changed_at' => now()->toISOString(),
+            'reason' => $reason,
+        ];
+
+        $this->update([
+            'status_history' => $history,
+            'last_modified_at' => now(),
+            'last_modified_by' => $userId,
+        ]);
+    }
+
+    public function logChange(string $field, $oldValue, $newValue, int $userId, string $context = null): void
+    {
+        $log = $this->change_log ?? [];
+        $log[] = [
+            'field' => $field,
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
+            'changed_by' => $userId,
+            'changed_at' => now()->toISOString(),
+            'context' => $context,
+        ];
+
+        $this->update([
+            'change_log' => $log,
+            'last_modified_at' => now(),
+            'last_modified_by' => $userId,
+        ]);
+    }
+
+    public function getAuditTrail(): array
+    {
+        $trail = [];
+
+        // Add creation event
+        $trail[] = [
+            'type' => 'created',
+            'timestamp' => $this->created_at,
+            'user' => $this->createdBy,
+            'description' => 'Transfer created',
+            'details' => [
+                'from_class' => $this->fromClass->code ?? 'Unknown',
+                'to_class' => $this->toClass->code ?? 'Unknown',
+                'student' => $this->student->name ?? 'Unknown',
+            ]
+        ];
+
+        // Add status changes
+        foreach ($this->status_history ?? [] as $change) {
+            $trail[] = [
+                'type' => 'status_change',
+                'timestamp' => $change['changed_at'],
+                'user_id' => $change['changed_by'],
+                'description' => "Status changed from {$change['from_status']} to {$change['to_status']}",
+                'details' => $change
+            ];
+        }
+
+        // Add field changes
+        foreach ($this->change_log ?? [] as $change) {
+            $trail[] = [
+                'type' => 'field_change',
+                'timestamp' => $change['changed_at'],
+                'user_id' => $change['changed_by'],
+                'description' => "Field '{$change['field']}' changed",
+                'details' => $change
+            ];
+        }
+
+        // Sort by timestamp
+        usort($trail, function($a, $b) {
+            return strtotime($a['timestamp']) <=> strtotime($b['timestamp']);
+        });
+
+        return $trail;
+    }
+
+    public function scopePriority($query)
+    {
+        return $query->where('is_priority', true);
+    }
+
+    public function scopeBySource($query, string $source)
+    {
+        return $query->where('source_system', $source);
     }
 }

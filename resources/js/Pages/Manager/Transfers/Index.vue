@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, ref, watch } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createTransferService } from '@/service/TransferService.js'
@@ -29,19 +29,52 @@ const transferService = createTransferService()
 // Local state
 const filters = reactive({
   q: props.filters?.q ?? '',
-  status: props.filters?.status ?? '',
+  status: props.filters?.status ?? null,
   from_date: props.filters?.from_date ?? '',
   to_date: props.filters?.to_date ?? '',
 })
 
 // Methods
-function search() {
-  transferService.getList(filters)
+function search(page = 1) {
+  const params = { ...filters }
+  
+  // Format date parameters if they exist
+  if (params.from_date && typeof params.from_date === 'object') {
+    // Convert to local date string without time zone conversion
+    const year = params.from_date.getFullYear()
+    const month = String(params.from_date.getMonth() + 1).padStart(2, '0')
+    const day = String(params.from_date.getDate()).padStart(2, '0')
+    params.from_date = `${year}-${month}-${day}`
+  }
+  if (params.to_date && typeof params.to_date === 'object') {
+    // Convert to local date string without time zone conversion
+    const year = params.to_date.getFullYear()
+    const month = String(params.to_date.getMonth() + 1).padStart(2, '0')
+    const day = String(params.to_date.getDate()).padStart(2, '0')
+    params.to_date = `${year}-${month}-${day}`
+  }
+  
+  // Remove empty parameters to avoid sending status='' to backend
+  Object.keys(params).forEach(key => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined) {
+      delete params[key]
+    }
+  })
+  
+  if (page > 1) {
+    params.page = page
+  }
+  transferService.getList(params)
+}
+
+function onPage(event) {
+  const page = event.page + 1 // PrimeVue uses 0-based indexing
+  search(page)
 }
 
 function resetFilters() {
   Object.keys(filters).forEach(key => {
-    filters[key] = ''
+    filters[key] = key === 'status' ? null : ''
   })
   search()
 }
@@ -75,8 +108,29 @@ const successRate = computed(() => {
       </div>
       <div class="flex items-center gap-2">
         <Link
+          :href="route('manager.transfers.advanced.search')"
+          class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+        >
+          <i class="pi pi-search mr-2"></i>
+          Tìm kiếm nâng cao
+        </Link>
+        <Link
+          :href="route('manager.transfers.advanced.history')"
+          class="inline-flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+        >
+          <i class="pi pi-history mr-2"></i>
+          Lịch sử
+        </Link>
+        <Link
+          :href="route('manager.transfers.advanced.reports')"
+          class="inline-flex items-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+        >
+          <i class="pi pi-file-excel mr-2"></i>
+          Báo cáo
+        </Link>
+        <Link
           :href="route('manager.transfers.analytics')"
-          class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
         >
           <i class="pi pi-chart-bar mr-2"></i>
           Phân tích
@@ -167,10 +221,13 @@ const successRate = computed(() => {
             <Select
               v-model="filters.status"
               :options="statusOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="Chọn trạng thái"
+              optionLabel="label"
+              optionValue="value"
+              :placeholder="filters.status === null ? 'Tất cả' : 'Chọn trạng thái'"
               class="w-full"
+              showClear
+              @change="search"
+              @clear="() => { filters.status = null; search(); }"
             />
           </div>
 
@@ -181,6 +238,9 @@ const successRate = computed(() => {
               date-format="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
+              show-clear
+              @date-select="search"
+              @clear="search"
             />
           </div>
 
@@ -191,6 +251,9 @@ const successRate = computed(() => {
               date-format="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
+              show-clear
+              @date-select="search"
+              @clear="search"
             />
           </div>
 
@@ -224,6 +287,7 @@ const successRate = computed(() => {
           data-key="id"
           size="small"
           class="p-datatable-sm"
+          @page="onPage"
         >
           <Column field="student.code" header="Mã HV" :sortable="true">
             <template #body="{ data }">
@@ -267,6 +331,12 @@ const successRate = computed(() => {
           <Column field="effective_date" header="Ngày hiệu lực" :sortable="true">
             <template #body="{ data }">
               {{ formatDate(data.effective_date) }}
+            </template>
+          </Column>
+
+          <Column field="created_at" header="Ngày tạo" :sortable="true">
+            <template #body="{ data }">
+              {{ formatDate(data.created_at) }}
             </template>
           </Column>
 

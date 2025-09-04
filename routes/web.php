@@ -345,11 +345,25 @@ Route::middleware(['auth'])->group(function () {
         Route::get('transfers/analytics', [App\Http\Controllers\Manager\TransferAnalyticsController::class, 'index'])
             ->name('transfers.analytics');
 
+        // Advanced Transfer Features (Phase 4)
+        Route::prefix('transfers/advanced')->name('transfers.advanced.')->group(function () {
+            Route::get('search', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'search'])
+                ->name('search');
+            Route::get('history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'history'])
+                ->name('history');
+            Route::get('reports', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'reports'])
+                ->name('reports');
+            Route::get('reports/export', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'exportReports'])
+                ->name('reports.export');
+        });
+
+        // Transfer History for specific student
+        Route::get('students/{student}/transfer-history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'history'])
+            ->name('students.transfer-history');
+
         Route::resource('transfers', TransferController::class);
         Route::post('transfers/revert',   [TransferController::class, 'revert'])->name('transfers.revert');
-        Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');
-
-        // Legacy support for student transfer
+        Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');        // Legacy support for student transfer
         Route::post('students/{student}/transfer', [TransferController::class, 'storeForStudent'])
             ->name('students.transfer');
 

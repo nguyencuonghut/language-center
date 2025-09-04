@@ -36,7 +36,7 @@ class TransferController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Filters
-        if ($request->filled('status')) {
+        if ($request->has('status') && $request->status !== null) {
             $query->where('status', $request->status);
         }
 
@@ -45,11 +45,13 @@ class TransferController extends Controller
         }
 
         if ($request->filled('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
+            $fromDate = \Carbon\Carbon::parse($request->from_date)->startOfDay();
+            $query->where('created_at', '>=', $fromDate);
         }
 
         if ($request->filled('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
+            $toDate = \Carbon\Carbon::parse($request->to_date)->endOfDay();
+            $query->where('created_at', '<=', $toDate);
         }
 
         if ($request->filled('q')) {
