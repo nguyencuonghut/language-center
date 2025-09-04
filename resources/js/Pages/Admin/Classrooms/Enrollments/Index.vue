@@ -3,6 +3,7 @@ import { reactive, ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import TransferDialog from '@/Components/TransferDialog.vue'
+import { createTransferService } from '@/service/TransferService.js'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -26,6 +27,9 @@ const props = defineProps({
   // [{label: 'STU001 · Nguyễn A (098...)', value: 1, code:'STU001', name:'Nguyễn A'}] — server gợi ý sẵn
   suggestStudents: Array,
 })
+
+// Initialize TransferService (no toast injection - handled by AppLayout)
+const transferService = createTransferService()
 
 /* ---------------- Helpers ---------------- */
 const statusOptions = [
@@ -237,15 +241,20 @@ async function transferClass(id){
 function onTransferSubmit(payload){
   transferData.saving = true
 
-  // Use the student transfer route instead of enrollment transfer
-  router.post(route('manager.students.transfer', transferData.student.id), payload, {
-    preserveScroll: true,
-    onFinish: () => { transferData.saving = false },
-    onSuccess: () => { showTransferModal.value = false },
+  // Use TransferService for consistency
+  transferService.createForStudent(transferData.student.id, payload, {
+    onSuccess: () => {
+      showTransferModal.value = false
+    },
     onError: (errors) => {
       console.error('Transfer failed:', errors)
     }
   })
+
+  // Reset saving state
+  setTimeout(() => {
+    transferData.saving = false
+  }, 100)
 }
 
 function onTransferCancel(){
