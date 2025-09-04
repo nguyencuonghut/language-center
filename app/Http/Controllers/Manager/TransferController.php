@@ -61,7 +61,7 @@ class TransferController extends Controller
             });
         }
 
-        $transfers = $query->paginate(20)->withQueryString();
+        $transfers = $query->paginate(10)->withQueryString();
 
         // Stats
         $stats = $this->transferService->getTransferStats([

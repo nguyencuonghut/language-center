@@ -398,6 +398,9 @@ function onSort(event) {
           @sort="onSort"
           stripedRows
           size="small"
+          paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+          currentPageReportTemplate="Hiển thị {first} - {last} trên tổng số {totalRecords} bản ghi"
+          :rowsPerPageOptions="[10, 15, 25]"
           class="p-datatable-sm"
         >
           <Column field="id" header="ID" :sortable="true" style="width: 80px" />

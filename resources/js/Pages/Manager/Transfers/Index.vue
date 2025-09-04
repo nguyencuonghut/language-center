@@ -285,6 +285,9 @@ const successRate = computed(() => {
           data-key="id"
           size="small"
           class="p-datatable-sm"
+          paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+          currentPageReportTemplate="Hiển thị {first} - {last} trên tổng số {totalRecords} bản ghi"
+          :rowsPerPageOptions="[10, 15, 25]"
           @page="onPage"
         >
           <Column field="student.code" header="Mã HV" :sortable="true">

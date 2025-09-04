@@ -503,6 +503,9 @@ function formatPercentage(value) {
                 stripedRows
                 size="small"
                 class="p-datatable-sm"
+                paginatorTemplate="RowsPerPageDropdown FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+                currentPageReportTemplate="Hiển thị {first} - {last} trên tổng số {totalRecords} bản ghi"
+                :rowsPerPageOptions="[10, 15, 25]"
               >
                 <Column field="id" header="ID" style="width: 60px" />
                 <Column field="student.code" header="Mã HV" />

@@ -38,7 +38,7 @@ class TransferAdvancedController extends Controller
         $query->orderBy($sortField, $sortDirection);
 
         // Default pagination with higher per_page to show more results initially
-        $perPage = $request->get('per_page', 20);
+        $perPage = $request->get('per_page', 10);
         $transfers = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Manager/Transfers/Advanced', [
@@ -273,7 +273,7 @@ class TransferAdvancedController extends Controller
         // Priority filter
         if ($request->has('priority') && $request->get('priority') !== null && $request->get('priority') !== '') {
             $priority = $request->get('priority');
-            
+
             // Handle string boolean values from frontend
             if ($priority === 'true' || $priority === true) {
                 $query->where('is_priority', true);
