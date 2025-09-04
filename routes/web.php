@@ -339,6 +339,12 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // TRANSFERS
+        // Analytics routes MUST come before resource routes to avoid conflicts
+        Route::get('transfers/analytics/export', [App\Http\Controllers\Manager\TransferAnalyticsController::class, 'export'])
+            ->name('transfers.analytics.export');
+        Route::get('transfers/analytics', [App\Http\Controllers\Manager\TransferAnalyticsController::class, 'index'])
+            ->name('transfers.analytics');
+
         Route::resource('transfers', TransferController::class);
         Route::post('transfers/revert',   [TransferController::class, 'revert'])->name('transfers.revert');
         Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');

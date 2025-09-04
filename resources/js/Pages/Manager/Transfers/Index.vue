@@ -73,13 +73,22 @@ const successRate = computed(() => {
         <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Quản lý chuyển lớp</h1>
         <p class="text-slate-600 dark:text-slate-400">Theo dõi và quản lý việc chuyển lớp của học viên</p>
       </div>
-      <Link
-        :href="route('manager.transfers.create')"
-        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        <i class="pi pi-plus mr-2"></i>
-        Tạo chuyển lớp
-      </Link>
+      <div class="flex items-center gap-2">
+        <Link
+          :href="route('manager.transfers.analytics')"
+          class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <i class="pi pi-chart-bar mr-2"></i>
+          Phân tích
+        </Link>
+        <Link
+          :href="route('manager.transfers.create')"
+          class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <i class="pi pi-plus mr-2"></i>
+          Tạo chuyển lớp
+        </Link>
+      </div>
     </div>
 
     <!-- Stats Cards -->

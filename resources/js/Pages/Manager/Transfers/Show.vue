@@ -36,6 +36,14 @@ function handleRevert() {
   })
 }
 
+function handleRetarget() {
+  transferService.retarget(props.transfer.id)
+}
+
+function handlePrint() {
+  window.print()
+}
+
 function formatCurrency(amount) {
   return transferService.utils.formatCurrency(amount)
 }
@@ -68,13 +76,30 @@ function formatCurrency(amount) {
           icon="pi pi-undo"
           @click="handleRevert"
         />
+
+        <Button
+          v-if="transfer.status === 'active'"
+          label="Đổi hướng"
+          severity="info"
+          icon="pi pi-refresh"
+          @click="handleRetarget"
+          class="ml-2"
+        />
+
+        <Button
+          label="In phiếu"
+          severity="secondary"
+          icon="pi pi-print"
+          @click="handlePrint"
+          class="ml-2"
+        />
       </div>
     </div>
 
     <!-- Transfer Info -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Student & Classes Info -->
-      <Card class="bg-white dark:bg-slate-800">
+      <Card class="bg-white dark:bg-slate-800 lg:col-span-2">
         <template #title>
           <div class="flex items-center gap-2">
             <i class="pi pi-user text-blue-600"></i>
@@ -159,7 +184,41 @@ function formatCurrency(amount) {
         </template>
       </Card>
 
-      <!-- Audit Trail -->
+      <!-- Quick Stats -->
+      <Card class="bg-white dark:bg-slate-800">
+        <template #title>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-chart-bar text-indigo-600"></i>
+            Thống kê nhanh
+          </div>
+        </template>
+        <template #content>
+          <div class="space-y-4">
+            <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+              <div class="text-2xl font-bold text-blue-600">{{ transfer.id }}</div>
+              <div class="text-xs text-blue-500">Transfer ID</div>
+            </div>
+
+            <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded">
+              <div class="text-lg font-bold text-green-600">
+                {{ Math.abs(new Date(transfer.effective_date) - new Date()) < 86400000 ? 'Hôm nay' : formatDate(transfer.effective_date) }}
+              </div>
+              <div class="text-xs text-green-500">Ngày hiệu lực</div>
+            </div>
+
+            <div class="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded">
+              <div class="text-lg font-bold text-purple-600">
+                {{ Math.ceil((new Date() - new Date(transfer.created_at)) / (1000 * 60 * 60 * 24)) }}
+              </div>
+              <div class="text-xs text-purple-500">Ngày đã tạo</div>
+            </div>
+          </div>
+        </template>
+      </Card>
+    </div>
+
+    <!-- Audit Trail -->
+    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
       <Card class="bg-white dark:bg-slate-800">
         <template #title>
           <div class="flex items-center gap-2">
