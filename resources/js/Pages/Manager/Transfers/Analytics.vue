@@ -158,7 +158,7 @@ function exportData() {
     <!-- Filters -->
     <Card class="bg-white dark:bg-slate-800">
       <template #content>
-        <div class="flex flex-wrap items-center gap-4">
+        <div class="flex flex-wrap items-end gap-4">
           <div class="flex-1 min-w-[200px]">
             <label class="block text-sm font-medium mb-1">Thời gian</label>
             <Select
@@ -180,11 +180,12 @@ function exportData() {
             />
           </div>
 
-          <div class="flex items-end">
+          <div class="flex-shrink-0">
             <Button
               label="Áp dụng"
               icon="pi pi-search"
               @click="applyFilters"
+              class="h-[42px]"
             />
           </div>
         </div>
