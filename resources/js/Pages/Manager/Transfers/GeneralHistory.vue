@@ -452,10 +452,10 @@ function viewTransferDetails(event) {
         <Card class="bg-white dark:bg-slate-800">
           <template #title>
             <div v-if="selectedTransfer">
-              Chi tiết Transfer #{{ selectedTransfer.id }}
+              Chi tiết chuyển lớp #{{ selectedTransfer.id }}
             </div>
             <div v-else>
-              Chọn transfer để xem chi tiết
+              Chọn chuyển lớp để xem chi tiết
             </div>
           </template>
           <template #content>
@@ -469,12 +469,12 @@ function viewTransferDetails(event) {
                   <Link
                     v-if="selectedTransfer.student_id"
                     :href="route('manager.students.show', selectedTransfer.student_id)"
-                    class="text-blue-600 hover:text-blue-800 text-sm"
+                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
                   >
                     <i class="pi pi-external-link mr-1"></i>
                     Xem hồ sơ
                   </Link>
-                  <span v-else class="text-slate-500 text-sm">
+                  <span v-else class="text-slate-500 dark:text-slate-400 text-sm">
                     Không có thông tin học viên
                   </span>
                 </div>
@@ -484,17 +484,17 @@ function viewTransferDetails(event) {
               <div class="space-y-2">
                 <div class="text-sm">
                   <span class="font-medium">Lý do:</span>
-                  <div class="mt-1 text-slate-600">{{ selectedTransfer.reason || 'Không có' }}</div>
+                  <div class="mt-1 text-slate-600 dark:text-slate-300">{{ selectedTransfer.reason || 'Không có' }}</div>
                 </div>
 
                 <div class="text-sm" v-if="selectedTransfer.notes">
                   <span class="font-medium">Ghi chú:</span>
-                  <div class="mt-1 text-slate-600">{{ selectedTransfer.notes }}</div>
+                  <div class="mt-1 text-slate-600 dark:text-slate-300">{{ selectedTransfer.notes }}</div>
                 </div>
 
                 <div class="text-sm" v-if="selectedTransfer.admin_notes">
                   <span class="font-medium">Ghi chú admin:</span>
-                  <div class="mt-1 text-slate-600">{{ selectedTransfer.admin_notes }}</div>
+                  <div class="mt-1 text-slate-600 dark:text-slate-300">{{ selectedTransfer.admin_notes }}</div>
                 </div>
 
                 <div class="text-sm">
@@ -527,11 +527,11 @@ function viewTransferDetails(event) {
                         <Badge v-else-if="item.type === 'status_change'" value="Trạng thái" severity="warning" />
                         <Badge v-else value="Chỉnh sửa" severity="info" />
                       </div>
-                      <div class="text-xs text-slate-500">
+                      <div class="text-xs text-slate-500 dark:text-slate-400">
                         {{ formatDate(item.timestamp) }}
                         <span v-if="item.user">by {{ item.user.name }}</span>
                       </div>
-                      <div v-if="item.details && item.details.reason" class="text-xs text-slate-600 mt-1">
+                      <div v-if="item.details && item.details.reason" class="text-xs text-slate-600 dark:text-slate-300 mt-1">
                         <i class="pi pi-comment mr-1"></i>
                         {{ item.details.reason }}
                       </div>
