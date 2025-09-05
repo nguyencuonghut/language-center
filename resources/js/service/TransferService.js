@@ -9,6 +9,21 @@ import { router } from '@inertiajs/vue3'
 export const createTransferService = () => ({
 
   /**
+   * Get general transfer history (all students)
+   * @param {Object} params { search, status, date_from, date_to, page }
+   */
+  getGeneralHistory(params = {}) {
+    router.visit(route('manager.transfers.advanced.history', params), {
+      preserveScroll: true,
+      preserveState: true,
+      replace: true,
+      onError: (errors) => {
+        // Backend handles flash error messages
+      }
+    })
+  },
+
+  /**
    * Get list of transfers with pagination and filters
    * @param {Object} params { q, status, from_date, to_date, page, per_page }
    */

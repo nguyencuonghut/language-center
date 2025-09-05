@@ -358,7 +358,7 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // Transfer History for specific student
-        Route::get('students/{student}/transfer-history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'history'])
+        Route::get('students/{student}/transfer-history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'studentHistory'])
             ->name('students.transfer-history');
 
         Route::resource('transfers', TransferController::class);

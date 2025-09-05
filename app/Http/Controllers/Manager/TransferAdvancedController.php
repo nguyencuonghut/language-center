@@ -53,9 +53,80 @@ class TransferAdvancedController extends Controller
     }
 
     /**
+     * General transfer history (all students)
+     */
+    public function history(Request $request)
+    {
+        $query = Transfer::with([
+            'student',
+            'fromClass',
+            'toClass',
+            'retargetedToClass',
+            'createdBy',
+            'revertedBy',
+            'retargetedBy',
+            'lastModifiedBy'
+        ]);
+
+        // Apply basic filters for history
+        if ($search = $request->get('search')) {
+            $query->whereHas('student', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($dateFrom = $request->get('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo = $request->get('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Calculate stats from all filtered records (before pagination)
+        $statsQuery = clone $query;
+        $allTransfers = $statsQuery->get();
+        
+        $stats = [
+            'total' => $allTransfers->count(),
+            'active' => $allTransfers->where('status', 'active')->count(),
+            'reverted' => $allTransfers->where('status', 'reverted')->count(),
+            'retargeted' => $allTransfers->where('status', 'retargeted')->count(),
+            'total_fees' => $allTransfers->sum('transfer_fee'),
+        ];
+
+        // Debug log
+        Log::info('Transfer stats calculated', $stats);
+
+        // Get paginated results
+        $transfers = $query->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->withQueryString();
+
+        $auditTrails = [];
+        foreach ($transfers as $transfer) {
+            $auditTrails[$transfer->id] = $transfer->getAuditTrail();
+        }
+
+        return Inertia::render('Manager/Transfers/GeneralHistory', [
+            'transfers' => $transfers,
+            'auditTrails' => $auditTrails,
+            'stats' => $stats,
+            'filters' => $request->only(['search', 'status', 'date_from', 'date_to']),
+            'filterOptions' => $this->getFilterOptions(),
+        ]);
+    }
+
+    /**
      * Transfer history for a specific student
      */
-    public function history(Request $request, Student $student)
+    public function studentHistory(Request $request, Student $student)
     {
         $transfers = Transfer::forStudent($student->id)
             ->with([
@@ -75,7 +146,7 @@ class TransferAdvancedController extends Controller
             $auditTrails[$transfer->id] = $transfer->getAuditTrail();
         }
 
-        return Inertia::render('Manager/Transfers/History', [
+        return Inertia::render('Manager/Transfers/StudentHistory', [
             'student' => $student,
             'transfers' => $transfers,
             'auditTrails' => $auditTrails,
