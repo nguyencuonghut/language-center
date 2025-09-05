@@ -155,15 +155,45 @@ class TransferService
                 $newInvoiceId = $invoice->id;
             }
 
-            // 5) Update transfer record
-            $transfer->update([
+            // 5) Update transfer record với audit trail
+            $userId = Auth::id();
+
+            // Log trước khi retarget
+            $transfer->logStatusChange('active', 'retargeted', $userId, 'Sửa hướng chuyển lớp');
+
+            // Update notes với thông tin retarget
+            $existingNotes = $transfer->notes ?? '';
+            $retargetNote = "\n--- SỬA HƯỚNG CHUYỂN LỚP vào " . now()->format('d/m/Y H:i') . " ---\n";
+            $retargetNote .= "Từ lớp đích cũ: " . $oldTargetClass->code . " (" . $oldTargetClass->name . ")\n";
+            $retargetNote .= "Sang lớp đích mới: " . $newTargetClass->code . " (" . $newTargetClass->name . ")\n";
+            if (!empty($data['note'])) {
+                $retargetNote .= "Ghi chú: " . $data['note'] . "\n";
+            }
+            $retargetNote .= "Thực hiện bởi: " . (Auth::user()->name ?? 'System') . "\n";
+
+            $updateData = [
+                // KHÔNG thay đổi to_class_id - giữ nguyên lớp đích ban đầu
                 'status' => 'retargeted',
-                'retargeted_to_class_id' => $newTargetClass->id,
+                'retargeted_to_class_id' => $newTargetClass->id, // Lớp đích mới
                 'retargeted_at' => now(),
-                'retargeted_by' => Auth::id(),
+                'retargeted_by' => $userId,
                 'invoice_id' => $newInvoiceId,
                 'transfer_fee' => $data['amount'] ?? 0,
-            ]);
+                'notes' => $existingNotes . $retargetNote,
+                'last_modified_at' => now(),
+                'last_modified_by' => $userId,
+            ];
+
+            $transfer->update($updateData);
+
+            // Log chi tiết về quá trình retarget
+            $transfer->logChange('enrollment_old_target', 'active', 'deleted', $userId, 'Retarget: Xoá enrollment lớp đích cũ');
+            $transfer->logChange('enrollment_new_target', 'none', 'active', $userId, 'Retarget: Tạo enrollment lớp đích mới');
+            $transfer->logChange('to_class_id', $oldTargetClass->id, $newTargetClass->id, $userId, 'Retarget: Thay đổi lớp đích');
+
+            if ($newInvoiceId) {
+                $transfer->logChange('invoice_id', $transfer->invoice_id, $newInvoiceId, $userId, 'Retarget: Tạo invoice mới');
+            }
         });
     }
 

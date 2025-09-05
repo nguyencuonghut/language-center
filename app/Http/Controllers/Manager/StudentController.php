@@ -98,9 +98,10 @@ class StudentController extends Controller
      */
     public function show(Student $student)
     {
-        // Get active transfers for this student
+        // Get active transfers for this student with from_class info
         $activeTransfers = Transfer::where('student_id', $student->id)
             ->where('status', 'active')
+            ->with('fromClass:id,code,name')
             ->get()
             ->keyBy('to_class_id'); // Key by target class for easy lookup
 
@@ -141,6 +142,8 @@ class StudentController extends Controller
                     $enrollment['active_transfer'] = [
                         'id' => $transfer->id,
                         'from_class_id' => $transfer->from_class_id,
+                        'from_class_code' => $transfer->fromClass?->code,
+                        'from_class_name' => $transfer->fromClass?->name,
                         'to_class_id' => $transfer->to_class_id,
                         'can_revert' => $transfer->canRevert(),
                     ];

@@ -24,6 +24,7 @@ class Transfer extends Model
         'reverted_by',
         'retargeted_at',
         'retargeted_by',
+        'retargeted_to_class_id',
         'transfer_fee',
         'invoice_id',
         // New audit trail fields

@@ -87,7 +87,7 @@
       <!-- Effective Date -->
       <div>
         <label class="block text-sm font-medium mb-2">Ngày hiệu lực *</label>
-        <Calendar
+        <DatePicker
           v-model="form.effective_date"
           showIcon
           placeholder="Chọn ngày"
@@ -193,7 +193,7 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import AutoComplete from 'primevue/autocomplete'
 import Select from 'primevue/select'
-import Calendar from 'primevue/calendar'
+import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
