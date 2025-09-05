@@ -99,6 +99,7 @@ class TransferAuditController extends Controller
 
         // Filter by action and user
         if ($action && $userId) {
+            // Both action and user specified
             switch ($action) {
                 case 'created':
                     $transfers->where('created_by', $userId);
@@ -111,12 +112,25 @@ class TransferAuditController extends Controller
                     break;
             }
         } elseif ($userId) {
-            // Search by any user action
+            // Only user specified - search by any user action
             $transfers->where(function($q) use ($userId) {
                 $q->where('created_by', $userId)
                   ->orWhere('reverted_by', $userId)
                   ->orWhere('retargeted_by', $userId);
             });
+        } elseif ($action) {
+            // Only action specified - filter by action type
+            switch ($action) {
+                case 'created':
+                    // All transfers (since all are created)
+                    break;
+                case 'reverted':
+                    $transfers->whereNotNull('reverted_at');
+                    break;
+                case 'retargeted':
+                    $transfers->whereNotNull('retargeted_at');
+                    break;
+            }
         }
 
         // Text search in status_history and change_log
@@ -187,6 +201,7 @@ class TransferAuditController extends Controller
         }
 
         if ($action && $userId) {
+            // Both action and user specified
             switch ($action) {
                 case 'created':
                     $transfers->where('created_by', $userId);
@@ -199,11 +214,25 @@ class TransferAuditController extends Controller
                     break;
             }
         } elseif ($userId) {
+            // Only user specified
             $transfers->where(function($q) use ($userId) {
                 $q->where('created_by', $userId)
                   ->orWhere('reverted_by', $userId)
                   ->orWhere('retargeted_by', $userId);
             });
+        } elseif ($action) {
+            // Only action specified
+            switch ($action) {
+                case 'created':
+                    // All transfers (since all are created)
+                    break;
+                case 'reverted':
+                    $transfers->whereNotNull('reverted_at');
+                    break;
+                case 'retargeted':
+                    $transfers->whereNotNull('retargeted_at');
+                    break;
+            }
         }
 
         if ($query) {

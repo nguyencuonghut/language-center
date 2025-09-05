@@ -350,9 +350,14 @@ const getStatusLabel = (status) => {
         pending: 'Chờ duyệt',
         approved: 'Đã duyệt',
         completed: 'Hoàn thành',
-        reverted: 'Đã hoàn tác'
+        reverted: 'Đã hoàn tác',
+        cancelled: 'Đã hủy',
+        rejected: 'Bị từ chối',
+        active: 'Đang hoạt động',
+        inactive: 'Không hoạt động',
+        processing: 'Đang xử lý'
     }
-    return labels[status] || status
+    return labels[status] || 'Không xác định'
 }
 
 const getStatusSeverity = (status) => {
@@ -360,7 +365,12 @@ const getStatusSeverity = (status) => {
         pending: 'warning',
         approved: 'info',
         completed: 'success',
-        reverted: 'danger'
+        reverted: 'danger',
+        cancelled: 'danger',
+        rejected: 'danger',
+        active: 'success',
+        inactive: 'secondary',
+        processing: 'info'
     }
     return severities[status] || 'secondary'
 }
