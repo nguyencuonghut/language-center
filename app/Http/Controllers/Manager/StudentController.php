@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Invoice;
 use App\Models\Attendance;
+use App\Models\Transfer;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,12 @@ class StudentController extends Controller
      */
     public function show(Student $student)
     {
+        // Get active transfers for this student
+        $activeTransfers = Transfer::where('student_id', $student->id)
+            ->where('status', 'active')
+            ->get()
+            ->keyBy('to_class_id'); // Key by target class for easy lookup
+
         // ENROLLMENTS: kèm code/name lớp để hiển thị nhanh
         $enrollments = Enrollment::query()
             ->where('student_id', $student->id)
@@ -111,8 +118,8 @@ class StudentController extends Controller
                 DB::raw('classrooms.code as class_code'),
                 DB::raw('classrooms.name as class_name'),
             ])
-            ->map(function ($e) {
-                return [
+            ->map(function ($e) use ($activeTransfers) {
+                $enrollment = [
                     'id'                => (int) $e->id,
                     'class_id'          => (int) $e->class_id,
                     'class_code'        => $e->class_code,
@@ -127,6 +134,19 @@ class StudentController extends Controller
                         'name' => $e->class_name,
                     ]
                 ];
+
+                // Add transfer information if this is the target of an active transfer
+                if ($e->status === 'active' && $activeTransfers->has($e->class_id)) {
+                    $transfer = $activeTransfers->get($e->class_id);
+                    $enrollment['active_transfer'] = [
+                        'id' => $transfer->id,
+                        'from_class_id' => $transfer->from_class_id,
+                        'to_class_id' => $transfer->to_class_id,
+                        'can_revert' => $transfer->canRevert(),
+                    ];
+                }
+
+                return $enrollment;
             });
 
         // If it's an AJAX request, return JSON (for TransferService)

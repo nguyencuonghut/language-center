@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createTransferService } from '@/service/TransferService.js'
@@ -9,6 +9,9 @@ import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
+import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
+import InputText from 'primevue/inputtext'
 
 defineOptions({ layout: AppLayout })
 
@@ -18,6 +21,13 @@ const props = defineProps({
 
 // Initialize TransferService (no toast injection - handled by AppLayout)
 const transferService = createTransferService()
+
+// Reactive data for revert dialog
+const showRevertDialog = ref(false)
+const revertData = ref({
+  reason: '',
+  notes: ''
+})
 
 // Use utility functions from service
 const { getStatusSeverity, getStatusLabel, getEffectiveTargetClass, formatDate, formatDateTime } = transferService.utils
@@ -29,11 +39,24 @@ const effectiveTargetClass = computed(() => getEffectiveTargetClass(props.transf
 
 // Methods using TransferService
 function handleRevert() {
+  showRevertDialog.value = true
+}
+
+function confirmRevert() {
   transferService.revert({
     student_id: props.transfer.student_id,
     from_class_id: props.transfer.from_class_id,
     to_class_id: props.transfer.to_class_id,
+    reason: revertData.value.reason,
+    notes: revertData.value.notes,
   })
+  showRevertDialog.value = false
+  revertData.value = { reason: '', notes: '' }
+}
+
+function cancelRevert() {
+  showRevertDialog.value = false
+  revertData.value = { reason: '', notes: '' }
 }
 
 function handleRetarget() {
@@ -342,6 +365,67 @@ function formatCurrency(amount) {
       </Link>
     </div>
   </div>
+
+  <!-- Revert Dialog -->
+  <Dialog 
+    v-model:visible="showRevertDialog" 
+    modal 
+    header="Hoàn tác chuyển lớp" 
+    :style="{width: '500px'}"
+    class="revert-dialog"
+  >
+    <div class="space-y-4">
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này không? 
+        Học viên sẽ được chuyển về lớp cũ.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Lý do hoàn tác <span class="text-red-500">*</span>
+          </label>
+          <Textarea 
+            v-model="revertData.reason"
+            placeholder="Nhập lý do hoàn tác..."
+            rows="3"
+            class="w-full"
+            :class="{'border-red-500': !revertData.reason.trim()}"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Ghi chú thêm
+          </label>
+          <Textarea 
+            v-model="revertData.notes"
+            placeholder="Ghi chú bổ sung (tùy chọn)..."
+            rows="2"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button 
+          label="Hủy" 
+          severity="secondary" 
+          @click="cancelRevert"
+          class="px-4 py-2"
+        />
+        <Button 
+          label="Xác nhận hoàn tác" 
+          severity="danger" 
+          @click="confirmRevert"
+          :disabled="!revertData.reason.trim()"
+          class="px-4 py-2"
+        />
+      </div>
+    </template>
+  </Dialog>
 </template>
 
 <style>

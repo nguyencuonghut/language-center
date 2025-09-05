@@ -20,6 +20,10 @@ class Transfer extends Model
         'status',
         'created_by',
         'processed_at',
+        'reverted_at',
+        'reverted_by',
+        'retargeted_at',
+        'retargeted_by',
         'transfer_fee',
         'invoice_id',
         // New audit trail fields
@@ -119,8 +123,8 @@ class Transfer extends Model
             return false;
         }
 
-        // Check if student has attendance in target class
-        return !$this->hasAttendanceInTargetClass();
+        // Check if student has attendance or payments in target class
+        return !$this->hasAttendanceInTargetClass() && !$this->hasPaymentsInTargetClass();
     }
 
     public function canRetarget(): bool
@@ -129,8 +133,8 @@ class Transfer extends Model
             return false;
         }
 
-        // Check if student has attendance in target class
-        return !$this->hasAttendanceInTargetClass();
+        // Check if student has attendance or payments in target class
+        return !$this->hasAttendanceInTargetClass() && !$this->hasPaymentsInTargetClass();
     }
 
     private function hasAttendanceInTargetClass(): bool
@@ -138,6 +142,14 @@ class Transfer extends Model
         return \App\Models\Attendance::whereHas('session', function($q) {
             $q->where('class_id', $this->to_class_id);
         })->where('student_id', $this->student_id)->exists();
+    }
+
+    private function hasPaymentsInTargetClass(): bool
+    {
+        return \App\Models\Payment::whereHas('invoice', function($q) {
+            $q->where('student_id', $this->student_id)
+              ->where('class_id', $this->to_class_id);
+        })->exists();
     }
 
     public function getEffectiveTargetClassId(): int
@@ -175,7 +187,7 @@ class Transfer extends Model
     }
 
     // Audit Trail Methods
-    public function logStatusChange(string $oldStatus, string $newStatus, int $userId, string $reason = null): void
+    public function logStatusChange(string $oldStatus, string $newStatus, int $userId, ?string $reason = null): void
     {
         $history = $this->status_history ?? [];
         $history[] = [
@@ -193,7 +205,7 @@ class Transfer extends Model
         ]);
     }
 
-    public function logChange(string $field, $oldValue, $newValue, int $userId, string $context = null): void
+    public function logChange(string $field, $oldValue, $newValue, int $userId, ?string $context = null): void
     {
         $log = $this->change_log ?? [];
         $log[] = [

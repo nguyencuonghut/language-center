@@ -32,6 +32,7 @@ class TransferDemoSeeder extends Seeder
         $this->createHistoricalTransfers($managers);
         $this->createCurrentMonthTransfers($managers);
         $this->createRecentTransfers($managers);
+        $this->createSpecialTestCases($managers);
 
         $totalTransfers = Transfer::count();
         $this->command->info("Enhanced transfer demo seeding completed. Created {$totalTransfers} total transfers.");
@@ -89,6 +90,25 @@ class TransferDemoSeeder extends Seeder
         }
 
         $this->command->info("Created {$recentTransfers} recent transfers");
+    }
+
+    /**
+     * Create special test cases for new features
+     */
+    private function createSpecialTestCases($managers): void
+    {
+        $this->command->info('Creating special test cases...');
+
+        // Test case 1: Active transfer that can be reverted
+        $this->createActiveTransferForRevertTest($managers);
+
+        // Test case 2: Active transfer that CANNOT be reverted (has attendance)
+        $this->createActiveTransferWithAttendance($managers);
+
+        // Test case 3: Multiple reverted transfers with detailed audit trail
+        $this->createMultipleRevertedTransfers($managers);
+
+        $this->command->info('Created special test cases for new features');
     }
 
     /**
@@ -163,7 +183,10 @@ class TransferDemoSeeder extends Seeder
             $statusHistory = $this->generateStatusHistory($status, $createdAt, $creator);
 
             // Create realistic change log
-            $changeLog = $this->generateChangeLog($createdAt, $creator, $reason);
+            $changeLog = $this->generateEnhancedChangeLog($createdAt, $creator, $reason, $status);
+
+            // Generate notes with revert information if status is reverted
+            $notes = $this->generateNotesBasedOnStatus($status, $reason, $createdAt, $creator);
 
             // Source system variations
             $sourceSystems = ['manual' => 70, 'api' => 20, 'import' => 10];
@@ -176,6 +199,7 @@ class TransferDemoSeeder extends Seeder
                 'effective_date' => $createdAt->copy()->addDays(rand(1, 14))->toDateString(),
                 'start_session_no' => rand(1, 5),
                 'reason' => $reason,
+                'notes' => $notes,
                 'status' => $status,
                 'transfer_fee' => $transferFee,
                 'created_by' => $creator->id,
@@ -264,52 +288,40 @@ class TransferDemoSeeder extends Seeder
     {
         $history = [
             [
-                'status' => 'pending',
+                'from_status' => null,
+                'to_status' => 'active',
                 'changed_at' => $createdAt->toISOString(),
                 'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer request created'
+                'reason' => 'Transfer created and activated'
             ]
         ];
 
-        // Add intermediate status changes based on final status
-        if ($finalStatus === 'active') {
-            $history[] = [
-                'status' => 'approved',
-                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
-                'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer approved by manager'
+        // Add status changes based on final status
+        if ($finalStatus === 'reverted') {
+            $revertReasons = [
+                'Học viên thay đổi ý định',
+                'Lớp đích không phù hợp',
+                'Yêu cầu từ phụ huynh',
+                'Vấn đề về lịch học',
+                'Học viên không thích lớp mới',
+                'Giáo viên không phù hợp',
+                'Chi phí quá cao'
             ];
+
             $history[] = [
-                'status' => 'active',
-                'changed_at' => $createdAt->copy()->addHours(rand(24, 48))->toISOString(),
-                'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer processed and activated'
-            ];
-        } elseif ($finalStatus === 'reverted') {
-            $history[] = [
-                'status' => 'approved',
-                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
-                'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer approved by manager'
-            ];
-            $history[] = [
-                'status' => 'reverted',
+                'from_status' => 'active',
+                'to_status' => 'reverted',
                 'changed_at' => $createdAt->copy()->addDays(rand(1, 14))->toISOString(),
                 'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer reverted due to student request'
+                'reason' => $revertReasons[array_rand($revertReasons)]
             ];
         } elseif ($finalStatus === 'retargeted') {
             $history[] = [
-                'status' => 'retargeted',
-                'changed_at' => $createdAt->copy()->addHours(rand(1, 24))->toISOString(),
+                'from_status' => 'active',
+                'to_status' => 'retargeted',
+                'changed_at' => $createdAt->copy()->addDays(rand(1, 7))->toISOString(),
                 'changed_by' => $creator->id,
-                'changed_by_name' => $creator->name,
-                'reason' => 'Transfer retargeted to different class'
+                'reason' => 'Thay đổi lớp đích theo yêu cầu'
             ];
         }
 
@@ -378,5 +390,251 @@ class TransferDemoSeeder extends Seeder
     private function generateRandomIP(): string
     {
         return rand(192, 203) . '.' . rand(168, 255) . '.' . rand(1, 254) . '.' . rand(1, 254);
+    }
+
+    /**
+     * Generate notes based on transfer status
+     */
+    private function generateNotesBasedOnStatus(string $status, string $reason, Carbon $createdAt, $creator): ?string
+    {
+        $baseNotes = "Chuyển lớp: {$reason}";
+
+        if ($status === 'reverted') {
+            $revertReasons = [
+                'Học viên không thích lớp mới, yêu cầu quay lại lớp cũ',
+                'Lịch học lớp đích không phù hợp với công việc',
+                'Phụ huynh yêu cầu hoàn tác do vấn đề tài chính',
+                'Học viên cảm thấy lớp quá khó so với trình độ hiện tại',
+                'Xung đột lịch học với hoạt động khác',
+                'Giáo viên lớp đích không phù hợp với phong cách học',
+                'Chi phí phát sinh thêm quá cao'
+            ];
+
+            $revertNotes = [
+                'Cần theo dõi thêm để tránh tình trạng tương tự',
+                'Học viên đã được tư vấn kỹ lưỡng',
+                'Sẽ hỗ trợ tìm lớp phù hợp hơn trong tương lai',
+                'Đã giải thích rõ về quy trình chuyển lớp',
+                'Cần cải thiện quy trình tư vấn ban đầu'
+            ];
+
+            $revertTime = $createdAt->copy()->addDays(rand(1, 14));
+            $baseNotes .= "\n\n--- HOÀN TÁC vào " . $revertTime->format('d/m/Y H:i') . " ---\n";
+            $baseNotes .= "Lý do: " . $revertReasons[array_rand($revertReasons)] . "\n";
+            $baseNotes .= "Ghi chú: " . $revertNotes[array_rand($revertNotes)] . "\n";
+            $baseNotes .= "Thực hiện bởi: " . $creator->name . "\n";
+
+        } elseif ($status === 'retargeted') {
+            $retargetTime = $createdAt->copy()->addDays(rand(1, 7));
+            $baseNotes .= "\n\n--- CHUYỂN HƯỚNG vào " . $retargetTime->format('d/m/Y H:i') . " ---\n";
+            $baseNotes .= "Lý do: Thay đổi lớp đích theo yêu cầu mới\n";
+            $baseNotes .= "Thực hiện bởi: " . $creator->name . "\n";
+
+        } elseif ($status === 'active' && rand(1, 100) <= 30) {
+            // 30% active transfers have additional notes
+            $additionalNotes = [
+                'Học viên rất hài lòng với việc chuyển lớp',
+                'Đã hỗ trợ học viên làm quen với lớp mới',
+                'Cần theo dõi tiến độ học tập trong 2 tuần đầu',
+                'Học viên có thể cần hỗ trợ thêm về bài tập',
+                'Đã thông báo với giáo viên về tình hình học viên'
+            ];
+            $baseNotes .= "\n\nGhi chú: " . $additionalNotes[array_rand($additionalNotes)];
+        }
+
+        return $baseNotes;
+    }
+
+    /**
+     * Generate realistic change log with enhanced details
+     */
+    private function generateEnhancedChangeLog(Carbon $createdAt, $creator, string $reason, string $status): array
+    {
+        $changes = [
+            [
+                'field' => 'status',
+                'old_value' => null,
+                'new_value' => 'active',
+                'changed_by' => $creator->id,
+                'changed_at' => $createdAt->toISOString(),
+                'context' => 'Transfer creation'
+            ],
+            [
+                'field' => 'reason',
+                'old_value' => null,
+                'new_value' => $reason,
+                'changed_by' => $creator->id,
+                'changed_at' => $createdAt->toISOString(),
+                'context' => 'Initial reason set'
+            ]
+        ];
+
+        // Add status-specific changes
+        if ($status === 'reverted') {
+            $changes[] = [
+                'field' => 'status',
+                'old_value' => 'active',
+                'new_value' => 'reverted',
+                'changed_by' => $creator->id,
+                'changed_at' => $createdAt->copy()->addDays(rand(1, 14))->toISOString(),
+                'context' => 'Manual revert by user request'
+            ];
+            $changes[] = [
+                'field' => 'enrollment_target',
+                'old_value' => 'active',
+                'new_value' => 'deleted',
+                'changed_by' => $creator->id,
+                'changed_at' => $createdAt->copy()->addDays(rand(1, 14))->toISOString(),
+                'context' => 'Revert: Xoá enrollment lớp đích'
+            ];
+            $changes[] = [
+                'field' => 'enrollment_source',
+                'old_value' => 'transferred',
+                'new_value' => 'active',
+                'changed_by' => $creator->id,
+                'changed_at' => $createdAt->copy()->addDays(rand(1, 14))->toISOString(),
+                'context' => 'Revert: Khôi phục enrollment lớp nguồn'
+            ];
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Create an active transfer that can be reverted (no attendance/payments)
+     */
+    private function createActiveTransferForRevertTest($managers): void
+    {
+        $availableEnrollment = Enrollment::with(['student', 'classroom'])
+            ->where('status', 'active')
+            ->inRandomOrder()
+            ->first();
+
+        if (!$availableEnrollment) return;
+
+        $targetClass = Classroom::where('id', '!=', $availableEnrollment->class_id)
+            ->whereIn('status', ['open', 'active'])
+            ->inRandomOrder()
+            ->first();
+
+        if (!$targetClass) return;
+
+        $creator = $managers->random();
+        $createdAt = now()->subDays(rand(1, 3));
+
+        Transfer::create([
+            'student_id' => $availableEnrollment->student_id,
+            'from_class_id' => $availableEnrollment->class_id,
+            'to_class_id' => $targetClass->id,
+            'effective_date' => $createdAt->copy()->addDays(1)->toDateString(),
+            'start_session_no' => 1,
+            'reason' => 'TEST CASE: Transfer có thể hoàn tác',
+            'notes' => 'Đây là test case để kiểm tra tính năng revert với reason và notes.',
+            'status' => 'active',
+            'transfer_fee' => 0,
+            'created_by' => $creator->id,
+            'processed_at' => $createdAt,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
+    }
+
+    /**
+     * Create an active transfer that CANNOT be reverted (has attendance)
+     */
+    private function createActiveTransferWithAttendance($managers): void
+    {
+        $availableEnrollment = Enrollment::with(['student', 'classroom'])
+            ->where('status', 'active')
+            ->inRandomOrder()
+            ->first();
+
+        if (!$availableEnrollment) return;
+
+        $targetClass = Classroom::where('id', '!=', $availableEnrollment->class_id)
+            ->whereIn('status', ['open', 'active'])
+            ->inRandomOrder()
+            ->first();
+
+        if (!$targetClass) return;
+
+        $creator = $managers->random();
+        $createdAt = now()->subDays(rand(5, 10));
+
+        Transfer::create([
+            'student_id' => $availableEnrollment->student_id,
+            'from_class_id' => $availableEnrollment->class_id,
+            'to_class_id' => $targetClass->id,
+            'effective_date' => $createdAt->copy()->addDays(1)->toDateString(),
+            'start_session_no' => 1,
+            'reason' => 'TEST CASE: Transfer không thể hoàn tác',
+            'notes' => 'Đây là test case mô phỏng transfer đã có attendance/payments.',
+            'status' => 'active',
+            'transfer_fee' => 100000,
+            'created_by' => $creator->id,
+            'processed_at' => $createdAt,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
+    }
+
+    /**
+     * Create multiple reverted transfers with detailed audit trail
+     */
+    private function createMultipleRevertedTransfers($managers): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $availableEnrollment = Enrollment::with(['student', 'classroom'])
+                ->where('status', 'active')
+                ->inRandomOrder()
+                ->first();
+
+            if (!$availableEnrollment) continue;
+
+            $targetClass = Classroom::where('id', '!=', $availableEnrollment->class_id)
+                ->whereIn('status', ['open', 'active'])
+                ->inRandomOrder()
+                ->first();
+
+            if (!$targetClass) continue;
+
+            $creator = $managers->random();
+            $createdAt = now()->subDays(rand(10, 30));
+            $revertedAt = $createdAt->copy()->addDays(rand(1, 7));
+
+            $revertReasons = [
+                'Học viên không hài lòng với lớp mới',
+                'Lịch học không phù hợp với công việc',
+                'Yêu cầu từ phụ huynh'
+            ];
+
+            $revertReason = $revertReasons[array_rand($revertReasons)];
+
+            $notes = "Chuyển lớp ban đầu: Yêu cầu thay đổi lịch học\n\n";
+            $notes .= "--- HOÀN TÁC vào " . $revertedAt->format('d/m/Y H:i') . " ---\n";
+            $notes .= "Lý do: {$revertReason}\n";
+            $notes .= "Ghi chú: Đã tư vấn kỹ lưỡng cho học viên\n";
+            $notes .= "Thực hiện bởi: " . $creator->name . "\n";
+
+            Transfer::create([
+                'student_id' => $availableEnrollment->student_id,
+                'from_class_id' => $availableEnrollment->class_id,
+                'to_class_id' => $targetClass->id,
+                'effective_date' => $createdAt->copy()->addDays(1)->toDateString(),
+                'start_session_no' => 1,
+                'reason' => 'TEST: Yêu cầu thay đổi lịch học',
+                'notes' => $notes,
+                'status' => 'reverted',
+                'transfer_fee' => 0,
+                'created_by' => $creator->id,
+                'processed_at' => $createdAt,
+                'reverted_at' => $revertedAt,
+                'reverted_by' => $creator->id,
+                'last_modified_at' => $revertedAt,
+                'last_modified_by' => $creator->id,
+                'created_at' => $createdAt,
+                'updated_at' => $revertedAt,
+            ]);
+        }
     }
 }

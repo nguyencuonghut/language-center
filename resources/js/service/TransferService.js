@@ -88,14 +88,10 @@ export const createTransferService = () => ({
 
   /**
    * Revert a transfer
-   * @param {Object} transferData { student_id, from_class_id, to_class_id }
+   * @param {Object} transferData { student_id, from_class_id, to_class_id, reason, notes }
    * @param {Object} callbacks { onSuccess, onError }
    */
   revert(transferData, callbacks = {}) {
-    if (!confirm('Bạn có chắc chắn muốn hoàn tác transfer này?')) {
-      return
-    }
-
     router.post(route('manager.transfers.revert'), transferData, {
       preserveScroll: true,
       onSuccess: () => {

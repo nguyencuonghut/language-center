@@ -14,6 +14,7 @@ use App\Models\Student;
 use App\Models\Transfer;
 use App\Services\TransferService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -162,11 +163,11 @@ class TransferController extends Controller
     {
         $data = $request->validated();
 
-        // Tìm transfer record
+        // Tìm transfer record active cho student này (chỉ cần match student và to_class)
+        // Vì học viên có thể có nhiều transferred enrollments nhưng chỉ 1 active transfer
         $transfer = Transfer::active()
             ->where('student_id', $data['student_id'])
-            ->where('from_class_id', $data['from_class_id'])
-            ->where('to_class_id', $data['to_class_id'])
+            ->where('to_class_id', $data['to_class_id']) // Match lớp đích (active class)
             ->first();
 
         if (!$transfer) {
@@ -174,7 +175,7 @@ class TransferController extends Controller
         }
 
         try {
-            $this->transferService->revertTransfer($transfer);
+            $this->transferService->revertTransfer($transfer, $data);
             return back()->with('success', 'Đã hoàn tác chuyển lớp thành công.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());

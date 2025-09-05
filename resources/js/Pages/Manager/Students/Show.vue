@@ -14,6 +14,8 @@ import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
 
 defineOptions({ layout: AppLayout })
 
@@ -54,11 +56,19 @@ const showRetargetDialog = ref(false)
 const retargetSaving = ref(false)
 const retargetEnrollment = ref(null)
 
+// Revert transfer dialog state
+const showRevertDialog = ref(false)
+const revertData = ref({
+  reason: '',
+  notes: '',
+  activeEnrollment: null,
+  transfer: null
+})
+
 // Check if there are transfer operations available
 const hasActiveTransfer = computed(() => {
-  const hasTransferred = props.enrollments?.some(e => e.status === 'transferred')
-  const hasActive = props.enrollments?.some(e => e.status === 'active')
-  return hasTransferred && hasActive
+  // Check if any enrollment has an active transfer that can be reverted
+  return props.enrollments?.some(e => e.active_transfer?.can_revert)
 })
 
 // Get current active class from enrollments
@@ -99,16 +109,31 @@ const handleTransferCancel = () => {
 }
 
 // Revert transfer function
-const revertTransfer = async (transferredEnrollment) => {
-  if (!confirm('Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này?')) {
+const revertTransfer = (activeEnrollment) => {
+  // This should only be called for enrollments with active_transfer data
+  if (!activeEnrollment.active_transfer) {
+    alert('Không có transfer record để hoàn tác.')
     return
   }
 
-  // Find the current active enrollment (the target class we want to remove)
-  const activeEnrollment = props.enrollments?.find(e => e.status === 'active')
+  // Set up revert data and show dialog
+  revertData.value = {
+    reason: '',
+    notes: '',
+    activeEnrollment: activeEnrollment,
+    transfer: activeEnrollment.active_transfer
+  }
+  showRevertDialog.value = true
+}
 
-  if (!activeEnrollment) {
-    alert('Không tìm thấy lớp hiện tại để hoàn tác.')
+// Confirm revert with reason and notes
+const confirmRevert = async () => {
+  if (!revertData.value.reason.trim()) {
+    return // Validation handled by dialog
+  }
+
+  if (!revertData.value.transfer) {
+    alert('Không có transfer record để hoàn tác.')
     return
   }
 
@@ -117,12 +142,15 @@ const revertTransfer = async (transferredEnrollment) => {
       route('manager.transfers.revert'),
       {
         student_id: props.student.id,
-        to_class_id: activeEnrollment.class_id, // current active class (to be removed)
-        from_class_id: transferredEnrollment.class_id // original class (to be restored)
+        to_class_id: revertData.value.transfer.to_class_id, // current active class (to be removed)
+        from_class_id: revertData.value.transfer.from_class_id, // original class (to be restored)
+        reason: revertData.value.reason,
+        notes: revertData.value.notes,
       },
       {
         onSuccess: () => {
-          // Page will be refreshed with updated data
+          showRevertDialog.value = false
+          revertData.value = { reason: '', notes: '', activeEnrollment: null, transfer: null }
         },
         onError: (errors) => {
           console.error('Revert transfer failed:', errors)
@@ -132,6 +160,12 @@ const revertTransfer = async (transferredEnrollment) => {
   } catch (error) {
     console.error('Revert transfer error:', error)
   }
+}
+
+// Cancel revert dialog
+const cancelRevert = () => {
+  showRevertDialog.value = false
+  revertData.value = { reason: '', notes: '', activeEnrollment: null, transfer: null }
 }
 
 // Open retarget dialog
@@ -303,7 +337,7 @@ const handleRetargetCancel = () => {
             </Column>
             <Column header="Thao tác" style="width: 280px">
               <template #body="{ data }">
-                <div v-if="data.status === 'transferred' && hasActiveTransfer" class="flex gap-2">
+                <div v-if="data.status === 'active' && data.active_transfer?.can_revert" class="flex gap-2">
                   <Button
                     label="Hoàn tác"
                     icon="pi pi-undo"
@@ -320,7 +354,7 @@ const handleRetargetCancel = () => {
                   />
                 </div>
                 <div v-else-if="data.status === 'active'" class="flex gap-2">
-                  <!-- Show transfer button for active enrollments -->
+                  <!-- Show transfer button for active enrollments without active transfers -->
                   <Button
                     label="Chuyển lớp"
                     icon="pi pi-refresh"
@@ -412,6 +446,67 @@ const handleRetargetCancel = () => {
     :classrooms="availableClasses"
     @success="handleTransferSuccess"
   />
+
+  <!-- Revert Transfer Dialog -->
+  <Dialog
+    v-model:visible="showRevertDialog"
+    modal
+    header="Hoàn tác chuyển lớp"
+    :style="{width: '500px'}"
+    class="revert-dialog"
+  >
+    <div class="space-y-4">
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này không?
+        Học viên sẽ được chuyển về lớp cũ.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Lý do hoàn tác <span class="text-red-500">*</span>
+          </label>
+          <Textarea
+            v-model="revertData.reason"
+            placeholder="Nhập lý do hoàn tác..."
+            rows="3"
+            class="w-full"
+            :class="{'border-red-500': !revertData.reason.trim()}"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Ghi chú thêm
+          </label>
+          <Textarea
+            v-model="revertData.notes"
+            placeholder="Ghi chú bổ sung (tùy chọn)..."
+            rows="2"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Hủy"
+          severity="secondary"
+          @click="cancelRevert"
+          class="px-4 py-2"
+        />
+        <Button
+          label="Xác nhận hoàn tác"
+          severity="danger"
+          @click="confirmRevert"
+          :disabled="!revertData.reason.trim()"
+          class="px-4 py-2"
+        />
+      </div>
+    </template>
+  </Dialog>
 
   <!-- TODO: Retarget functionality can be added later -->
 </template>

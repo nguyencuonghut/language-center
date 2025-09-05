@@ -14,6 +14,8 @@ class RevertTransferRequest extends FormRequest
             'student_id'   => ['required','integer','exists:students,id'],
             'to_class_id'  => ['required','integer','exists:classrooms,id'], // lớp mới (đang muốn huỷ)
             'from_class_id'=> ['required','integer','exists:classrooms,id'], // lớp cũ (sẽ khôi phục)
+            'reason'       => ['required','string','max:500'], // lý do hoàn tác
+            'notes'        => ['nullable','string','max:1000'], // ghi chú thêm
         ];
     }
 
@@ -26,6 +28,9 @@ class RevertTransferRequest extends FormRequest
             'to_class_id.exists'    => 'Lớp đích không tồn tại.',
             'from_class_id.required'=> 'Thiếu lớp nguồn để khôi phục.',
             'from_class_id.exists'  => 'Lớp nguồn không tồn tại.',
+            'reason.required'       => 'Vui lòng nhập lý do hoàn tác.',
+            'reason.max'            => 'Lý do hoàn tác không được vượt quá 500 ký tự.',
+            'notes.max'             => 'Ghi chú không được vượt quá 1000 ký tự.',
         ];
     }
 }

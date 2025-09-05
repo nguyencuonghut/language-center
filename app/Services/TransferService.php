@@ -58,16 +58,20 @@ class TransferService
     /**
      * Hoàn tác transfer
      */
-    public function revertTransfer(Transfer $transfer): void
+    public function revertTransfer(Transfer $transfer, array $data = []): void
     {
         if (!$transfer->canRevert()) {
-            throw new \Exception('Không thể hoàn tác transfer này.');
+            throw new \Exception('Không thể hoàn tác transfer này. Kiểm tra xem học viên đã có điểm danh hoặc thanh toán trong lớp đích chưa.');
         }
 
-        DB::transaction(function () use ($transfer) {
+        DB::transaction(function () use ($transfer, $data) {
             $student = $transfer->student;
             $fromClass = $transfer->fromClass;
             $toClass = $transfer->toClass;
+            $userId = Auth::id();
+
+            // Log trước khi revert
+            $transfer->logStatusChange('active', 'reverted', $userId, $data['reason'] ?? 'Manual revert');
 
             // 1) Xoá enrollment lớp đích
             Enrollment::where('student_id', $student->id)
@@ -80,12 +84,37 @@ class TransferService
             // 3) Xử lý invoice
             $this->cleanupTransferInvoice($transfer);
 
-            // 4) Update transfer status
-            $transfer->update([
+            // 4) Update transfer status với reason và notes
+            $updateData = [
                 'status' => 'reverted',
                 'reverted_at' => now(),
-                'reverted_by' => Auth::id(),
-            ]);
+                'reverted_by' => $userId,
+                'last_modified_at' => now(),
+                'last_modified_by' => $userId,
+            ];
+
+            // Cập nhật notes nếu có reason hoặc notes mới
+            if (!empty($data['reason']) || !empty($data['notes'])) {
+                $existingNotes = $transfer->notes ?? '';
+                $revertNote = "\n--- HOÀN TÁC vào " . now()->format('d/m/Y H:i') . " ---\n";
+                $revertNote .= "Lý do: " . ($data['reason'] ?? 'Không có') . "\n";
+                if (!empty($data['notes'])) {
+                    $revertNote .= "Ghi chú: " . $data['notes'] . "\n";
+                }
+                $revertNote .= "Thực hiện bởi: " . (Auth::user()->name ?? 'System') . "\n";
+
+                $updateData['notes'] = $existingNotes . $revertNote;
+            }
+
+            $transfer->update($updateData);
+
+            // 5) Log chi tiết về quá trình revert
+            $transfer->logChange('enrollment_target', 'active', 'deleted', $userId, 'Revert: Xoá enrollment lớp đích');
+            $transfer->logChange('enrollment_source', 'transferred', 'active', $userId, 'Revert: Khôi phục enrollment lớp nguồn');
+
+            if ($transfer->invoice_id) {
+                $transfer->logChange('invoice_status', 'linked', 'cleaned_up', $userId, 'Revert: Xoá invoice chưa thanh toán');
+            }
         });
     }
 
