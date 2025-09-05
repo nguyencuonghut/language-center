@@ -162,8 +162,8 @@ function getEventColor(type) {
   return colors[type] || '#64748B'
 }
 
-function viewTransferDetails(transfer) {
-  selectedTransfer.value = transfer
+function viewTransferDetails(event) {
+  selectedTransfer.value = event.data
 }
 </script>
 
@@ -346,11 +346,15 @@ function viewTransferDetails(transfer) {
               <Column field="student.code" header="Mã HV" style="width: 100px">
                 <template #body="{ data }">
                   <Link
+                    v-if="data.student_id"
                     :href="route('manager.students.show', data.student_id)"
                     class="text-blue-600 hover:text-blue-800 font-medium"
                   >
                     {{ data.student?.code }}
                   </Link>
+                  <span v-else class="text-slate-500">
+                    {{ data.student?.code || 'N/A' }}
+                  </span>
                 </template>
               </Column>
 
@@ -414,12 +418,20 @@ function viewTransferDetails(transfer) {
                       <i class="pi pi-eye"></i>
                     </Link>
                     <Link
+                      v-if="data.student_id"
                       :href="route('manager.students.transfer-history', data.student_id)"
                       class="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
                       title="Lịch sử học viên"
                     >
                       <i class="pi pi-history"></i>
                     </Link>
+                    <span
+                      v-else
+                      class="p-1.5 text-slate-400 rounded"
+                      title="Không có thông tin học viên"
+                    >
+                      <i class="pi pi-history"></i>
+                    </span>
                   </div>
                 </template>
               </Column>
@@ -455,12 +467,16 @@ function viewTransferDetails(transfer) {
                   <div><span class="font-medium">Mã:</span> {{ selectedTransfer.student?.code }}</div>
                   <div><span class="font-medium">Tên:</span> {{ selectedTransfer.student?.name }}</div>
                   <Link
+                    v-if="selectedTransfer.student_id"
                     :href="route('manager.students.show', selectedTransfer.student_id)"
                     class="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     <i class="pi pi-external-link mr-1"></i>
                     Xem hồ sơ
                   </Link>
+                  <span v-else class="text-slate-500 text-sm">
+                    Không có thông tin học viên
+                  </span>
                 </div>
               </div>
 
