@@ -14,6 +14,8 @@ import InputText from 'primevue/inputtext'
 import DatePicker from 'primevue/datepicker'
 import Card from 'primevue/card'
 import Knob from 'primevue/knob'
+import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
 
 defineOptions({ layout: AppLayout })
 
@@ -32,6 +34,14 @@ const filters = reactive({
   status: props.filters?.status ?? '',
   from_date: props.filters?.from_date ?? '',
   to_date: props.filters?.to_date ?? '',
+})
+
+// Revert dialog state
+const showRevertDialog = ref(false)
+const revertData = ref({
+  reason: '',
+  notes: '',
+  transfer: null
 })
 
 // Methods
@@ -80,11 +90,48 @@ function resetFilters() {
 }
 
 function handleRevert(transfer) {
+  // Show revert dialog with transfer data
+  revertData.value = {
+    reason: '',
+    notes: '',
+    transfer: transfer
+  }
+  showRevertDialog.value = true
+}
+
+// Confirm revert with reason and notes
+function confirmRevert() {
+  if (!revertData.value.reason.trim()) {
+    return // Validation handled by dialog
+  }
+
+  if (!revertData.value.transfer) {
+    return
+  }
+
   transferService.revert({
-    student_id: transfer.student_id,
-    from_class_id: transfer.from_class_id,
-    to_class_id: transfer.to_class_id,
+    student_id: revertData.value.transfer.student_id,
+    from_class_id: revertData.value.transfer.from_class_id,
+    to_class_id: revertData.value.transfer.to_class_id,
+    reason: revertData.value.reason,
+    notes: revertData.value.notes,
+  }, {
+    onSuccess: () => {
+      // Close dialog and reload data
+      showRevertDialog.value = false
+      revertData.value = { reason: '', notes: '', transfer: null }
+      search() // Reload current page
+    },
+    onError: (errors) => {
+      console.error('Revert transfer failed:', errors)
+    }
   })
+}
+
+// Cancel revert dialog
+function cancelRevert() {
+  showRevertDialog.value = false
+  revertData.value = { reason: '', notes: '', transfer: null }
 }
 
 // Use utility functions from service
@@ -388,4 +435,74 @@ const successRate = computed(() => {
       </template>
     </Card>
   </div>
+
+  <!-- Revert Transfer Dialog -->
+  <Dialog
+    v-model:visible="showRevertDialog"
+    modal
+    header="Hoàn tác chuyển lớp"
+    :style="{width: '500px'}"
+    class="revert-dialog"
+  >
+    <div class="space-y-4">
+      <div v-if="revertData.transfer" class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
+        <h4 class="font-medium mb-2">Thông tin chuyển lớp:</h4>
+        <div class="text-sm space-y-1">
+          <div><strong>Học viên:</strong> {{ revertData.transfer.student?.code }} - {{ revertData.transfer.student?.name }}</div>
+          <div><strong>Từ lớp:</strong> {{ revertData.transfer.from_class?.code }} - {{ revertData.transfer.from_class?.name }}</div>
+          <div><strong>Đến lớp:</strong> {{ revertData.transfer.to_class?.code }} - {{ revertData.transfer.to_class?.name }}</div>
+        </div>
+      </div>
+
+      <p class="text-slate-600 dark:text-slate-400 mb-4">
+        Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này không?
+        Học viên sẽ được chuyển về lớp cũ.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Lý do hoàn tác <span class="text-red-500">*</span>
+          </label>
+          <Textarea
+            v-model="revertData.reason"
+            placeholder="Nhập lý do hoàn tác..."
+            rows="3"
+            class="w-full"
+            :class="{'border-red-500': !revertData.reason.trim()}"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Ghi chú thêm
+          </label>
+          <Textarea
+            v-model="revertData.notes"
+            placeholder="Ghi chú bổ sung (tùy chọn)..."
+            rows="2"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Hủy"
+          severity="secondary"
+          @click="cancelRevert"
+          class="px-4 py-2"
+        />
+        <Button
+          label="Xác nhận hoàn tác"
+          severity="danger"
+          @click="confirmRevert"
+          :disabled="!revertData.reason.trim()"
+          class="px-4 py-2"
+        />
+      </div>
+    </template>
+  </Dialog>
 </template>
