@@ -131,18 +131,20 @@ class TransferAuditController extends Controller
 
         $results = $transfers->orderByDesc('created_at')->paginate(20);
 
-        // Get all users for filter dropdown
+        // Get all users for filter dropdown - simplified approach
         $users = User::whereIn('id', function($query) {
-            $query->select('created_by')
+            $query->selectRaw('DISTINCT created_by as user_id')
                   ->from('transfers')
                   ->whereNotNull('created_by')
-                  ->union(
-                      Transfer::select('reverted_by')
-                            ->whereNotNull('reverted_by')
+                  ->unionAll(
+                      DB::table('transfers')
+                        ->selectRaw('DISTINCT reverted_by as user_id')
+                        ->whereNotNull('reverted_by')
                   )
-                  ->union(
-                      Transfer::select('retargeted_by')
-                            ->whereNotNull('retargeted_by')
+                  ->unionAll(
+                      DB::table('transfers')
+                        ->selectRaw('DISTINCT retargeted_by as user_id')
+                        ->whereNotNull('retargeted_by')
                   );
         })->select('id', 'name')->orderBy('name')->get();
 
