@@ -363,11 +363,33 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('transfers', TransferController::class);
         Route::post('transfers/revert',   [TransferController::class, 'revert'])->name('transfers.revert');
-        Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');        // Legacy support for student transfer
-        Route::post('students/{student}/transfer', [TransferController::class, 'storeForStudent'])
-            ->name('students.transfer');
+        Route::post('transfers/retarget', [TransferController::class, 'retarget'])->name('transfers.retarget');
 
-         // API gợi ý tìm lớp học cho AutoComplete
+        // Invoice Safety APIs (Priority 3 Enhancement)
+        Route::post('transfers/check-revert-safety', [TransferController::class, 'checkRevertSafety'])
+            ->name('transfers.check-revert-safety');
+        Route::post('transfers/check-retarget-safety', [TransferController::class, 'checkRetargetSafety'])
+            ->name('transfers.check-retarget-safety');
+
+        // Alias route for backward compatibility
+        Route::post('transfers/invoice-safety/validate', [TransferController::class, 'checkRevertSafety'])
+            ->name('transfers.invoice-safety.validate');
+
+        // Audit Routes (Priority 2 Enhancement)
+        Route::prefix('transfers')->name('transfers.')->group(function () {
+            Route::get('audit/search', [App\Http\Controllers\Manager\TransferAuditController::class, 'search'])
+                ->name('audit.search');
+            Route::get('audit/export-search', [App\Http\Controllers\Manager\TransferAuditController::class, 'exportSearch'])
+                ->name('audit.export-search');
+            Route::get('{transfer}/audit', [App\Http\Controllers\Manager\TransferAuditController::class, 'show'])
+                ->name('audit.show');
+            Route::get('{transfer}/audit/export', [App\Http\Controllers\Manager\TransferAuditController::class, 'export'])
+                ->name('audit.export');
+        });
+
+        // Legacy support for student transfer
+        Route::post('students/{student}/transfer', [TransferController::class, 'storeForStudent'])
+            ->name('students.transfer');         // API gợi ý tìm lớp học cho AutoComplete
          Route::get('classrooms/search',       [ClassroomController::class, 'search'])->name('classrooms.search');
     });
 });

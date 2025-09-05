@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
@@ -25,6 +25,7 @@ const selectedDateRange = ref([
   props.filters?.start_date ? new Date(props.filters.start_date) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   props.filters?.end_date ? new Date(props.filters.end_date) : new Date()
 ])
+const loading = ref(false)
 
 const periodOptions = [
   { label: 'Tuần này', value: 'week' },
@@ -123,15 +124,39 @@ function applyFilters() {
     params.end_date = selectedDateRange.value[1].toISOString().split('T')[0]
   }
 
+  // Debug logging
+  console.log('Applying filters:', params)
+  
+  loading.value = true
+
   router.visit(route('manager.transfers.analytics', params), {
     preserveScroll: true,
-    preserveState: true
+    preserveState: false, // Changed to false to force refresh
+    replace: true,
+    onFinish: () => {
+      loading.value = false
+    }
   })
 }
 
 function exportData() {
   window.open(route('manager.transfers.analytics.export', props.filters), '_blank')
 }
+
+// Watch for filter changes and auto-apply
+watch(selectedPeriod, (newPeriod) => {
+  // Auto-apply when period changes (except for custom which needs date range)
+  if (newPeriod !== 'custom') {
+    applyFilters()
+  }
+})
+
+watch(selectedDateRange, (newRange) => {
+  // Auto-apply when date range changes for custom period
+  if (selectedPeriod.value === 'custom' && newRange?.length === 2) {
+    applyFilters()
+  }
+})
 </script>
 
 <template>
@@ -182,9 +207,10 @@ function exportData() {
 
           <div class="flex-shrink-0">
             <Button
-              label="Áp dụng"
-              icon="pi pi-search"
+              :label="loading ? 'Đang tải...' : 'Áp dụng'"
+              :icon="loading ? 'pi pi-spin pi-spinner' : 'pi pi-search'"
               @click="applyFilters"
+              :disabled="loading"
               class="h-[42px]"
             />
           </div>
@@ -193,7 +219,7 @@ function exportData() {
     </Card>
 
     <!-- Key Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <Card class="bg-white dark:bg-slate-800">
         <template #content>
           <div class="flex items-center justify-between">
@@ -218,6 +244,20 @@ function exportData() {
               <div class="text-sm text-slate-500">Tỷ lệ thành công</div>
             </div>
             <i class="pi pi-check-circle text-3xl text-green-600"></i>
+          </div>
+        </template>
+      </Card>
+
+      <Card class="bg-white dark:bg-slate-800">
+        <template #content>
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-2xl font-bold text-red-600">
+                {{ analytics?.revert_rate || 0 }}%
+              </div>
+              <div class="text-sm text-slate-500">Tỷ lệ hoàn tác</div>
+            </div>
+            <i class="pi pi-undo text-3xl text-red-600"></i>
           </div>
         </template>
       </Card>
@@ -350,6 +390,89 @@ function exportData() {
                   {{ Math.round((data.count / analytics.total_transfers) * 100) }}%
                 </span>
               </div>
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
+
+    <!-- Branch Analytics -->
+    <Card class="bg-white dark:bg-slate-800">
+      <template #title>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-building text-blue-600"></i>
+          Phân tích theo chi nhánh
+        </div>
+      </template>
+      <template #content>
+        <DataTable
+          :value="analytics?.by_branch || []"
+          size="small"
+          stripedRows
+        >
+          <Column field="name" header="Chi nhánh" />
+          <Column field="total_transfers" header="Tổng" :sortable="true" />
+          <Column field="active" header="Đang hoạt động" :sortable="true" />
+          <Column field="reverted" header="Đã hoàn tác" :sortable="true" />
+          <Column field="retargeted" header="Đã đổi hướng" :sortable="true" />
+          <Column field="total_fees" header="Tổng phí" :sortable="true">
+            <template #body="{ data }">
+              {{ currencyFilter(data.total_fees || 0) }}
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
+
+    <!-- Teacher Analytics -->
+    <Card class="bg-white dark:bg-slate-800">
+      <template #title>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-user text-green-600"></i>
+          Phân tích theo giáo viên (Top 20)
+        </div>
+      </template>
+      <template #content>
+        <DataTable
+          :value="analytics?.by_teacher || []"
+          size="small"
+          stripedRows
+        >
+          <Column field="teacher_name" header="Giáo viên" />
+          <Column field="total_transfers" header="Tổng" :sortable="true" />
+          <Column field="active" header="Đang hoạt động" :sortable="true" />
+          <Column field="reverted" header="Đã hoàn tác" :sortable="true" />
+          <Column field="retargeted" header="Đã đổi hướng" :sortable="true" />
+          <Column field="total_fees" header="Tổng phí" :sortable="true">
+            <template #body="{ data }">
+              {{ currencyFilter(data.total_fees || 0) }}
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
+
+    <!-- Operators Activity -->
+    <Card class="bg-white dark:bg-slate-800">
+      <template #title>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-users text-purple-600"></i>
+          Hoạt động của người thao tác
+        </div>
+      </template>
+      <template #content>
+        <DataTable
+          :value="analytics?.operators_activity || []"
+          size="small"
+          stripedRows
+        >
+          <Column field="name" header="Người thao tác" />
+          <Column field="created" header="Đã tạo" :sortable="true" />
+          <Column field="reverted" header="Đã hoàn tác" :sortable="true" />
+          <Column field="retargeted" header="Đã đổi hướng" :sortable="true" />
+          <Column field="total" header="Tổng cộng" :sortable="true">
+            <template #body="{ data }">
+              <span class="font-semibold text-blue-600">{{ data.total }}</span>
             </template>
           </Column>
         </DataTable>

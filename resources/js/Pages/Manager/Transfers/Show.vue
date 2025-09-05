@@ -124,8 +124,8 @@ function handleRetargetSubmit() {
     new_to_class_id: retargetData.value.to_class_id, // new correct target
     start_session_no: retargetData.value.start_session_no,
     amount: retargetData.value.amount,
-    due_date: retargetData.value.due_date ? 
-      retargetData.value.due_date.toISOString().split('T')[0] : 
+    due_date: retargetData.value.due_date ?
+      retargetData.value.due_date.toISOString().split('T')[0] :
       null,
     note: retargetData.value.note
   }
@@ -460,16 +460,16 @@ function formatCurrency(amount) {
   </div>
 
   <!-- Revert Dialog -->
-  <Dialog 
-    v-model:visible="showRevertDialog" 
-    modal 
-    header="Hoàn tác chuyển lớp" 
+  <Dialog
+    v-model:visible="showRevertDialog"
+    modal
+    header="Hoàn tác chuyển lớp"
     :style="{width: '500px'}"
     class="revert-dialog"
   >
     <div class="space-y-4">
       <p class="text-slate-600 dark:text-slate-400 mb-4">
-        Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này không? 
+        Bạn có chắc chắn muốn hoàn tác việc chuyển lớp này không?
         Học viên sẽ được chuyển về lớp cũ.
       </p>
 
@@ -478,7 +478,7 @@ function formatCurrency(amount) {
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Lý do hoàn tác <span class="text-red-500">*</span>
           </label>
-          <Textarea 
+          <Textarea
             v-model="revertData.reason"
             placeholder="Nhập lý do hoàn tác..."
             rows="3"
@@ -491,7 +491,7 @@ function formatCurrency(amount) {
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Ghi chú thêm
           </label>
-          <Textarea 
+          <Textarea
             v-model="revertData.notes"
             placeholder="Ghi chú bổ sung (tùy chọn)..."
             rows="2"
@@ -503,15 +503,15 @@ function formatCurrency(amount) {
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button 
-          label="Hủy" 
-          severity="secondary" 
+        <Button
+          label="Hủy"
+          severity="secondary"
           @click="cancelRevert"
           class="px-4 py-2"
         />
-        <Button 
-          label="Xác nhận hoàn tác" 
-          severity="danger" 
+        <Button
+          label="Xác nhận hoàn tác"
+          severity="danger"
           @click="confirmRevert"
           :disabled="!revertData.reason.trim()"
           class="px-4 py-2"
@@ -535,7 +535,7 @@ function formatCurrency(amount) {
           <div><strong>Học viên:</strong> {{ transfer.student?.code }} - {{ transfer.student?.name }}</div>
           <div><strong>Từ lớp:</strong> {{ transfer.from_class?.code }} - {{ transfer.from_class?.name }}</div>
           <div><strong>Đến lớp hiện tại:</strong> {{ effectiveTargetClass.code }} - {{ effectiveTargetClass.name }}</div>
-          
+
           <!-- Show original target if retargeted -->
           <div v-if="transfer.status === 'retargeted'">
             <div><strong>Lớp đích ban đầu:</strong> {{ transfer.to_class?.code }} - {{ transfer.to_class?.name }}</div>

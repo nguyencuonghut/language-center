@@ -16,6 +16,7 @@ import Card from 'primevue/card'
 import Knob from 'primevue/knob'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
+import SafetyRevertDialog from '@/Components/Transfer/SafetyRevertDialog.vue'
 
 defineOptions({ layout: AppLayout })
 
@@ -38,6 +39,7 @@ const filters = reactive({
 
 // Revert dialog state
 const showRevertDialog = ref(false)
+const showSafetyRevertDialog = ref(false)
 const revertData = ref({
   reason: '',
   notes: '',
@@ -90,13 +92,13 @@ function resetFilters() {
 }
 
 function handleRevert(transfer) {
-  // Show revert dialog with transfer data
+  // Show enhanced safety revert dialog (Priority 3)
   revertData.value = {
     reason: '',
     notes: '',
     transfer: transfer
   }
-  showRevertDialog.value = true
+  showSafetyRevertDialog.value = true
 }
 
 // Confirm revert with reason and notes
@@ -131,7 +133,15 @@ function confirmRevert() {
 // Cancel revert dialog
 function cancelRevert() {
   showRevertDialog.value = false
+  showSafetyRevertDialog.value = false
   revertData.value = { reason: '', notes: '', transfer: null }
+}
+
+// Handle safety revert success
+function handleSafetyRevertSuccess() {
+  showSafetyRevertDialog.value = false
+  revertData.value = { reason: '', notes: '', transfer: null }
+  search() // Reload current page
 }
 
 // Use utility functions from service
@@ -154,6 +164,13 @@ const successRate = computed(() => {
         <p class="text-slate-600 dark:text-slate-400">Theo dõi và quản lý việc chuyển lớp của học viên</p>
       </div>
       <div class="flex items-center gap-2">
+        <Link
+          :href="route('manager.transfers.audit.search')"
+          class="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+        >
+          <i class="pi pi-shield mr-2"></i>
+          Audit Log
+        </Link>
         <Link
           :href="route('manager.transfers.advanced.search')"
           class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -280,10 +297,10 @@ const successRate = computed(() => {
             <label class="block text-sm font-medium mb-1">Từ ngày</label>
             <DatePicker
               v-model="filters.from_date"
-              date-format="yy-mm-dd"
+              dateFormat="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
-              show-clear
+              showClear
               @date-select="search"
               @clear="search"
             />
@@ -293,10 +310,10 @@ const successRate = computed(() => {
             <label class="block text-sm font-medium mb-1">Đến ngày</label>
             <DatePicker
               v-model="filters.to_date"
-              date-format="yy-mm-dd"
+              dateFormat="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
-              show-clear
+              showClear
               @date-select="search"
               @clear="search"
             />
@@ -414,6 +431,14 @@ const successRate = computed(() => {
                   <i class="pi pi-eye"></i>
                 </Link>
 
+                <Link
+                  :href="route('manager.transfers.audit.show', data.id)"
+                  class="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                  title="Audit Log"
+                >
+                  <i class="pi pi-shield"></i>
+                </Link>
+
                 <button
                   v-if="data.status === 'active'"
                   @click="handleRevert(data)"
@@ -505,4 +530,12 @@ const successRate = computed(() => {
       </div>
     </template>
   </Dialog>
+
+  <!-- Enhanced Safety Revert Dialog (Priority 3) -->
+  <SafetyRevertDialog
+    :visible="showSafetyRevertDialog"
+    :transfer="revertData.transfer"
+    @cancel="cancelRevert"
+    @success="handleSafetyRevertSuccess"
+  />
 </template>

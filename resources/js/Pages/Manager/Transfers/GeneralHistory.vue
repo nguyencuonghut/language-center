@@ -274,16 +274,15 @@ function viewTransferDetails(event) {
             />
           </div>
 
-          <div>
+                    <div>
             <label class="block text-sm font-medium mb-1">Từ ngày</label>
             <DatePicker
               v-model="filters.date_from"
-              date-format="yy-mm-dd"
+              dateFormat="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
-              show-clear
+              showClear
               @date-select="search"
-              @clear="search"
             />
           </div>
 
@@ -291,12 +290,11 @@ function viewTransferDetails(event) {
             <label class="block text-sm font-medium mb-1">Đến ngày</label>
             <DatePicker
               v-model="filters.date_to"
-              date-format="yy-mm-dd"
+              dateFormat="yy-mm-dd"
               placeholder="yyyy-mm-dd"
               class="w-full"
-              show-clear
+              showClear
               @date-select="search"
-              @clear="search"
             />
           </div>
 

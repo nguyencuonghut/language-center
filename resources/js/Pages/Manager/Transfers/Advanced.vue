@@ -270,7 +270,7 @@ function onSort(event) {
                   dateFormat="dd/mm/yy"
                   placeholder="Chọn ngày bắt đầu"
                   class="w-full"
-                  show-clear
+                  showClear
                   @date-select="search"
                   @clear="search"
                 />
@@ -283,7 +283,7 @@ function onSort(event) {
                   dateFormat="dd/mm/yy"
                   placeholder="Chọn ngày kết thúc"
                   class="w-full"
-                  show-clear
+                  showClear
                   @date-select="search"
                   @clear="search"
                 />

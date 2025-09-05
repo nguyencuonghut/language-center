@@ -1,13 +1,30 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+const page = usePage();
+
+// Determine dashboard route based on user role
+const dashboardRoute = computed(() => {
+    const user = page.props.auth?.user;
+    if (!user || !user.roles || !Array.isArray(user.roles)) return 'dashboard';
+    
+    // Check user roles and return appropriate dashboard route
+    const roleNames = user.roles.map(role => role.name);
+    
+    if (roleNames.includes('admin')) return 'admin.dashboard';
+    if (roleNames.includes('manager')) return 'manager.dashboard';  
+    if (roleNames.includes('teacher')) return 'teacher.dashboard';
+    
+    // Default fallback
+    return 'dashboard';
+});
 </script>
 
 <template>
@@ -22,7 +39,7 @@ const showingNavigationDropdown = ref(false);
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
-                                <Link :href="route('dashboard')">
+                                <Link :href="route(dashboardRoute)">
                                     <ApplicationLogo
                                         class="block h-9 w-auto fill-current text-gray-800"
                                     />
@@ -34,8 +51,8 @@ const showingNavigationDropdown = ref(false);
                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                             >
                                 <NavLink
-                                    :href="route('dashboard')"
-                                    :active="route().current('dashboard')"
+                                    :href="route(dashboardRoute)"
+                                    :active="route().current(dashboardRoute)"
                                 >
                                     Dashboard
                                 </NavLink>
@@ -141,8 +158,8 @@ const showingNavigationDropdown = ref(false);
                 >
                     <div class="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                            :href="route('dashboard')"
-                            :active="route().current('dashboard')"
+                            :href="route(dashboardRoute)"
+                            :active="route().current(dashboardRoute)"
                         >
                             Dashboard
                         </ResponsiveNavLink>

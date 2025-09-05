@@ -25,12 +25,16 @@ class TransferAnalyticsController extends Controller
         $analytics = [
             'total_transfers' => $this->getTotalTransfers($start, $end),
             'success_rate' => $this->getSuccessRate($start, $end),
+            'revert_rate' => $this->getRevertRate($start, $end),
             'total_fee' => $this->getTotalFee($start, $end),
             'avg_processing_days' => $this->getAvgProcessingDays($start, $end),
             'chart_data' => $this->getChartData($start, $end, $period),
             'status_breakdown' => $this->getStatusBreakdown($start, $end),
             'top_classes' => $this->getTopClasses($start, $end),
             'reasons_analysis' => $this->getReasonsAnalysis($start, $end),
+            'by_branch' => $this->getByBranch($start, $end),
+            'by_teacher' => $this->getByTeacher($start, $end),
+            'operators_activity' => $this->getOperatorsActivity($start, $end),
         ];
 
         return Inertia::render('Manager/Transfers/Analytics', [
@@ -277,5 +281,162 @@ class TransferAnalyticsController extends Controller
             'retargeted' => 'Đã đổi hướng',
             default => $status
         };
+    }
+
+    /**
+     * Get revert rate percentage
+     */
+    private function getRevertRate($start, $end)
+    {
+        $total = Transfer::whereBetween('created_at', [$start, $end])->count();
+        $reverted = Transfer::whereBetween('created_at', [$start, $end])
+            ->where('status', 'reverted')
+            ->count();
+
+        return $total > 0 ? round(($reverted / $total) * 100, 2) : 0;
+    }
+
+    /**
+     * Get transfers breakdown by branch
+     */
+    private function getByBranch($start, $end)
+    {
+        return Transfer::whereBetween('transfers.created_at', [$start, $end])
+            ->join('classrooms as from_class', 'transfers.from_class_id', '=', 'from_class.id')
+            ->join('branches', 'from_class.branch_id', '=', 'branches.id')
+            ->select([
+                'branches.id',
+                'branches.name',
+                DB::raw('COUNT(*) as total_transfers'),
+                DB::raw('SUM(CASE WHEN transfers.status = "active" THEN 1 ELSE 0 END) as active'),
+                DB::raw('SUM(CASE WHEN transfers.status = "reverted" THEN 1 ELSE 0 END) as reverted'),
+                DB::raw('SUM(CASE WHEN transfers.status = "retargeted" THEN 1 ELSE 0 END) as retargeted'),
+                DB::raw('SUM(transfers.transfer_fee) as total_fees')
+            ])
+            ->groupBy('branches.id', 'branches.name')
+            ->orderByDesc('total_transfers')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get transfers breakdown by teacher
+     */
+    private function getByTeacher($start, $end)
+    {
+        return Transfer::whereBetween('transfers.created_at', [$start, $end])
+            ->join('classrooms as from_class', 'transfers.from_class_id', '=', 'from_class.id')
+            ->join('teaching_assignments', 'from_class.id', '=', 'teaching_assignments.class_id')
+            ->join('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id')
+            ->select([
+                'teachers.id',
+                'teachers.name as teacher_name',
+                DB::raw('COUNT(DISTINCT transfers.id) as total_transfers'),
+                DB::raw('SUM(CASE WHEN transfers.status = "active" THEN 1 ELSE 0 END) as active'),
+                DB::raw('SUM(CASE WHEN transfers.status = "reverted" THEN 1 ELSE 0 END) as reverted'),
+                DB::raw('SUM(CASE WHEN transfers.status = "retargeted" THEN 1 ELSE 0 END) as retargeted'),
+                DB::raw('SUM(transfers.transfer_fee) as total_fees')
+            ])
+            ->groupBy('teachers.id', 'teachers.name')
+            ->orderByDesc('total_transfers')
+            ->limit(20) // Top 20 teachers
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get operators activity (who performs transfers/reverts/retargets)
+     */
+    private function getOperatorsActivity($start, $end)
+    {
+        $data = [];
+
+        // Created transfers
+        $created = Transfer::whereBetween('transfers.created_at', [$start, $end])
+            ->join('users', 'transfers.created_by', '=', 'users.id')
+            ->select([
+                'users.id',
+                'users.name',
+                DB::raw('COUNT(*) as created_count')
+            ])
+            ->groupBy('users.id', 'users.name')
+            ->get();
+
+        // Reverted transfers
+        $reverted = Transfer::whereBetween('reverted_at', [$start, $end])
+            ->whereNotNull('reverted_by')
+            ->join('users', 'transfers.reverted_by', '=', 'users.id')
+            ->select([
+                'users.id',
+                'users.name',
+                DB::raw('COUNT(*) as reverted_count')
+            ])
+            ->groupBy('users.id', 'users.name')
+            ->get();
+
+        // Retargeted transfers
+        $retargeted = Transfer::whereBetween('retargeted_at', [$start, $end])
+            ->whereNotNull('retargeted_by')
+            ->join('users', 'transfers.retargeted_by', '=', 'users.id')
+            ->select([
+                'users.id',
+                'users.name',
+                DB::raw('COUNT(*) as retargeted_count')
+            ])
+            ->groupBy('users.id', 'users.name')
+            ->get();
+
+        // Merge data by user
+        $users = [];
+
+        foreach ($created as $user) {
+            $users[$user->id] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'created' => $user->created_count,
+                'reverted' => 0,
+                'retargeted' => 0,
+                'total' => $user->created_count
+            ];
+        }
+
+        foreach ($reverted as $user) {
+            if (isset($users[$user->id])) {
+                $users[$user->id]['reverted'] = $user->reverted_count;
+                $users[$user->id]['total'] += $user->reverted_count;
+            } else {
+                $users[$user->id] = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'created' => 0,
+                    'reverted' => $user->reverted_count,
+                    'retargeted' => 0,
+                    'total' => $user->reverted_count
+                ];
+            }
+        }
+
+        foreach ($retargeted as $user) {
+            if (isset($users[$user->id])) {
+                $users[$user->id]['retargeted'] = $user->retargeted_count;
+                $users[$user->id]['total'] += $user->retargeted_count;
+            } else {
+                $users[$user->id] = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'created' => 0,
+                    'reverted' => 0,
+                    'retargeted' => $user->retargeted_count,
+                    'total' => $user->retargeted_count
+                ];
+            }
+        }
+
+        // Sort by total and return
+        uasort($users, function($a, $b) {
+            return $b['total'] <=> $a['total'];
+        });
+
+        return array_values($users);
     }
 }
