@@ -101,9 +101,6 @@ class TransferAdvancedController extends Controller
             'total_fees' => $allTransfers->sum('transfer_fee'),
         ];
 
-        // Debug log
-        Log::info('Transfer stats calculated', $stats);
-
         // Get paginated results
         $transfers = $query->orderBy('created_at', 'desc')
             ->paginate(20)
@@ -111,7 +108,16 @@ class TransferAdvancedController extends Controller
 
         $auditTrails = [];
         foreach ($transfers as $transfer) {
-            $auditTrails[$transfer->id] = $transfer->getAuditTrail();
+            try {
+                $auditTrails[$transfer->id] = $transfer->getAuditTrail();
+            } catch (\Exception $e) {
+                // Log error but don't crash - provide empty audit trail
+                Log::error('Error getting audit trail for transfer ' . $transfer->id, [
+                    'error' => $e->getMessage(),
+                    'transfer_id' => $transfer->id
+                ]);
+                $auditTrails[$transfer->id] = [];
+            }
         }
 
         return Inertia::render('Manager/Transfers/GeneralHistory', [

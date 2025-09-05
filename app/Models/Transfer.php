@@ -230,23 +230,46 @@ class Transfer extends Model
         ];
 
         // Add status changes
+        $previousStatus = null;
         foreach ($this->status_history ?? [] as $change) {
+            // Handle different data formats
+            if (isset($change['from_status']) && isset($change['to_status'])) {
+                // New format with from_status and to_status
+                $fromStatus = $change['from_status'];
+                $toStatus = $change['to_status'];
+                $description = "Status changed from {$fromStatus} to {$toStatus}";
+            } elseif (isset($change['status'])) {
+                // Legacy format with just status
+                $currentStatus = $change['status'];
+                if ($previousStatus) {
+                    $description = "Status changed from {$previousStatus} to {$currentStatus}";
+                } else {
+                    $description = "Status set to {$currentStatus}";
+                }
+                $previousStatus = $currentStatus;
+            } else {
+                // Fallback for unknown format
+                $description = "Status change recorded";
+            }
+            
             $trail[] = [
                 'type' => 'status_change',
-                'timestamp' => $change['changed_at'],
-                'user_id' => $change['changed_by'],
-                'description' => "Status changed from {$change['from_status']} to {$change['to_status']}",
+                'timestamp' => $change['changed_at'] ?? now(),
+                'user_id' => $change['changed_by'] ?? null,
+                'description' => $description,
                 'details' => $change
             ];
         }
 
         // Add field changes
         foreach ($this->change_log ?? [] as $change) {
+            $field = $change['field'] ?? 'Unknown';
+            
             $trail[] = [
                 'type' => 'field_change',
-                'timestamp' => $change['changed_at'],
-                'user_id' => $change['changed_by'],
-                'description' => "Field '{$change['field']}' changed",
+                'timestamp' => $change['changed_at'] ?? now(),
+                'user_id' => $change['changed_by'] ?? null,
+                'description' => "Field '{$field}' changed",
                 'details' => $change
             ];
         }
