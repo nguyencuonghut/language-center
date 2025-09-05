@@ -52,17 +52,17 @@ function formatCurrency(amount) {
 <template>
   <Head :title="`Transfer #${transfer.id}`" />
 
-  <div class="max-w-4xl mx-auto space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6 transfer-content">
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between page-header">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100 transfer-title">
           Transfer #{{ transfer.id }}
         </h1>
         <p class="text-slate-600 dark:text-slate-400">Chi tiết phiếu chuyển lớp</p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 print-hide">
         <Tag
           :value="statusLabel"
           :severity="statusSeverity"
@@ -332,10 +332,10 @@ function formatCurrency(amount) {
     </Card>
 
     <!-- Back Button -->
-    <div class="flex justify-start">
+    <div class="flex justify-start print-hide">
       <Link
         :href="route('manager.transfers.index')"
-        class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+        class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors back-button"
       >
         <i class="pi pi-arrow-left mr-2"></i>
         Quay lại danh sách
@@ -343,3 +343,334 @@ function formatCurrency(amount) {
     </div>
   </div>
 </template>
+
+<style>
+@media print {
+  /* Ẩn layout components */
+  .app-layout-header,
+  .app-layout-sidebar,
+  .app-layout-nav,
+  nav,
+  header,
+  aside,
+  .header,
+  .sidebar,
+  .navigation,
+  .navbar,
+  .print-hide,
+  .back-button {
+    display: none !important;
+  }
+
+  /* Ẩn page header buttons */
+  .page-header .print-hide {
+    display: none !important;
+  }
+
+  /* Reset page margins - tối ưu cho A4 */
+  @page {
+    margin: 0.25in !important;
+    size: A4 !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Content styling - giữ nguyên layout */
+  .transfer-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    font-size: 11px !important;
+  }
+
+  /* Title styling - compact nhưng đẹp */
+  .transfer-title {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    margin-bottom: 12px !important;
+    color: #1e293b !important;
+  }
+
+  /* GIỮ NGUYÊN GRID LAYOUT */
+  .grid {
+    display: grid !important;
+  }
+
+  .grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .lg\\:grid-cols-3 {
+    grid-template-columns: 2fr 1fr !important;
+  }
+
+  .lg\\:col-span-2 {
+    grid-column: span 1 !important;
+  }
+
+  .gap-6 {
+    gap: 8px !important;
+  }
+
+  /* Card styling - GIỮ NGUYÊN MÀU VÀ STYLING */
+  .p-card {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    margin-bottom: 8px !important;
+    page-break-inside: avoid !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    padding: 6px !important;
+  }
+
+  .p-card-title {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .p-card-content {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* GIỮ NGUYÊN MÀU SẮC */
+  .text-slate-900 {
+    color: #0f172a !important;
+  }
+
+  .text-slate-600 {
+    color: #475569 !important;
+  }
+
+  .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  /* Cải thiện màu chữ cho timeline và thông tin chi tiết */
+  .space-y-4 .text-sm.text-slate-500 {
+    color: #374151 !important;
+  }
+
+  .text-slate-400 {
+    color: #94a3b8 !important;
+  }
+
+  /* Màu chữ rõ ràng hơn cho nội dung chính */
+  .text-slate-700 {
+    color: #334155 !important;
+  }
+
+  .dark\\:text-slate-300 {
+    color: #334155 !important;
+  }
+
+  .text-blue-600 {
+    color: #2563eb !important;
+  }
+
+  .text-green-600 {
+    color: #16a34a !important;
+  }
+
+  .text-purple-600 {
+    color: #9333ea !important;
+  }
+
+  .text-indigo-600 {
+    color: #4f46e5 !important;
+  }
+
+  .text-orange-600 {
+    color: #ea580c !important;
+  }
+
+  /* Background colors */
+  .bg-slate-50 {
+    background: #f8fafc !important;
+  }
+
+  .bg-blue-50 {
+    background: #eff6ff !important;
+  }
+
+  .bg-green-50 {
+    background: #f0fdf4 !important;
+  }
+
+  .bg-purple-50 {
+    background: #faf5ff !important;
+  }
+
+  .bg-orange-50 {
+    background: #fff7ed !important;
+  }
+
+  /* Dark mode backgrounds for print */
+  .dark\\:bg-slate-800 {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .dark\\:bg-slate-700 {
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Links với màu */
+  a {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+  }
+
+  a:hover {
+    color: #1d4ed8 !important;
+  }
+
+  /* Tags với màu */
+  .p-tag {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-weight: 500 !important;
+  }
+
+  .p-tag.p-tag-success {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border: 1px solid #bbf7d0 !important;
+  }
+
+  .p-tag.p-tag-warning {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a !important;
+  }
+
+  .p-tag.p-tag-danger {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+  }
+
+  .p-tag.p-tag-info {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+    border: 1px solid #bfdbfe !important;
+  }
+
+  /* Icons với màu */
+  .pi {
+    color: inherit !important;
+  }
+
+  .text-blue-600 .pi {
+    color: #2563eb !important;
+  }
+
+  .text-indigo-600 .pi {
+    color: #4f46e5 !important;
+  }
+
+  .text-purple-600 .pi {
+    color: #9333ea !important;
+  }
+
+  .text-green-600 .pi {
+    color: #16a34a !important;
+  }
+
+  /* Spacing tối ưu */
+  .space-y-6 > * + * {
+    margin-top: 8px !important;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 6px !important;
+  }
+
+  /* Compact padding */
+  .p-3 {
+    padding: 4px !important;
+  }
+
+  .p-2 {
+    padding: 3px !important;
+  }
+
+  /* Text sizes tối ưu */
+  .text-2xl {
+    font-size: 16px !important;
+  }
+
+  .text-lg {
+    font-size: 13px !important;
+  }
+
+  .text-sm {
+    font-size: 9px !important;
+  }
+
+  .text-xs {
+    font-size: 8px !important;
+  }
+
+  /* Margins tối ưu */
+  .mb-2 {
+    margin-bottom: 4px !important;
+  }
+
+  .mb-1 {
+    margin-bottom: 2px !important;
+  }
+
+  .mt-2 {
+    margin-top: 4px !important;
+  }
+
+  /* Timeline colors */
+  .w-2.h-2.rounded-full {
+    width: 4px !important;
+    height: 4px !important;
+  }
+
+  .bg-green-500 {
+    background: #22c55e !important;
+  }
+
+  .bg-blue-500 {
+    background: #3b82f6 !important;
+  }
+
+  .bg-purple-500 {
+    background: #a855f7 !important;
+  }
+
+  .bg-orange-500 {
+    background: #f97316 !important;
+  }
+
+  /* Divider styling */
+  .p-divider {
+    margin: 4px 0 !important;
+    border-color: #e5e7eb !important;
+  }
+
+  /* Ensure print colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+</style>
