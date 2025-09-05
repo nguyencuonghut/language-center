@@ -251,7 +251,7 @@ class Transfer extends Model
                 // Fallback for unknown format
                 $description = "Status change recorded";
             }
-            
+
             $trail[] = [
                 'type' => 'status_change',
                 'timestamp' => $change['changed_at'] ?? now(),
@@ -264,7 +264,7 @@ class Transfer extends Model
         // Add field changes
         foreach ($this->change_log ?? [] as $change) {
             $field = $change['field'] ?? 'Unknown';
-            
+
             $trail[] = [
                 'type' => 'field_change',
                 'timestamp' => $change['changed_at'] ?? now(),

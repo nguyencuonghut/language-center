@@ -77,8 +77,8 @@ class TransferAdvancedController extends Controller
             });
         }
 
-        if ($status = $request->get('status')) {
-            $query->where('status', $status);
+        if ($request->filled('status') && $request->get('status') !== '' && $request->get('status') !== 'Tất cả') {
+            $query->where('status', $request->get('status'));
         }
 
         if ($dateFrom = $request->get('date_from')) {
@@ -92,7 +92,7 @@ class TransferAdvancedController extends Controller
         // Calculate stats from all filtered records (before pagination)
         $statsQuery = clone $query;
         $allTransfers = $statsQuery->get();
-        
+
         $stats = [
             'total' => $allTransfers->count(),
             'active' => $allTransfers->where('status', 'active')->count(),
@@ -341,7 +341,7 @@ class TransferAdvancedController extends Controller
         }
 
         // Status filter
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->get('status') !== '' && $request->get('status') !== 'Tất cả') {
             $query->where('status', $request->get('status'));
         }
 
@@ -752,7 +752,7 @@ class TransferAdvancedController extends Controller
             });
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->get('status') !== '' && $request->get('status') !== 'Tất cả') {
             $query->where('status', $request->status);
         }
 

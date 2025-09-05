@@ -31,6 +31,9 @@ const props = defineProps({
 // Initialize TransferService
 const transferService = createTransferService()
 
+// Use utility functions from service
+const { statusOptions, getStatusSeverity, getStatusLabel, formatDate } = transferService.utils
+
 const selectedTransfer = ref(null)
 
 // Local state for filters
@@ -133,41 +136,12 @@ function resetFilters() {
   search()
 }
 
-function getStatusSeverity(status) {
-  const severities = {
-    active: 'success',
-    reverted: 'warning',
-    retargeted: 'info'
-  }
-  return severities[status] || 'secondary'
-}
-
-function getStatusLabel(status) {
-  const labels = {
-    active: 'Đang hoạt động',
-    reverted: 'Đã hoàn tác',
-    retargeted: 'Đã đổi hướng'
-  }
-  return labels[status] || status
-}
-
 function formatCurrency(value) {
   if (!value) return '0 VND'
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(value)
-}
-
-function formatDate(date) {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('vi-VN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
 
 function getEventIcon(type) {
@@ -291,7 +265,7 @@ function viewTransferDetails(transfer) {
             <label class="block text-sm font-medium mb-1">Trạng thái</label>
             <Select
               v-model="filters.status"
-              :options="filterOptions?.statuses || []"
+              :options="statusOptions"
               optionLabel="label"
               optionValue="value"
               placeholder="Chọn trạng thái"
