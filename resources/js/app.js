@@ -10,6 +10,34 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import ToastService from 'primevue/toastservice'
 
+// Chart.js setup
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend,
+    Colors
+} from 'chart.js'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend,
+    Colors
+)
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({

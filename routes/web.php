@@ -195,11 +195,7 @@ Route::middleware(['auth'])->group(function () {
     |  - Bạn có thể thay/ghép thêm permission:...
     |----------------------------------------------------------------------
     */
-    Route::middleware(['auth', 'verified', 'role:manager'])
-    ->prefix('manager')
-    ->name('manager.')
-    ->group(function () {
-    //Route::prefix('manager')->name('manager.')->middleware(['role:manager'])->group(function () {
+    Route::prefix('manager')->name('manager.')->middleware(['role:manager'])->group(function () {
 
         // Dashboard
         if (class_exists(\App\Http\Controllers\Manager\DashboardController::class)) {

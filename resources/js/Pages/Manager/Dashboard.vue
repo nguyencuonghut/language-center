@@ -1,10 +1,13 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Head } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import Card from 'primevue/card'
 import Chart from 'primevue/chart'
 import Tag from 'primevue/tag'
+
+// Import Chart.js for direct usage if needed
+import { Chart as ChartJS } from 'chart.js'
 
 defineOptions({ layout: AppLayout })
 
@@ -24,56 +27,143 @@ const hasAlerts = computed(() => {
 })
 
 // Chart configurations
-const enrollmentChartData = computed(() => ({
-    labels: props.charts.enrollment_trend.map(item => item.month),
-    datasets: [
-        {
-            label: 'Số lượng đăng ký',
-            data: props.charts.enrollment_trend.map(item => item.value),
-            fill: false,
-            borderColor: '#3B82F6',
-            backgroundColor: '#3B82F6',
-            tension: 0.4,
-            pointRadius: 6,
-            pointHoverRadius: 8,
+const enrollmentChartData = computed(() => {
+    if (!props.charts?.enrollment_trend || props.charts.enrollment_trend.length === 0) {
+        return {
+            labels: [],
+            datasets: []
         }
-    ]
-}))
+    }
 
-const enrollmentChartOptions = ref({
+    // Convert proxy objects to plain objects for Chart.js compatibility
+    const data = JSON.parse(JSON.stringify(props.charts.enrollment_trend))
+
+    return {
+        labels: data.map(item => item.month),
+        datasets: [
+            {
+                label: 'Số lượng đăng ký',
+                data: data.map(item => item.value),
+                fill: false,
+                borderColor: '#3B82F6',
+                backgroundColor: '#3B82F6',
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+            }
+        ]
+    }
+})
+
+const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: {
-            display: false
+            display: true,
+            position: 'top',
+            labels: {
+                usePointStyle: true,
+                padding: 20
+            }
+        },
+        tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#1F2937',
+            bodyColor: '#374151',
+            borderColor: '#E5E7EB',
+            borderWidth: 1,
+            cornerRadius: 8,
+            displayColors: true
         }
     },
     scales: {
         y: {
             beginAtZero: true,
-            ticks: {
-                stepSize: 1
+            grid: {
+                color: 'rgba(0, 0, 0, 0.1)'
+            }
+        },
+        x: {
+            grid: {
+                color: 'rgba(0, 0, 0, 0.1)'
             }
         }
     }
-})
+}
 
-const courseChartData = computed(() => ({
-    labels: props.charts.students_by_course.map(item => item.name),
-    datasets: [
-        {
-            data: props.charts.students_by_course.map(item => item.value),
-            backgroundColor: [
-                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-                '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
-            ],
-            hoverBackgroundColor: [
-                '#2563EB', '#059669', '#D97706', '#DC2626', '#7C3AED',
-                '#0891B2', '#65A30D', '#EA580C', '#DB2777', '#4B5563'
-            ]
+const pieChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+                usePointStyle: true,
+                padding: 15,
+                generateLabels: function(chart) {
+                    const data = chart.data;
+                    if (data.labels.length && data.datasets.length) {
+                        return data.labels.map((label, i) => {
+                            return {
+                                text: label,
+                                fillStyle: data.datasets[0].backgroundColor[i],
+                                hidden: false,
+                                index: i
+                            };
+                        });
+                    }
+                    return [];
+                }
+            }
+        },
+        tooltip: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            titleColor: '#1F2937',
+            bodyColor: '#374151',
+            borderColor: '#E5E7EB',
+            borderWidth: 1,
+            cornerRadius: 8,
+            callbacks: {
+                label: function(context) {
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                }
+            }
         }
-    ]
-}))
+    }
+}
+
+const courseChartData = computed(() => {
+    if (!props.charts?.students_by_course || props.charts.students_by_course.length === 0) {
+        return {
+            labels: [],
+            datasets: []
+        }
+    }
+
+    // Convert proxy objects to plain objects for Chart.js compatibility
+    const data = JSON.parse(JSON.stringify(props.charts.students_by_course))
+
+    return {
+        labels: data.map(item => item.name),
+        datasets: [
+            {
+                data: data.map(item => item.value),
+                backgroundColor: [
+                    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+                    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6B7280'
+                ],
+                hoverBackgroundColor: [
+                    '#2563EB', '#059669', '#D97706', '#DC2626', '#7C3AED',
+                    '#0891B2', '#65A30D', '#EA580C', '#DB2777', '#4B5563'
+                ]
+            }
+        ]
+    }
+})
 
 const courseChartOptions = ref({
     responsive: true,
@@ -178,6 +268,11 @@ const getAttendanceColor = (present, total) => {
 const getAttendancePercentage = (present, total) => {
     return total > 0 ? Math.round((present / total) * 100) : 0
 }
+
+// Lifecycle
+onMounted(() => {
+    console.log('Manager Dashboard loaded successfully')
+})
 </script>
 
 <template>
@@ -196,7 +291,8 @@ const getAttendancePercentage = (present, total) => {
 
         <!-- Alerts Row -->
         <div v-if="hasAlerts" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div v-if="alerts.low_attendance_classes > 0" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <!-- Low Attendance Alert -->
+            <div v-show="alerts.low_attendance_classes > 0" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                 <div class="flex items-center">
                     <i class="pi pi-exclamation-triangle text-yellow-600 dark:text-yellow-400 mr-3"></i>
                     <div>
@@ -210,7 +306,8 @@ const getAttendancePercentage = (present, total) => {
                 </div>
             </div>
 
-            <div v-if="alerts.pending_transfers > 0" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <!-- Pending Transfers Alert -->
+            <div v-show="alerts.pending_transfers > 0" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div class="flex items-center">
                     <i class="pi pi-clock text-blue-600 dark:text-blue-400 mr-3"></i>
                     <div>
@@ -224,7 +321,8 @@ const getAttendancePercentage = (present, total) => {
                 </div>
             </div>
 
-            <div v-if="alerts.overdue_timesheets > 0" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <!-- Overdue Timesheets Alert -->
+            <div v-show="alerts.overdue_timesheets > 0" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                 <div class="flex items-center">
                     <i class="pi pi-calendar-times text-red-600 dark:text-red-400 mr-3"></i>
                     <div>
@@ -242,67 +340,71 @@ const getAttendancePercentage = (present, total) => {
         <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Students -->
-            <Card class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            Học viên đang học
-                        </p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            {{ formatNumber(kpi.students.total) }}
-                        </p>
-                        <div v-if="kpi.students.growth !== 0" class="flex items-center mt-2">
-                            <i :class="[
-                                'pi text-sm mr-1',
-                                kpi.students.growth > 0 ? 'pi-arrow-up text-green-600' : 'pi-arrow-down text-red-600'
-                            ]"></i>
-                            <span :class="[
-                                'text-sm',
-                                kpi.students.growth > 0 ? 'text-green-600' : 'text-red-600'
-                            ]">
-                                {{ Math.abs(kpi.students.growth) }}%
-                            </span>
-                            <span class="text-xs text-gray-500 ml-1">so với tháng trước</span>
+            <Card>
+                <template #content>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                Học viên đang học
+                            </p>
+                            <p class="text-3xl font-bold text-gray-900 dark:text-white">
+                                {{ formatNumber(kpi.students.total) }}
+                            </p>
+                            <div v-if="kpi.students.growth !== 0" class="flex items-center mt-2">
+                                <i :class="[
+                                    'pi text-sm mr-1',
+                                    kpi.students.growth > 0 ? 'pi-arrow-up text-green-600' : 'pi-arrow-down text-red-600'
+                                ]"></i>
+                                <span :class="[
+                                    'text-sm',
+                                    kpi.students.growth > 0 ? 'text-green-600' : 'text-red-600'
+                                ]">
+                                    {{ Math.abs(kpi.students.growth) }}%
+                                </span>
+                                <span class="text-xs text-gray-500 ml-1">so với tháng trước</span>
+                            </div>
+                        </div>
+                        <div class="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-full">
+                            <i class="pi pi-users text-blue-600 dark:text-blue-400 text-xl"></i>
                         </div>
                     </div>
-                    <div class="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-full">
-                        <i class="pi pi-users text-blue-600 dark:text-blue-400 text-xl"></i>
-                    </div>
-                </div>
+                </template>
             </Card>
 
             <!-- Classes -->
-            <Card class="p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            Lớp học đang mở
-                        </p>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
-                            {{ formatNumber(kpi.classes.total) }}
-                        </p>
-                        <div v-if="kpi.classes.growth !== 0" class="flex items-center mt-2">
-                            <i :class="[
-                                'pi text-sm mr-1',
-                                kpi.classes.growth > 0 ? 'pi-arrow-up text-green-600' : 'pi-arrow-down text-red-600'
-                            ]"></i>
-                            <span :class="[
-                                'text-sm',
-                                kpi.classes.growth > 0 ? 'text-green-600' : 'text-red-600'
-                            ]">
-                                {{ Math.abs(kpi.classes.growth) }}%
-                            </span>
-                            <span class="text-xs text-gray-500 ml-1">so với tháng trước</span>
+            <Card>
+                <template #content>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                Lớp học đang mở
+                            </p>
+                            <p class="text-3xl font-bold text-gray-900 dark:text-white">
+                                {{ formatNumber(kpi.classes.total) }}
+                            </p>
+                            <div v-if="kpi.classes.growth !== 0" class="flex items-center mt-2">
+                                <i :class="[
+                                    'pi text-sm mr-1',
+                                    kpi.classes.growth > 0 ? 'pi-arrow-up text-green-600' : 'pi-arrow-down text-red-600'
+                                ]"></i>
+                                <span :class="[
+                                    'text-sm',
+                                    kpi.classes.growth > 0 ? 'text-green-600' : 'text-red-600'
+                                ]">
+                                    {{ Math.abs(kpi.classes.growth) }}%
+                                </span>
+                                <span class="text-xs text-gray-500 ml-1">so với tháng trước</span>
+                            </div>
+                        </div>
+                        <div class="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
+                            <i class="pi pi-bookmark text-green-600 dark:text-green-400 text-xl"></i>
                         </div>
                     </div>
-                    <div class="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
-                        <i class="pi pi-home text-green-600 dark:text-green-400 text-xl"></i>
-                    </div>
-                </div>
+                </template>
             </Card>
 
             <!-- Teachers -->
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -316,10 +418,10 @@ const getAttendancePercentage = (present, total) => {
                         <i class="pi pi-user text-purple-600 dark:text-purple-400 text-xl"></i>
                     </div>
                 </div>
-            </Card>
+            </div>
 
             <!-- Sessions Today -->
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -333,57 +435,69 @@ const getAttendancePercentage = (present, total) => {
                         <i class="pi pi-calendar text-orange-600 dark:text-orange-400 text-xl"></i>
                     </div>
                 </div>
-            </Card>
+            </div>
         </div>
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Enrollment Trend -->
+            <!-- Enrollment Trend Chart -->
             <Card class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Xu hướng đăng ký
-                </h3>
-                <Chart
-                    type="line"
-                    :data="enrollmentChartData"
-                    :options="enrollmentChartOptions"
-                    class="h-64"
-                />
+                <template #content>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Xu hướng đăng ký
+                    </h3>
+                    <div class="h-64">
+                        <Chart
+                            key="enrollment-chart"
+                            type="line"
+                            :data="enrollmentChartData"
+                            :options="chartOptions"
+                            class="w-full h-full"
+                        />
+                    </div>
+                </template>
             </Card>
 
-            <!-- Students by Course -->
+            <!-- Students by Course Chart -->
             <Card class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Học viên theo khóa học
-                </h3>
-                <Chart
-                    type="doughnut"
-                    :data="courseChartData"
-                    :options="courseChartOptions"
-                    class="h-64"
-                />
+                <template #content>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Học viên theo khóa học
+                    </h3>
+                    <div class="h-64">
+                        <Chart
+                            key="course-chart"
+                            type="doughnut"
+                            :data="courseChartData"
+                            :options="pieChartOptions"
+                            class="w-full h-full"
+                        />
+                    </div>
+                </template>
             </Card>
         </div>
 
         <!-- Attendance Chart -->
         <div class="mb-8">
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Tỷ lệ tham dự theo lớp (30 ngày qua)
                 </h3>
-                <Chart
-                    type="bar"
-                    :data="attendanceChartData"
-                    :options="attendanceChartOptions"
-                    class="h-80"
-                />
-            </Card>
+                <div class="h-80">
+                    <Chart
+                        type="bar"
+                        :data="attendanceChartData"
+                        :options="attendanceChartOptions"
+                        class="w-full h-full"
+                    />
+                </div>
+            </div>
         </div>
 
         <!-- Recent Activities -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Recent Transfers -->
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Chuyển lớp gần đây
                 </h3>
@@ -417,10 +531,10 @@ const getAttendancePercentage = (present, total) => {
                         </div>
                     </div>
                 </div>
-            </Card>
+            </div>
 
             <!-- Today's Attendance -->
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Điểm danh hôm nay
                 </h3>
@@ -451,10 +565,10 @@ const getAttendancePercentage = (present, total) => {
                         </div>
                     </div>
                 </div>
-            </Card>
+            </div>
 
             <!-- Pending Timesheets -->
-            <Card class="p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     Bảng chấm công chờ duyệt
                 </h3>
@@ -488,7 +602,7 @@ const getAttendancePercentage = (present, total) => {
                         </div>
                     </div>
                 </div>
-            </Card>
+            </div>
         </div>
     </div>
 </template>
