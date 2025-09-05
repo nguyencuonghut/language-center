@@ -12,6 +12,9 @@ import Divider from 'primevue/divider'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
+import InputNumber from 'primevue/inputnumber'
+import DatePicker from 'primevue/datepicker'
 
 defineOptions({ layout: AppLayout })
 
@@ -27,6 +30,18 @@ const showRevertDialog = ref(false)
 const revertData = ref({
   reason: '',
   notes: ''
+})
+
+// Reactive data for retarget dialog
+const showRetargetDialog = ref(false)
+const retargetSaving = ref(false)
+const availableClasses = ref([])
+const retargetData = ref({
+  to_class_id: null,
+  start_session_no: 1,
+  amount: 0,
+  due_date: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+  note: ''
 })
 
 // Use utility functions from service
@@ -68,7 +83,77 @@ function cancelRevert() {
 }
 
 function handleRetarget() {
-  transferService.retarget(props.transfer.id)
+  // Load available classes and show retarget dialog
+  loadAvailableClasses()
+  showRetargetDialog.value = true
+}
+
+// Load available classes for retarget
+async function loadAvailableClasses() {
+  try {
+    const response = await fetch(route('manager.classrooms.search') + '?available_for_transfer=1')
+    if (response.ok) {
+      const data = await response.json()
+      // Exclude current target class
+      const currentTargetId = getEffectiveTargetClass(props.transfer).id
+      availableClasses.value = data.filter(cls => cls.id !== currentTargetId)
+    }
+  } catch (error) {
+    console.error('Failed to load available classes:', error)
+    availableClasses.value = []
+  }
+}
+
+// Handle retarget submit
+function handleRetargetSubmit() {
+  if (!retargetData.value.to_class_id) {
+    alert('Vui lòng chọn lớp đích mới.')
+    return
+  }
+
+  retargetSaving.value = true
+
+  // Get current effective target class ID
+  const currentTargetId = getEffectiveTargetClass(props.transfer).id
+
+  // Format due_date for submission
+  const submitData = {
+    student_id: props.transfer.student_id,
+    from_class_id: props.transfer.from_class_id,
+    old_to_class_id: currentTargetId, // current target (wrong)
+    new_to_class_id: retargetData.value.to_class_id, // new correct target
+    start_session_no: retargetData.value.start_session_no,
+    amount: retargetData.value.amount,
+    due_date: retargetData.value.due_date ? 
+      retargetData.value.due_date.toISOString().split('T')[0] : 
+      null,
+    note: retargetData.value.note
+  }
+
+  transferService.retarget(submitData, {
+    onSuccess: () => {
+      showRetargetDialog.value = false
+      retargetSaving.value = false
+      // Reload page to show updated transfer
+      window.location.reload()
+    },
+    onError: (errors) => {
+      console.error('Retarget transfer failed:', errors)
+      retargetSaving.value = false
+    }
+  })
+}
+
+// Handle retarget cancel
+function handleRetargetCancel() {
+  showRetargetDialog.value = false
+  retargetData.value = {
+    to_class_id: null,
+    start_session_no: 1,
+    amount: 0,
+    due_date: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+    note: ''
+  }
 }
 
 function handlePrint() {
@@ -429,6 +514,126 @@ function formatCurrency(amount) {
           severity="danger" 
           @click="confirmRevert"
           :disabled="!revertData.reason.trim()"
+          class="px-4 py-2"
+        />
+      </div>
+    </template>
+  </Dialog>
+
+  <!-- Retarget Transfer Dialog -->
+  <Dialog
+    v-model:visible="showRetargetDialog"
+    modal
+    header="Sửa hướng chuyển lớp"
+    :style="{width: '600px'}"
+    class="retarget-dialog"
+  >
+    <div class="space-y-4">
+      <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4">
+        <h4 class="font-medium mb-2">Thông tin chuyển lớp hiện tại:</h4>
+        <div class="text-sm space-y-1">
+          <div><strong>Học viên:</strong> {{ transfer.student?.code }} - {{ transfer.student?.name }}</div>
+          <div><strong>Từ lớp:</strong> {{ transfer.from_class?.code }} - {{ transfer.from_class?.name }}</div>
+          <div><strong>Đến lớp hiện tại:</strong> {{ effectiveTargetClass.code }} - {{ effectiveTargetClass.name }}</div>
+          
+          <!-- Show original target if retargeted -->
+          <div v-if="transfer.status === 'retargeted'">
+            <div><strong>Lớp đích ban đầu:</strong> {{ transfer.to_class?.code }} - {{ transfer.to_class?.name }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Lớp đích mới <span class="text-red-500">*</span>
+          </label>
+          <Select
+            v-model="retargetData.to_class_id"
+            :options="availableClasses"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Chọn lớp đích mới..."
+            class="w-full"
+            :class="{'border-red-500': !retargetData.to_class_id}"
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <span class="font-medium">{{ slotProps.option.code }}</span>
+                <span class="ml-2 text-slate-600">{{ slotProps.option.name }}</span>
+              </div>
+            </template>
+          </Select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Bắt đầu từ buổi
+          </label>
+          <InputNumber
+            v-model="retargetData.start_session_no"
+            :min="1"
+            :max="100"
+            class="w-full"
+            placeholder="Nhập số buổi..."
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Phí sửa đổi (VND)
+          </label>
+          <InputNumber
+            v-model="retargetData.amount"
+            :min="0"
+            mode="currency"
+            currency="VND"
+            locale="vi-VN"
+            class="w-full"
+            placeholder="Nhập phí sửa đổi..."
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Hạn thanh toán
+          </label>
+          <DatePicker
+            v-model="retargetData.due_date"
+            dateFormat="dd/mm/yy"
+            placeholder="dd/mm/yyyy"
+            class="w-full"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Ghi chú
+          </label>
+          <Textarea
+            v-model="retargetData.note"
+            placeholder="Ghi chú lý do sửa hướng chuyển lớp..."
+            rows="3"
+            class="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Hủy"
+          severity="secondary"
+          @click="handleRetargetCancel"
+          class="px-4 py-2"
+        />
+        <Button
+          label="Xác nhận sửa hướng"
+          severity="warning"
+          @click="handleRetargetSubmit"
+          :disabled="!retargetData.to_class_id || retargetSaving"
+          :loading="retargetSaving"
           class="px-4 py-2"
         />
       </div>
