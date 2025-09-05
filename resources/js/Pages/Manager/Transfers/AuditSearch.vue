@@ -1,7 +1,7 @@
 <template>
     <Head title="Audit Search - Transfer History" />
 
-    <div class="max-w-7xl mx-auto space-y-6">
+    <div class="space-y-6">
         <!-- Page Header -->
         <div class="flex items-center justify-between">
             <div>

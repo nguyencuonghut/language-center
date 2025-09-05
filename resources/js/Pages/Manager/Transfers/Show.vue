@@ -168,7 +168,7 @@ function formatCurrency(amount) {
 <template>
   <Head :title="`Transfer #${transfer.id}`" />
 
-  <div class="max-w-4xl mx-auto space-y-6 transfer-content">
+  <div class="space-y-6 transfer-content">
     <!-- Page Header -->
     <div class="flex items-center justify-between page-header">
       <div>

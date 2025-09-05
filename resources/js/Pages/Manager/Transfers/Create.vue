@@ -166,7 +166,7 @@ const goBack = () => {
 <template>
   <Head title="Tạo chuyển lớp" />
 
-  <div class="max-w-2xl mx-auto space-y-6">
+  <div class="space-y-6">
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>
