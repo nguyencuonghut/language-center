@@ -29,13 +29,13 @@ class DashboardController extends Controller
 
         // Calculate KPIs with growth
         $kpi = $this->calculateKPIs($today, $monthStart, $monthEnd, $lastMonthStart, $lastMonthEnd);
-        
+
         // Charts data
         $charts = $this->getChartsData();
-        
+
         // Recent activities
         $recent = $this->getRecentActivities($today);
-        
+
         // Alerts
         $alerts = $this->getAlerts($today);
 
@@ -59,7 +59,7 @@ class DashboardController extends Controller
             ->where('enrollments.status', 'active')
             ->distinct('students.id')
             ->count();
-            
+
         $classesCount = Classroom::whereIn('status', ['open', 'active'])->count();
         $teachersCount = User::role('teacher')->where('active', true)->count();
         $branchesCount = Branch::count();
@@ -71,7 +71,7 @@ class DashboardController extends Controller
             ->where('students.created_at', '<', $monthStart)
             ->distinct('students.id')
             ->count();
-            
+
         $lastClassesCount = Classroom::whereIn('status', ['open', 'active'])
             ->where('created_at', '<', $monthStart)->count();
         $lastTeachersCount = User::role('teacher')->where('active', true)

@@ -400,7 +400,7 @@ const enrollmentChartOptions = {
           <div class="flex flex-col">
             <span>Học viên theo chi nhánh</span>
             <span class="text-sm text-gray-500 font-normal">
-              {{ fmtNumber(totalStudentsFromChart) }} học viên duy nhất 
+              {{ fmtNumber(totalStudentsFromChart) }} học viên duy nhất
               ({{ fmtNumber(totalEnrollmentsFromChart) }} lượt đăng ký)
             </span>
           </div>
