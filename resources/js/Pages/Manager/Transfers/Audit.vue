@@ -28,7 +28,7 @@
                     label="Quay lại"
                     icon="pi pi-arrow-left"
                     severity="secondary"
-                    @click="$router.back()"
+                    @click="goBack"
                 />
             </div>
         </div>
@@ -210,7 +210,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -226,6 +226,15 @@ const props = defineProps({
 // Methods
 const exportAudit = (format) => {
     window.open(`/manager/transfers/${props.transfer.id}/audit/export?format=${format}`, '_blank')
+}
+
+const goBack = () => {
+    // Use browser's back function or navigate to transfers index
+    if (window.history.length > 1) {
+        window.history.back()
+    } else {
+        router.visit('/manager/transfers')
+    }
 }
 
 const getStatusLabel = (status) => {
