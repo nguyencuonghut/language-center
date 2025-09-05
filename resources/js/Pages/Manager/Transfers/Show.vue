@@ -49,9 +49,17 @@ function confirmRevert() {
     to_class_id: props.transfer.to_class_id,
     reason: revertData.value.reason,
     notes: revertData.value.notes,
+  }, {
+    onSuccess: () => {
+      showRevertDialog.value = false
+      revertData.value = { reason: '', notes: '' }
+      // Reload page to show updated transfer status
+      window.location.reload()
+    },
+    onError: (errors) => {
+      console.error('Revert transfer failed:', errors)
+    }
   })
-  showRevertDialog.value = false
-  revertData.value = { reason: '', notes: '' }
 }
 
 function cancelRevert() {
