@@ -378,6 +378,12 @@ function formatPercentage(value) {
           severity="info"
           outlined
         />
+        <Button
+          label="Quay lại"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          @click="goBack"
+        />
       </div>
     </div>
 
@@ -801,3 +807,17 @@ function formatPercentage(value) {
     </Card>
   </div>
 </template>
+
+<script>
+// goBack method
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit('/manager/transfers')
+    }
+}
+
+// Export goBack to be available in template
+export { goBack }
+</script>

@@ -12,6 +12,14 @@
                     Tra cứu và theo dõi chi tiết lịch sử thao tác chuyển lớp của tất cả người dùng
                 </p>
             </div>
+            <div>
+                <Button
+                    label="Quay lại"
+                    icon="pi pi-arrow-left"
+                    severity="secondary"
+                    @click="goBack"
+                />
+            </div>
         </div>
 
         <!-- Search Filters -->
@@ -383,5 +391,13 @@ const formatDateTime = (dateString) => {
 const formatDate = (date) => {
     if (!date) return ''
     return date.toISOString().split('T')[0]
+}
+
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit('/manager/transfers')
+    }
 }
 </script>

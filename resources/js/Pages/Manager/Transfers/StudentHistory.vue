@@ -138,7 +138,7 @@ function viewTransferDetails(transfer) {
       <Button
         label="Quay lại"
         icon="pi pi-arrow-left"
-        @click="$inertia.visit(route('manager.students.show', student.id))"
+        @click="goBack"
         severity="secondary"
         outlined
       />
@@ -410,3 +410,17 @@ function viewTransferDetails(transfer) {
     </Card>
   </div>
 </template>
+
+<script>
+// Add goBack method for consistency
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit(`/manager/students/${props.student.id}`)
+    }
+}
+
+// Export goBack to be available in template
+export { goBack }
+</script>

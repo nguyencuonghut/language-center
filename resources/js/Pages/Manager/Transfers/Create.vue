@@ -153,6 +153,14 @@ onMounted(() => {
     }
   }
 })
+
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit('/manager/transfers')
+    }
+}
 </script>
 
 <template>
@@ -160,9 +168,19 @@ onMounted(() => {
 
   <div class="max-w-2xl mx-auto space-y-6">
     <!-- Page Header -->
-    <div>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Tạo chuyển lớp</h1>
-      <p class="text-slate-600 dark:text-slate-400">Tạo phiếu chuyển lớp cho học viên</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Tạo chuyển lớp</h1>
+        <p class="text-slate-600 dark:text-slate-400">Tạo phiếu chuyển lớp cho học viên</p>
+      </div>
+      <div>
+        <Button
+          label="Quay lại"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          @click="goBack"
+        />
+      </div>
     </div>
 
     <!-- Form -->

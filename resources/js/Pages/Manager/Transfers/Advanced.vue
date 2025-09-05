@@ -182,6 +182,12 @@ function onSort(event) {
           @click="router.visit(route('manager.transfers.advanced.reports'))"
           severity="info"
         />
+        <Button
+          label="Quay lại"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          @click="goBack"
+        />
       </div>
     </div>
 
@@ -526,3 +532,17 @@ function onSort(event) {
   padding: 1rem;
 }
 </style>
+
+<script>
+// goBack method
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit('/manager/transfers')
+    }
+}
+
+// Export goBack to be available in template
+export { goBack }
+</script>

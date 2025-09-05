@@ -172,12 +172,20 @@ watch(selectedDateRange, (newRange) => {
         <p class="text-slate-600 dark:text-slate-400">Thống kê và báo cáo chi tiết</p>
       </div>
 
-      <Button
-        label="Xuất báo cáo"
-        icon="pi pi-download"
-        @click="exportData"
-        severity="success"
-      />
+      <div class="flex gap-2">
+        <Button
+          label="Xuất báo cáo"
+          icon="pi pi-download"
+          @click="exportData"
+          severity="success"
+        />
+        <Button
+          label="Quay lại"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          @click="goBack"
+        />
+      </div>
     </div>
 
     <!-- Filters -->
@@ -484,3 +492,17 @@ watch(selectedDateRange, (newRange) => {
 <style scoped>
 /* Custom styles for charts */
 </style>
+
+<script>
+// goBack method
+const goBack = () => {
+    try {
+        window.history.back()
+    } catch (error) {
+        router.visit('/manager/transfers')
+    }
+}
+
+// Export goBack to be available in template
+export { goBack }
+</script>
