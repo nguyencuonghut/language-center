@@ -5,6 +5,9 @@ import { ref, computed } from 'vue'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
+import DatePicker from 'primevue/datepicker'
+import Dropdown from 'primevue/dropdown'
+import Dialog from 'primevue/dialog'
 
 defineOptions({ layout: AppLayout })
 
@@ -16,7 +19,14 @@ const props = defineProps({
     recentTimesheets: Array,
     studentsAttention: Array,
     meta: Object,
+    branches: Array, // Danh sách chi nhánh (nếu teacher dạy nhiều CN)
 })
+
+// State cho filters và UI
+const selectedWeek = ref(new Date(props.meta.week_range[0]))
+const selectedBranch = ref(null)
+const showWeekScheduleModal = ref(false)
+const selectedSessionDetail = ref(null)
 
 // Computed properties for alerts
 const hasAlerts = computed(() => {
@@ -42,12 +52,75 @@ const formatTime = (time) => {
 }
 
 const formatDate = (dateString) => {
-    return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    }).format(new Date(dateString))
+    if (!dateString) return ''
+    
+    try {
+        // Handle multiple datetime formats:
+        // 1. YYYY-MM-DD (date only)
+        // 2. YYYY-MM-DD HH:MM:SS (datetime with space)  
+        // 3. 2025-09-05T22:08:03.000000Z (ISO 8601 UTC)
+        let dateOnly
+        
+        if (dateString.includes('T')) {
+            // ISO 8601 format: 2025-09-05T22:08:03.000000Z
+            dateOnly = dateString.split('T')[0]
+        } else if (dateString.includes(' ')) {
+            // Standard datetime format: 2025-09-05 22:08:03
+            dateOnly = dateString.split(' ')[0]
+        } else {
+            // Date only format: 2025-09-05
+            dateOnly = dateString
+        }
+        
+        const dateParts = String(dateOnly).split('-')
+        
+        if (dateParts.length !== 3) {
+            console.warn('formatDate - Invalid date format:', dateString, 'dateOnly:', dateOnly)
+            return dateString // Return original string if format is wrong
+        }
+        
+        const [year, month, day] = dateParts.map(Number)
+        
+        // Validate date components
+        if (isNaN(year) || isNaN(month) || isNaN(day) || 
+            year < 1900 || year > 2100 || 
+            month < 1 || month > 12 || 
+            day < 1 || day > 31) {
+            console.warn('formatDate - Invalid date values:', { year, month, day, originalInput: dateString })
+            return dateString
+        }
+        
+        const date = new Date(year, month - 1, day)
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('formatDate - Invalid date object:', dateString)
+            return dateString
+        }
+        
+        return new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh'
+        }).format(date)
+    } catch (error) {
+        console.error('formatDate - Error formatting date:', dateString, error)
+        return dateString // Return original string on error
+    }
+}
+
+const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return ''
+    
+    try {
+        // Handle different datetime formats and delegate to formatDate for the date part
+        // formatDate now handles ISO 8601, standard datetime, and date-only formats
+        return formatDate(dateTimeString)
+    } catch (error) {
+        console.error('formatDateTime - Error formatting datetime:', dateTimeString, error)
+        return dateTimeString
+    }
 }
 
 const getTimesheetStatusText = (status) => {
@@ -96,23 +169,90 @@ const getAttendanceColor = (present, total) => {
 
 const getDayOfWeek = (date) => {
     const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-    return days[new Date(date).getDay()]
+    
+    if (!date) return ''
+    
+    try {
+        // Parse date trong local timezone
+        const dateParts = String(date).split('-')
+        
+        if (dateParts.length !== 3) {
+            console.warn('getDayOfWeek - Invalid date format:', date)
+            return ''
+        }
+        
+        const [year, month, day] = dateParts.map(Number)
+        
+        // Validate date components
+        if (isNaN(year) || isNaN(month) || isNaN(day)) {
+            console.warn('getDayOfWeek - Invalid date values:', { year, month, day, originalInput: date })
+            return ''
+        }
+        
+        const dateObj = new Date(year, month - 1, day)
+        
+        // Check if the date is valid
+        if (isNaN(dateObj.getTime())) {
+            console.warn('getDayOfWeek - Invalid date object:', date)
+            return ''
+        }
+        
+        const dayIndex = dateObj.getDay()
+        return days[dayIndex] || ''
+    } catch (error) {
+        console.error('getDayOfWeek - Error:', date, error)
+        return ''
+    }
 }
 
 const isToday = (date) => {
     return date === props.meta.today
 }
 
-const getWeekDates = () => {
-    const startDate = new Date(props.meta.week_range[0])
-    const dates = []
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(startDate)
-        date.setDate(startDate.getDate() + i)
-        dates.push(date.toISOString().split('T')[0])
+const weekDates = computed(() => {
+    if (!props.meta?.week_range?.[0]) {
+        console.error('weekDates computed - No week_range[0] found, props.meta:', props.meta)
+        return []
     }
-    return dates
-}
+    
+    try {
+        // Parse date từ props.meta.week_range[0] trong local timezone
+        const startDateStr = props.meta.week_range[0]
+        const dateParts = String(startDateStr).split('-')
+        
+        if (dateParts.length !== 3) {
+            console.error('weekDates computed - Invalid date format:', startDateStr)
+            return []
+        }
+        
+        const [year, month, day] = dateParts.map(Number)
+        
+        if (isNaN(year) || isNaN(month) || isNaN(day)) {
+            console.error('weekDates computed - Invalid date values:', { year, month, day, startDateStr })
+            return []
+        }
+        
+        const startDate = new Date(year, month - 1, day) // month - 1 vì JavaScript month là 0-indexed
+        
+        const dates = []
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(startDate)
+            date.setDate(startDate.getDate() + i)
+            
+            // Format thành string trong local timezone
+            const dateYear = date.getFullYear()
+            const dateMonth = String(date.getMonth() + 1).padStart(2, '0')
+            const dateDay = String(date.getDate()).padStart(2, '0')
+            const dateString = `${dateYear}-${dateMonth}-${dateDay}`
+            dates.push(dateString)
+        }
+        
+        return dates
+    } catch (error) {
+        console.error('weekDates computed - Error:', error)
+        return []
+    }
+})
 
 // Action handlers
 const goToAttendance = (sessionId) => {
@@ -123,19 +263,131 @@ const viewClassDetail = (classId) => {
     // Placeholder - tùy route bạn đã setup
     console.log('View class detail:', classId)
 }
+
+// Week picker handler
+const onWeekChange = (newDate) => {
+    // Đảm bảo chúng ta làm việc với local date chứ không phải UTC
+    const selectedDate = new Date(newDate.getTime() - (newDate.getTimezoneOffset() * 60000))
+    
+    // Tính toán start of week (Monday) trong local timezone
+    const startOfWeek = new Date(selectedDate)
+    const day = startOfWeek.getDay()
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1) // Monday as first day
+    startOfWeek.setDate(diff)
+    
+    // Format date trong local timezone
+    const year = startOfWeek.getFullYear()
+    const month = String(startOfWeek.getMonth() + 1).padStart(2, '0')
+    const date = String(startOfWeek.getDate()).padStart(2, '0')
+    const localDateString = `${year}-${month}-${date}`
+    
+    router.visit(route('teacher.dashboard'), {
+        data: {
+            week: localDateString
+        },
+        preserveState: true
+    })
+}
+
+// Branch filter handler
+const onBranchChange = (branchId) => {
+    router.visit(route('teacher.dashboard'), {
+        data: {
+            branch_id: branchId
+        },
+        preserveState: true
+    })
+}
+
+// Modal handlers
+const viewSessionDetail = (session) => {
+    selectedSessionDetail.value = session
+    showWeekScheduleModal.value = true
+}
+
+const closeModal = () => {
+    showWeekScheduleModal.value = false
+    selectedSessionDetail.value = null
+}
+
+// Shortcut action handlers
+const viewFullSchedule = () => {
+    // Placeholder - navigate to full schedule view
+    console.log('Navigate to full schedule')
+    // router.visit('/teacher/schedule')
+}
+
+const lockLastWeekTimesheet = () => {
+    // Placeholder - lock last week timesheet
+    console.log('Lock last week timesheet')
+    // Implement API call to lock timesheets
+}
+
+const createChangeRequest = () => {
+    // Placeholder - create change request
+    console.log('Create change request')
+    // router.visit('/teacher/change-requests/create')
+}
 </script>
 
 <template>
     <Head title="Teacher Dashboard" />
 
-    <!-- Header -->
+    <!-- Header with Filters -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-            Teacher Dashboard
-        </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Xin chào, {{ meta.teacher_name }}! Chúc bạn một ngày làm việc hiệu quả.
-        </p>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    Teacher Dashboard
+                </h1>
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Xin chào, {{ meta.teacher_name }}! Chúc bạn một ngày làm việc hiệu quả.
+                </p>
+            </div>
+            
+            <!-- Filters -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <!-- Branch Filter (if teacher teaches in multiple branches) -->
+                <div v-if="branches && branches.length > 1" class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Chi nhánh:</label>
+                    <Dropdown
+                        v-model="selectedBranch"
+                        :options="branches"
+                        optionLabel="name"
+                        optionValue="id"
+                        placeholder="Tất cả chi nhánh"
+                        class="w-48"
+                        @change="onBranchChange"
+                    />
+                </div>
+
+                <!-- Week Picker -->
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Tuần:</label>
+                    <DatePicker
+                        v-model="selectedWeek"
+                        selectionMode="single"
+                        :inline="false"
+                        :showWeek="true"
+                        placeholder="Chọn tuần"
+                        class="w-40"
+                        @date-select="onWeekChange"
+                    />
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex gap-2">
+                    <Button 
+                        icon="pi pi-refresh" 
+                        size="small" 
+                        text 
+                        severity="secondary"
+                        @click="router.reload()"
+                        title="Làm mới"
+                    />
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Alerts Row -->
@@ -418,7 +670,7 @@ const viewClassDetail = (classId) => {
                     <i class="pi pi-calendar text-blue-600 dark:text-blue-400"></i>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
-                    <div v-for="(date, index) in getWeekDates()" :key="date" class="space-y-2">
+                    <div v-for="(date, index) in weekDates" :key="date" class="space-y-2">
                         <div class="text-center py-2 bg-gray-100 dark:bg-gray-700 rounded">
                             <p class="text-xs font-medium text-gray-600 dark:text-gray-300">
                                 {{ getDayOfWeek(date) }}
@@ -431,14 +683,21 @@ const viewClassDetail = (classId) => {
                             <div v-for="session in weekSchedule.filter(s => s.date === date)"
                                  :key="session.id"
                                  :class="[
-                                     'p-2 rounded text-xs',
+                                     'p-2 rounded text-xs cursor-pointer transition-colors hover:bg-opacity-80',
                                      isToday(session.date)
                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'
-                                        : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                 ]">
+                                        : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                 ]"
+                                 @click="viewSessionDetail(session)">
                                 <p class="font-medium">{{ session.class_name }}</p>
                                 <p>{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</p>
                                 <p class="text-gray-500">{{ session.room }}</p>
+                                <Tag 
+                                    v-if="session.status !== 'planned'"
+                                    :value="getSessionStatusText(session.status)"
+                                    :severity="getSessionStatusSeverity(session.status)"
+                                    class="text-xs mt-1"
+                                />
                             </div>
                         </div>
                     </div>
@@ -448,7 +707,7 @@ const viewClassDetail = (classId) => {
     </div>
 
     <!-- Recent Timesheets -->
-    <div>
+    <div class="mb-8">
         <Card>
             <template #content>
                 <div class="flex items-center justify-between mb-4">
@@ -479,7 +738,7 @@ const viewClassDetail = (classId) => {
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 <i class="pi pi-clock mr-1"></i>
-                                Tạo: {{ formatDate(timesheet.created_at) }}
+                                Tạo: {{ formatDateTime(timesheet.created_at) }}
                             </p>
                         </div>
                         <div class="flex items-center space-x-3">
@@ -499,4 +758,126 @@ const viewClassDetail = (classId) => {
             </template>
         </Card>
     </div>
+
+    <!-- Shortcut Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+            <template #content>
+                <div class="text-center p-4">
+                    <i class="pi pi-calendar-plus text-blue-600 dark:text-blue-400 text-3xl mb-3"></i>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Xem lịch đầy đủ
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Xem lịch dạy theo tuần hoặc tháng
+                    </p>
+                    <Button
+                        label="Xem lịch"
+                        icon="pi pi-external-link"
+                        size="small"
+                        @click="viewFullSchedule"
+                    />
+                </div>
+            </template>
+        </Card>
+
+        <Card>
+            <template #content>
+                <div class="text-center p-4">
+                    <i class="pi pi-lock text-orange-600 dark:text-orange-400 text-3xl mb-3"></i>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Khóa timesheet
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Khóa timesheet tuần trước
+                    </p>
+                    <Button
+                        label="Khóa timesheet"
+                        icon="pi pi-lock"
+                        size="small"
+                        severity="warning"
+                        @click="lockLastWeekTimesheet"
+                    />
+                </div>
+            </template>
+        </Card>
+
+        <Card>
+            <template #content>
+                <div class="text-center p-4">
+                    <i class="pi pi-send text-green-600 dark:text-green-400 text-3xl mb-3"></i>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        Yêu cầu đổi buổi
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Gửi yêu cầu đổi buổi/phòng
+                    </p>
+                    <Button
+                        label="Tạo yêu cầu"
+                        icon="pi pi-plus"
+                        size="small"
+                        severity="success"
+                        @click="createChangeRequest"
+                    />
+                </div>
+            </template>
+        </Card>
+    </div>
+
+    <!-- Session Detail Modal -->
+    <Dialog 
+        v-model:visible="showWeekScheduleModal" 
+        modal 
+        :style="{ width: '450px' }"
+        header="Chi tiết buổi học">
+        <div v-if="selectedSessionDetail" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ selectedSessionDetail.class_name }}
+                </h4>
+                <Tag 
+                    :value="getSessionStatusText(selectedSessionDetail.status)"
+                    :severity="getSessionStatusSeverity(selectedSessionDetail.status)"
+                />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500 dark:text-gray-400">Mã lớp:</p>
+                    <p class="font-medium">{{ selectedSessionDetail.class_code }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 dark:text-gray-400">Ngày:</p>
+                    <p class="font-medium">{{ formatDate(selectedSessionDetail.date) }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 dark:text-gray-400">Thời gian:</p>
+                    <p class="font-medium">{{ formatTime(selectedSessionDetail.start_time) }} - {{ formatTime(selectedSessionDetail.end_time) }}</p>
+                </div>
+                <div>
+                    <p class="text-gray-500 dark:text-gray-400">Phòng:</p>
+                    <p class="font-medium">{{ selectedSessionDetail.room }}</p>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div class="flex gap-2">
+                    <Button
+                        v-if="isToday(selectedSessionDetail.date)"
+                        label="Điểm danh"
+                        icon="pi pi-check-square"
+                        size="small"
+                        @click="goToAttendance(selectedSessionDetail.id); closeModal()"
+                    />
+                    <Button
+                        label="Xem danh sách lớp"
+                        icon="pi pi-users"
+                        size="small"
+                        severity="secondary"
+                        @click="viewClassDetail(selectedSessionDetail.class_id); closeModal()"
+                    />
+                </div>
+            </div>
+        </div>
+    </Dialog>
 </template>

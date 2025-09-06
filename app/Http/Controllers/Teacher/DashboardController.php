@@ -22,22 +22,39 @@ class DashboardController extends Controller
     {
         $teacher = Auth::user();
         $teacherId = $teacher->id;
+
+        // Get current time first
         $today = Carbon::now();
-        $thisWeek = Carbon::now()->startOfWeek();
-        $thisWeekEnd = Carbon::now()->endOfWeek();
         $thisMonth = Carbon::now()->startOfMonth();
 
+        // Week filtering
+        $weekStart = $request->get('week')
+            ? Carbon::parse($request->get('week'))->startOfWeek()
+            : Carbon::now()->startOfWeek();
+        $weekEnd = $weekStart->copy()->endOfWeek();
+
+        // Branch filtering (if teacher teaches in multiple branches)
+        $branchFilter = $request->get('branch_id');
+
         // Lấy các lớp mà giáo viên đang dạy hiện tại (teaching_assignments)
-        $currentAssignments = TeachingAssignment::with(['classroom'])
+        $currentAssignments = TeachingAssignment::with(['classroom.branch'])
             ->where('teacher_id', $teacherId)
             ->where('effective_from', '<=', $today)
             ->where(function($q) use ($today) {
                 $q->whereNull('effective_to')
                   ->orWhere('effective_to', '>=', $today);
             })
+            ->when($branchFilter, function($q) use ($branchFilter) {
+                $q->whereHas('classroom', function($subQ) use ($branchFilter) {
+                    $subQ->where('branch_id', $branchFilter);
+                });
+            })
             ->get();
 
         $classroomIds = $currentAssignments->pluck('class_id');
+
+        // Get branches that teacher teaches in
+        $teacherBranches = $currentAssignments->pluck('classroom.branch')->unique()->values();
 
         // KPI calculations với dữ liệu thực
         $kpi = [
@@ -51,7 +68,7 @@ class DashboardController extends Controller
             ],
             'sessions_this_week' => [
                 'total' => ClassSession::whereIn('class_id', $classroomIds)
-                    ->whereBetween('date', [$thisWeek->toDateString(), $thisWeekEnd->toDateString()])
+                    ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
                     ->count(),
             ],
             'need_attendance' => [
@@ -108,7 +125,7 @@ class DashboardController extends Controller
         // This week's schedule với dữ liệu thực
         $weekSchedule = ClassSession::with(['classroom', 'room'])
             ->whereIn('class_id', $classroomIds)
-            ->whereBetween('date', [$thisWeek->toDateString(), $thisWeekEnd->toDateString()])
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->orderBy('date')
             ->orderBy('start_time')
             ->get()
@@ -117,6 +134,7 @@ class DashboardController extends Controller
                     'id' => $session->id,
                     'class_name' => $session->classroom->name,
                     'class_code' => $session->classroom->code,
+                    'class_id' => $session->class_id,
                     'date' => $session->date,
                     'day_name' => Carbon::parse($session->date)->format('l'),
                     'start_time' => Carbon::parse($session->start_time)->format('H:i'),
@@ -166,7 +184,7 @@ class DashboardController extends Controller
 
         foreach ($currentAssignments as $assignment) {
             $classroom = $assignment->classroom;
-            
+
             // Lấy những học viên có tỷ lệ tham dự thấp trong 30 ngày gần đây
             $recentSessions = ClassSession::where('class_id', $classroom->id)
                 ->whereDate('date', '>=', $today->subDays(30))
@@ -214,15 +232,17 @@ class DashboardController extends Controller
             'alerts' => $alerts,
             'recentTimesheets' => $recentTimesheets,
             'studentsAttention' => $studentsAttention->take(5), // Giới hạn 5 học viên
+            'branches' => $teacherBranches, // Branches that teacher teaches in
             'meta' => [
                 'teacher_name' => $teacher->name,
                 'teacher_id' => $teacherId,
                 'today' => $today->toDateString(),
                 'week_range' => [
-                    $thisWeek->toDateString(),
-                    $thisWeekEnd->toDateString()
+                    $weekStart->toDateString(),
+                    $weekEnd->toDateString()
                 ],
                 'current_assignments_count' => $currentAssignments->count(),
+                'selected_branch' => $branchFilter,
             ],
         ]);
     }

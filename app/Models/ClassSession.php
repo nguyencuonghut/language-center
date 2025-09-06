@@ -10,6 +10,12 @@ class ClassSession extends Model
         'class_id', 'session_no', 'date', 'start_time', 'end_time', 'room_id', 'status', 'note'
     ];
 
+    protected $casts = [
+        'date' => 'date:Y-m-d',
+        'created_at' => 'datetime:Y-m-d H:i:s',
+        'updated_at' => 'datetime:Y-m-d H:i:s',
+    ];
+
     public function classroom()
     {
         return $this->belongsTo(Classroom::class, 'class_id');

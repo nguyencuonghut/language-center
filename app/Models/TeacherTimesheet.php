@@ -14,6 +14,11 @@ class TeacherTimesheet extends Model
         'status',
     ];
 
+    protected $casts = [
+        'created_at' => 'datetime:Y-m-d H:i:s',
+        'updated_at' => 'datetime:Y-m-d H:i:s',
+    ];
+
     public function session()
     {
         return $this->belongsTo(ClassSession::class, 'class_session_id');
