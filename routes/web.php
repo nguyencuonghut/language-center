@@ -166,11 +166,6 @@ Route::middleware(['auth'])->group(function () {
             });
         });
 
-        Route::get('/attendance', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Điểm danh',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('attendance');
-
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Báo cáo',
             'note'  => 'Tính năng đang phát triển.',
@@ -288,7 +283,7 @@ Route::middleware(['auth'])->group(function () {
     ->group(function () {
         // ROOMS (CRUD) - Shared by Admin and Manager
         Route::resource('rooms', RoomController::class);
-        
+
         // COURSES (CRUD) - Shared by Admin and Manager
         Route::resource('courses', \App\Http\Controllers\Manager\CourseController::class);
 
