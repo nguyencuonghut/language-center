@@ -233,6 +233,7 @@ class DashboardController extends Controller
             'recentTimesheets' => $recentTimesheets,
             'studentsAttention' => $studentsAttention->take(5), // Giới hạn 5 học viên
             'branches' => $teacherBranches, // Branches that teacher teaches in
+            'latestExportId' => session('latest_export_id'), // Pass export ID if exists
             'meta' => [
                 'teacher_name' => $teacher->name,
                 'teacher_id' => $teacherId,

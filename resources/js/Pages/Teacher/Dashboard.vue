@@ -1,13 +1,19 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
 import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Menu from 'primevue/menu'
+import ProgressBar from 'primevue/progressbar'
+import Chip from 'primevue/chip'
+import Checkbox from 'primevue/checkbox'
+import { usePageToast } from '@/composables/usePageToast'
 
 defineOptions({ layout: AppLayout })
 
@@ -28,11 +34,144 @@ const selectedBranch = ref(null)
 const showWeekScheduleModal = ref(false)
 const selectedSessionDetail = ref(null)
 
+// Phase 3: Advanced Features State
+const searchQuery = ref('')
+const showQuickActionsMenu = ref(false)
+const isAutoRefreshEnabled = ref(true)
+const refreshInterval = ref(null)
+const notifications = ref([
+    {
+        id: 1,
+        type: 'warning',
+        title: 'Buổi học sắp bắt đầu',
+        message: 'Lớp ENG101-A01 sẽ bắt đầu trong 15 phút tại phòng 201',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+        read: false
+    },
+    {
+        id: 2,
+        type: 'error',
+        title: 'Timesheet quá hạn',
+        message: 'Bạn có 2 timesheet chưa nộp cho tuần trước',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        read: false
+    },
+    {
+        id: 3,
+        type: 'success',
+        title: 'Lương đã được duyệt',
+        message: 'Lương tháng 8 đã được duyệt và sẽ chuyển vào tài khoản trong 2 ngày',
+        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        read: true
+    },
+    {
+        id: 4,
+        type: 'info',
+        title: 'Thông báo từ ban quản lý',
+        message: 'Cuộc họp giáo viên sẽ diễn ra vào thứ 6 tuần này lúc 14:00',
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+        read: true
+    }
+])
+const showNotifications = ref(false)
+const quickActionsMenuRef = ref(null)
+const quickActionsMenu = ref(null)
+const quickActionsButton = ref(null)
+
+
+
+// Toast notifications
+const { showSuccess, showError, showInfo } = usePageToast()
+
 // Computed properties for alerts
 const hasAlerts = computed(() => {
     return props.alerts.sessions_no_attendance > 0 ||
            props.alerts.pending_timesheets > 0 ||
            props.alerts.overdue_sessions > 0
+})
+
+// Phase 3: Advanced Computed Properties
+const filteredTodaySchedule = computed(() => {
+    if (!searchQuery.value) return props.todaySchedule
+
+    const query = searchQuery.value.toLowerCase()
+    return props.todaySchedule.filter(session =>
+        session.class_name.toLowerCase().includes(query) ||
+        session.class_code.toLowerCase().includes(query) ||
+        session.room.toLowerCase().includes(query)
+    )
+})
+
+const filteredTimesheets = computed(() => {
+    if (!searchQuery.value) return props.recentTimesheets
+
+    const query = searchQuery.value.toLowerCase()
+    return props.recentTimesheets.filter(timesheet =>
+        timesheet.class_name.toLowerCase().includes(query) ||
+        timesheet.class_code.toLowerCase().includes(query)
+    )
+})
+
+const urgentTasks = computed(() => {
+    const tasks = []
+
+    // Add urgent sessions needing attendance
+    if (props.alerts.sessions_no_attendance > 0) {
+        tasks.push({
+            type: 'attendance',
+            count: props.alerts.sessions_no_attendance,
+            message: `${props.alerts.sessions_no_attendance} buổi học cần điểm danh`,
+            urgency: 'high'
+        })
+    }
+
+    // Add overdue sessions
+    if (props.alerts.overdue_sessions > 0) {
+        tasks.push({
+            type: 'overdue',
+            count: props.alerts.overdue_sessions,
+            message: `${props.alerts.overdue_sessions} buổi học quá hạn`,
+            urgency: 'critical'
+        })
+    }
+
+    // Add pending timesheets
+    if (props.alerts.pending_timesheets > 0) {
+        tasks.push({
+            type: 'timesheet',
+            count: props.alerts.pending_timesheets,
+            message: `${props.alerts.pending_timesheets} timesheet chờ duyệt`,
+            urgency: 'medium'
+        })
+    }
+
+    return tasks.sort((a, b) => {
+        const urgencyOrder = { critical: 3, high: 2, medium: 1 }
+        return urgencyOrder[b.urgency] - urgencyOrder[a.urgency]
+    })
+})
+
+const quickActionsItems = computed(() => {
+    return [
+        {
+            label: 'Điểm danh nhanh',
+            icon: 'pi pi-check-square',
+            command: () => quickAttendance()
+        },
+        {
+            label: 'Tạo timesheet',
+            icon: 'pi pi-file-edit',
+            command: () => createTimesheet()
+        },
+        {
+            label: 'Báo cáo tháng',
+            icon: 'pi pi-chart-bar',
+            command: () => viewMonthlyReport()
+        },
+        {
+            separator: true
+        },
+    ]
 })
 
 // Helper functions
@@ -53,14 +192,14 @@ const formatTime = (time) => {
 
 const formatDate = (dateString) => {
     if (!dateString) return ''
-    
+
     try {
         // Handle multiple datetime formats:
         // 1. YYYY-MM-DD (date only)
-        // 2. YYYY-MM-DD HH:MM:SS (datetime with space)  
+        // 2. YYYY-MM-DD HH:MM:SS (datetime with space)
         // 3. 2025-09-05T22:08:03.000000Z (ISO 8601 UTC)
         let dateOnly
-        
+
         if (dateString.includes('T')) {
             // ISO 8601 format: 2025-09-05T22:08:03.000000Z
             dateOnly = dateString.split('T')[0]
@@ -71,33 +210,33 @@ const formatDate = (dateString) => {
             // Date only format: 2025-09-05
             dateOnly = dateString
         }
-        
+
         const dateParts = String(dateOnly).split('-')
-        
+
         if (dateParts.length !== 3) {
             console.warn('formatDate - Invalid date format:', dateString, 'dateOnly:', dateOnly)
             return dateString // Return original string if format is wrong
         }
-        
+
         const [year, month, day] = dateParts.map(Number)
-        
+
         // Validate date components
-        if (isNaN(year) || isNaN(month) || isNaN(day) || 
-            year < 1900 || year > 2100 || 
-            month < 1 || month > 12 || 
+        if (isNaN(year) || isNaN(month) || isNaN(day) ||
+            year < 1900 || year > 2100 ||
+            month < 1 || month > 12 ||
             day < 1 || day > 31) {
             console.warn('formatDate - Invalid date values:', { year, month, day, originalInput: dateString })
             return dateString
         }
-        
+
         const date = new Date(year, month - 1, day)
-        
+
         // Check if the date is valid
         if (isNaN(date.getTime())) {
             console.warn('formatDate - Invalid date object:', dateString)
             return dateString
         }
-        
+
         return new Intl.DateTimeFormat('vi-VN', {
             day: '2-digit',
             month: '2-digit',
@@ -112,7 +251,7 @@ const formatDate = (dateString) => {
 
 const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return ''
-    
+
     try {
         // Handle different datetime formats and delegate to formatDate for the date part
         // formatDate now handles ISO 8601, standard datetime, and date-only formats
@@ -169,34 +308,34 @@ const getAttendanceColor = (present, total) => {
 
 const getDayOfWeek = (date) => {
     const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-    
+
     if (!date) return ''
-    
+
     try {
         // Parse date trong local timezone
         const dateParts = String(date).split('-')
-        
+
         if (dateParts.length !== 3) {
             console.warn('getDayOfWeek - Invalid date format:', date)
             return ''
         }
-        
+
         const [year, month, day] = dateParts.map(Number)
-        
+
         // Validate date components
         if (isNaN(year) || isNaN(month) || isNaN(day)) {
             console.warn('getDayOfWeek - Invalid date values:', { year, month, day, originalInput: date })
             return ''
         }
-        
+
         const dateObj = new Date(year, month - 1, day)
-        
+
         // Check if the date is valid
         if (isNaN(dateObj.getTime())) {
             console.warn('getDayOfWeek - Invalid date object:', date)
             return ''
         }
-        
+
         const dayIndex = dateObj.getDay()
         return days[dayIndex] || ''
     } catch (error) {
@@ -214,31 +353,31 @@ const weekDates = computed(() => {
         console.error('weekDates computed - No week_range[0] found, props.meta:', props.meta)
         return []
     }
-    
+
     try {
         // Parse date từ props.meta.week_range[0] trong local timezone
         const startDateStr = props.meta.week_range[0]
         const dateParts = String(startDateStr).split('-')
-        
+
         if (dateParts.length !== 3) {
             console.error('weekDates computed - Invalid date format:', startDateStr)
             return []
         }
-        
+
         const [year, month, day] = dateParts.map(Number)
-        
+
         if (isNaN(year) || isNaN(month) || isNaN(day)) {
             console.error('weekDates computed - Invalid date values:', { year, month, day, startDateStr })
             return []
         }
-        
+
         const startDate = new Date(year, month - 1, day) // month - 1 vì JavaScript month là 0-indexed
-        
+
         const dates = []
         for (let i = 0; i < 7; i++) {
             const date = new Date(startDate)
             date.setDate(startDate.getDate() + i)
-            
+
             // Format thành string trong local timezone
             const dateYear = date.getFullYear()
             const dateMonth = String(date.getMonth() + 1).padStart(2, '0')
@@ -246,7 +385,7 @@ const weekDates = computed(() => {
             const dateString = `${dateYear}-${dateMonth}-${dateDay}`
             dates.push(dateString)
         }
-        
+
         return dates
     } catch (error) {
         console.error('weekDates computed - Error:', error)
@@ -268,19 +407,19 @@ const viewClassDetail = (classId) => {
 const onWeekChange = (newDate) => {
     // Đảm bảo chúng ta làm việc với local date chứ không phải UTC
     const selectedDate = new Date(newDate.getTime() - (newDate.getTimezoneOffset() * 60000))
-    
+
     // Tính toán start of week (Monday) trong local timezone
     const startOfWeek = new Date(selectedDate)
     const day = startOfWeek.getDay()
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1) // Monday as first day
     startOfWeek.setDate(diff)
-    
+
     // Format date trong local timezone
     const year = startOfWeek.getFullYear()
     const month = String(startOfWeek.getMonth() + 1).padStart(2, '0')
     const date = String(startOfWeek.getDate()).padStart(2, '0')
     const localDateString = `${year}-${month}-${date}`
-    
+
     router.visit(route('teacher.dashboard'), {
         data: {
             week: localDateString
@@ -328,6 +467,154 @@ const createChangeRequest = () => {
     console.log('Create change request')
     // router.visit('/teacher/change-requests/create')
 }
+
+// Phase 3: Lifecycle Hooks
+onMounted(() => {
+    // Start auto-refresh if enabled
+    if (isAutoRefreshEnabled.value) {
+        startAutoRefresh()
+    }
+
+    // Show welcome notification
+    showInfo('Dashboard loaded', 'Welcome back! All data is up to date.')
+
+    // Load initial notifications
+    loadNotifications()
+})
+
+onUnmounted(() => {
+    // Cleanup auto-refresh
+    if (refreshInterval.value) {
+        clearInterval(refreshInterval.value)
+    }
+})
+
+// Phase 3: Advanced Action Handlers
+const startAutoRefresh = () => {
+    refreshInterval.value = setInterval(() => {
+        router.reload({
+            only: ['kpi', 'todaySchedule', 'alerts', 'recentTimesheets'],
+            preserveState: true
+        })
+        addNotification('Auto-refresh', 'Dashboard data updated', 'info')
+    }, 60000) // Refresh every minute
+}
+
+const stopAutoRefresh = () => {
+    if (refreshInterval.value) {
+        clearInterval(refreshInterval.value)
+        refreshInterval.value = null
+    }
+}
+
+const toggleAutoRefresh = () => {
+    isAutoRefreshEnabled.value = !isAutoRefreshEnabled.value
+
+    if (isAutoRefreshEnabled.value) {
+        startAutoRefresh()
+        showSuccess('Auto-refresh enabled', 'Dashboard will update every minute')
+    } else {
+        stopAutoRefresh()
+        showInfo('Auto-refresh disabled', 'Dashboard will not auto-update')
+    }
+}
+
+const addNotification = (title, message, type = 'info') => {
+    const notification = {
+        id: Date.now(),
+        title,
+        message,
+        type,
+        timestamp: new Date(),
+        read: false
+    }
+
+    notifications.value.unshift(notification)
+
+    // Keep only last 10 notifications
+    if (notifications.value.length > 10) {
+        notifications.value = notifications.value.slice(0, 10)
+    }
+}
+
+const markNotificationAsRead = (notificationId) => {
+    const notification = notifications.value.find(n => n.id === notificationId)
+    if (notification) {
+        notification.read = true
+    }
+}
+
+const clearAllNotifications = () => {
+    notifications.value = []
+    showInfo('Notifications cleared', 'All notifications have been removed')
+}
+
+const loadNotifications = () => {
+    // Simulate loading initial notifications
+    if (props.alerts.sessions_no_attendance > 0) {
+        addNotification(
+            'Attendance Required',
+            `${props.alerts.sessions_no_attendance} sessions need attendance`,
+            'warning'
+        )
+    }
+
+    if (props.alerts.overdue_sessions > 0) {
+        addNotification(
+            'Overdue Sessions',
+            `${props.alerts.overdue_sessions} sessions are overdue`,
+            'error'
+        )
+    }
+}
+
+const quickAttendance = () => {
+    // Find the next session that needs attendance
+    const nextSession = props.todaySchedule.find(s => !s.attendance_taken && s.status === 'planned')
+
+    if (nextSession) {
+        goToAttendance(nextSession.id)
+        showSuccess('Redirecting', `Going to attendance for ${nextSession.class_name}`)
+    } else {
+        showInfo('No sessions available', 'All sessions have been attended or no sessions today')
+    }
+}
+
+const createTimesheet = () => {
+    // Placeholder for timesheet creation
+    showInfo('Feature coming soon', 'Timesheet creation will be available soon')
+}
+
+const viewMonthlyReport = () => {
+    // Placeholder for monthly report
+    showInfo('Feature coming soon', 'Monthly reports will be available soon')
+}
+
+const openSettings = () => {
+    // Placeholder for settings
+    showInfo('Feature coming soon', 'Settings panel will be available soon')
+}
+
+const exportData = (format) => {
+    // Placeholder for data export
+    showSuccess('Export started', `Exporting data in ${format} format...`)
+
+    // Simulate export process
+    setTimeout(() => {
+        showSuccess('Export completed', 'Your data has been exported successfully')
+    }, 2000)
+}
+
+const refreshDashboard = () => {
+    router.reload({ preserveState: true })
+    showSuccess('Dashboard refreshed', 'All data has been updated')
+}
+
+const toggleQuickActionsMenu = (event) => {
+    quickActionsMenu.value.toggle(event)
+}
+
+
 </script>
 
 <template>
@@ -344,49 +631,116 @@ const createChangeRequest = () => {
                     Xin chào, {{ meta.teacher_name }}! Chúc bạn một ngày làm việc hiệu quả.
                 </p>
             </div>
-            
-            <!-- Filters -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <!-- Branch Filter (if teacher teaches in multiple branches) -->
-                <div v-if="branches && branches.length > 1" class="flex items-center gap-2">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Chi nhánh:</label>
-                    <Dropdown
-                        v-model="selectedBranch"
-                        :options="branches"
-                        optionLabel="name"
-                        optionValue="id"
-                        placeholder="Tất cả chi nhánh"
-                        class="w-48"
-                        @change="onBranchChange"
-                    />
+
+            <!-- Advanced Actions Row -->
+            <div class="flex flex-col sm:flex-row gap-3 items-end">
+                <!-- Search Bar -->
+                <div class="relative w-64">
+                    <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-blue-500">
+                        <i class="pi pi-search text-gray-400 ml-3 flex-shrink-0"></i>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Tìm kiếm lớp, phòng..."
+                            class="flex-1 px-2 py-2 bg-transparent border-0 focus:outline-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm min-w-0"
+                        />
+                        <Button
+                            v-if="searchQuery"
+                            icon="pi pi-times"
+                            text
+                            size="small"
+                            class="!p-1 !w-6 !h-6 mr-1 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            @click="searchQuery = ''"
+                        />
+                    </div>
                 </div>
 
-                <!-- Week Picker -->
-                <div class="flex items-center gap-2">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Tuần:</label>
-                    <DatePicker
-                        v-model="selectedWeek"
-                        selectionMode="single"
-                        :inline="false"
-                        :showWeek="true"
-                        placeholder="Chọn tuần"
-                        class="w-40"
-                        @date-select="onWeekChange"
-                    />
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="flex gap-2">
-                    <Button 
-                        icon="pi pi-refresh" 
-                        size="small" 
-                        text 
+                <!-- Notifications Button -->
+                <div class="relative">
+                    <Button
+                        icon="pi pi-bell"
+                        size="small"
+                        text
                         severity="secondary"
-                        @click="router.reload()"
-                        title="Làm mới"
+                        @click="showNotifications = !showNotifications"
+                        :badge="notifications.filter(n => !n.read).length > 0 ? notifications.filter(n => !n.read).length.toString() : null"
+                        badgeClass="p-badge-danger"
+                        title="Thông báo"
+                    />
+                </div>
+
+                <!-- Quick Actions Menu -->
+                <div class="relative">
+                    <Button
+                        icon="pi pi-ellipsis-v"
+                        size="small"
+                        text
+                        severity="secondary"
+                        @click="toggleQuickActionsMenu"
+                        title="Hành động nhanh"
+                        ref="quickActionsButton"
+                    />
+                    <Menu
+                        ref="quickActionsMenu"
+                        :model="quickActionsItems"
+                        :popup="true"
                     />
                 </div>
             </div>
+        </div>
+
+        <!-- Filter Row -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <!-- Branch Filter (if teacher teaches in multiple branches) -->
+            <div v-if="branches && branches.length > 1" class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Chi nhánh:</label>
+                <Dropdown
+                    v-model="selectedBranch"
+                    :options="branches"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Tất cả chi nhánh"
+                    class="w-48"
+                    @change="onBranchChange"
+                />
+            </div>
+
+            <!-- Week Picker -->
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Tuần:</label>
+                <DatePicker
+                    v-model="selectedWeek"
+                    selectionMode="single"
+                    :inline="false"
+                    :showWeek="true"
+                    placeholder="Chọn tuần"
+                    class="w-40"
+                    @date-select="onWeekChange"
+                />
+            </div>
+
+            <!-- Auto-refresh Toggle -->
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Tự động làm mới:</label>
+                <Button
+                    :icon="isAutoRefreshEnabled ? 'pi pi-pause' : 'pi pi-play'"
+                    :label="isAutoRefreshEnabled ? 'Đang bật' : 'Đã tắt'"
+                    size="small"
+                    :severity="isAutoRefreshEnabled ? 'success' : 'secondary'"
+                    text
+                    @click="toggleAutoRefresh"
+                />
+            </div>
+
+            <!-- Manual Refresh -->
+            <Button
+                icon="pi pi-refresh"
+                size="small"
+                text
+                severity="secondary"
+                @click="refreshDashboard"
+                title="Làm mới"
+            />
         </div>
     </div>
 
@@ -436,6 +790,90 @@ const createChangeRequest = () => {
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div v-if="showNotifications" class="mb-6">
+        <Card>
+            <template #content>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        <i class="pi pi-bell mr-2"></i>
+                        Thông báo
+                        <Chip
+                            v-if="notifications.filter(n => !n.read).length > 0"
+                            :label="notifications.filter(n => !n.read).length.toString()"
+                            class="ml-2"
+                            severity="danger"
+                        />
+                    </h3>
+                    <div class="flex gap-2">
+                        <Button
+                            label="Đánh dấu tất cả đã đọc"
+                            size="small"
+                            text
+                            @click="notifications.forEach(n => n.read = true)"
+                        />
+                        <Button
+                            label="Xóa tất cả"
+                            size="small"
+                            text
+                            severity="danger"
+                            @click="clearAllNotifications"
+                        />
+                        <Button
+                            icon="pi pi-times"
+                            size="small"
+                            text
+                            @click="showNotifications = false"
+                        />
+                    </div>
+                </div>
+
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                    <div v-if="notifications.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+                        <i class="pi pi-check-circle text-2xl mb-2"></i>
+                        <p>Không có thông báo nào</p>
+                    </div>
+
+                    <div
+                        v-for="notification in notifications"
+                        :key="notification.id"
+                        :class="[
+                            'p-3 rounded-lg border transition-colors cursor-pointer',
+                            notification.read
+                                ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        ]"
+                        @click="markNotificationAsRead(notification.id)"
+                    >
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <i :class="[
+                                        'pi text-sm',
+                                        notification.type === 'error' ? 'pi-exclamation-triangle text-red-500' :
+                                        notification.type === 'warning' ? 'pi-exclamation-triangle text-yellow-500' :
+                                        notification.type === 'success' ? 'pi-check-circle text-green-500' :
+                                        'pi-info-circle text-blue-500'
+                                    ]"></i>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ notification.title }}
+                                    </p>
+                                    <div v-if="!notification.read" class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                </div>
+                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    {{ notification.message }}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ formatDateTime(notification.timestamp.toISOString()) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </Card>
     </div>
 
     <!-- KPI Cards -->
@@ -525,15 +963,20 @@ const createChangeRequest = () => {
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                         Lịch dạy hôm nay
+                        <span v-if="searchQuery" class="text-sm font-normal text-blue-600 dark:text-blue-400 ml-2">
+                            ({{ filteredTodaySchedule.length }} kết quả cho "{{ searchQuery }}")
+                        </span>
                     </h3>
                     <i class="pi pi-calendar-plus text-blue-600 dark:text-blue-400"></i>
                 </div>
                 <div class="space-y-3">
-                    <div v-if="todaySchedule.length === 0" class="text-center py-8">
+                    <div v-if="filteredTodaySchedule.length === 0" class="text-center py-8">
                         <i class="pi pi-calendar text-gray-400 text-3xl mb-2"></i>
-                        <p class="text-gray-500 dark:text-gray-400">Không có buổi học nào hôm nay</p>
+                        <p class="text-gray-500 dark:text-gray-400">
+                            {{ searchQuery ? 'Không tìm thấy buổi học nào phù hợp' : 'Không có buổi học nào hôm nay' }}
+                        </p>
                     </div>
-                    <div v-else v-for="session in todaySchedule" :key="session.id"
+                    <div v-else v-for="session in filteredTodaySchedule" :key="session.id"
                          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
@@ -692,7 +1135,7 @@ const createChangeRequest = () => {
                                 <p class="font-medium">{{ session.class_name }}</p>
                                 <p>{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</p>
                                 <p class="text-gray-500">{{ session.room }}</p>
-                                <Tag 
+                                <Tag
                                     v-if="session.status !== 'planned'"
                                     :value="getSessionStatusText(session.status)"
                                     :severity="getSessionStatusSeverity(session.status)"
@@ -713,15 +1156,20 @@ const createChangeRequest = () => {
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                         Bảng công gần đây
+                        <span v-if="searchQuery" class="text-sm font-normal text-green-600 dark:text-green-400 ml-2">
+                            ({{ filteredTimesheets.length }} kết quả cho "{{ searchQuery }}")
+                        </span>
                     </h3>
                     <i class="pi pi-file-edit text-green-600 dark:text-green-400"></i>
                 </div>
                 <div class="space-y-3">
-                    <div v-if="recentTimesheets.length === 0" class="text-center py-8">
+                    <div v-if="filteredTimesheets.length === 0" class="text-center py-8">
                         <i class="pi pi-inbox text-gray-400 text-3xl mb-2"></i>
-                        <p class="text-gray-500 dark:text-gray-400">Chưa có bảng công nào</p>
+                        <p class="text-gray-500 dark:text-gray-400">
+                            {{ searchQuery ? 'Không tìm thấy timesheet nào phù hợp' : 'Chưa có bảng công nào' }}
+                        </p>
                     </div>
-                    <div v-else v-for="timesheet in recentTimesheets" :key="timesheet.id"
+                    <div v-else v-for="timesheet in filteredTimesheets" :key="timesheet.id"
                          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-1">
@@ -825,9 +1273,9 @@ const createChangeRequest = () => {
     </div>
 
     <!-- Session Detail Modal -->
-    <Dialog 
-        v-model:visible="showWeekScheduleModal" 
-        modal 
+    <Dialog
+        v-model:visible="showWeekScheduleModal"
+        modal
         :style="{ width: '450px' }"
         header="Chi tiết buổi học">
         <div v-if="selectedSessionDetail" class="space-y-4">
@@ -835,12 +1283,12 @@ const createChangeRequest = () => {
                 <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
                     {{ selectedSessionDetail.class_name }}
                 </h4>
-                <Tag 
+                <Tag
                     :value="getSessionStatusText(selectedSessionDetail.status)"
                     :severity="getSessionStatusSeverity(selectedSessionDetail.status)"
                 />
             </div>
-            
+
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="text-gray-500 dark:text-gray-400">Mã lớp:</p>
@@ -880,4 +1328,7 @@ const createChangeRequest = () => {
             </div>
         </div>
     </Dialog>
+
+    <!-- Export Dialog -->
+    <!-- Tính năng này đã được tạm thời gỡ bỏ -->
 </template>
