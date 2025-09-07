@@ -3,7 +3,7 @@ import { router } from '@inertiajs/vue3'
 export const createCourseService = () => ({
   // List + filters/pagination (nếu có)
   getList(params = {}) {
-    router.visit(route('admin.courses.index', params), {
+    router.visit(route('manager.courses.index', params), {
       preserveScroll: true,
       preserveState: true
     })
@@ -11,7 +11,7 @@ export const createCourseService = () => ({
 
   // Store
   create(data, callbacks = {}) {
-    router.post(route('admin.courses.store'), data, {
+    router.post(route('manager.courses.store'), data, {
       onSuccess: () => callbacks.onSuccess?.(),
       onError: (errors) => callbacks.onError?.(errors)
     })
@@ -19,7 +19,7 @@ export const createCourseService = () => ({
 
   // Update
   update(id, data, callbacks = {}) {
-    router.put(route('admin.courses.update', id), data, {
+    router.put(route('manager.courses.update', id), data, {
       onSuccess: () => callbacks.onSuccess?.(),
       onError: (errors) => callbacks.onError?.(errors)
     })
@@ -28,7 +28,7 @@ export const createCourseService = () => ({
   // Delete
   delete(id, callbacks = {}) {
     if (!confirm('Xác nhận xoá khóa học này?')) return
-    router.delete(route('admin.courses.destroy', id), {
+    router.delete(route('manager.courses.destroy', id), {
       preserveScroll: true,
       onSuccess: () => callbacks.onSuccess?.(),
       onError: (errors) => callbacks.onError?.(errors)

@@ -53,7 +53,7 @@ function buildQuery(extra = {}) {
 }
 
 function applyFilters() {
-  router.visit(route('admin.courses.index', buildQuery()), {
+  router.visit(route('manager.courses.index', buildQuery()), {
     preserveScroll: true,
     preserveState: true,
   })
@@ -66,7 +66,7 @@ function onClearSearch() {
 
 function onPage(e) {
   const page = Math.floor(e.first / e.rows) + 1
-  router.visit(route('admin.courses.index', buildQuery({
+  router.visit(route('manager.courses.index', buildQuery({
     per_page: e.rows,
     page: page > 1 ? page : undefined,
   })), {
@@ -168,7 +168,7 @@ const languageLabels = {
       />
 
       <Link
-        :href="route('admin.courses.create')"
+        :href="route('manager.courses.create')"
         class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
       >
         <i class="pi pi-plus mr-1"></i> Thêm khóa học
@@ -213,7 +213,7 @@ const languageLabels = {
         <template #body="{ data }">
           <div class="flex justify-end gap-2">
             <Link
-              :href="route('admin.courses.edit', data.id)"
+              :href="route('manager.courses.edit', data.id)"
               class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
             >
               <i class="pi pi-pencil mr-1"></i>Sửa

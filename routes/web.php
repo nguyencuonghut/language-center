@@ -132,10 +132,7 @@ Route::middleware(['auth'])->group(function () {
                 ->name('enrollments.search-students');
         });
 
-        // =========================
-        // Course
-        // =========================
-        Route::resource('courses', CourseController::class);
+        // Courses moved to manager section for admin|manager access
 
         // =========================
         // Invoices
@@ -291,6 +288,9 @@ Route::middleware(['auth'])->group(function () {
     ->group(function () {
         // ROOMS (CRUD) - Shared by Admin and Manager
         Route::resource('rooms', RoomController::class);
+        
+        // COURSES (CRUD) - Shared by Admin and Manager
+        Route::resource('courses', \App\Http\Controllers\Manager\CourseController::class);
 
         // TIMESHEETS
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');

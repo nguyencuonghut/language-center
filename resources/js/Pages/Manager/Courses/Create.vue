@@ -52,7 +52,7 @@ function save() {
   if (Object.keys(form.errors).length) return
 
   form.saving = true
-  router.post(route('admin.courses.store'), {
+  router.post(route('manager.courses.store'), {
     code: form.code,
     name: form.name,
     audience: form.audience,
@@ -70,7 +70,7 @@ function save() {
 
   <div class="mb-3 flex justify-between items-center">
     <h1 class="text-xl md:text-2xl font-heading font-semibold">Thêm khoá học</h1>
-    <Link :href="route('admin.courses.index')" class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
+    <Link :href="route('manager.courses.index')" class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800">
       ← Quay lại danh sách
     </Link>
   </div>
@@ -131,7 +131,7 @@ function save() {
       <!-- Actions -->
       <div class="flex justify-end gap-2 mt-4">
         <Link
-          :href="route('admin.courses.index')"
+          :href="route('manager.courses.index')"
           class="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           Huỷ

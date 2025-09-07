@@ -52,14 +52,14 @@ function toDdMmYyyy(date) {
     </h1>
     <div class="flex items-center gap-2">
       <Link
-        :href="route('admin.courses.edit', course.id)"
+        :href="route('manager.courses.edit', course.id)"
         class="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
       >
         <i class="pi pi-pencil mr-1"></i> Sửa
       </Link>
       <Link
-        :href="route('admin.courses.index')"
+        :href="route('manager.courses.index')"
         class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600
                hover:bg-slate-100 dark:hover:bg-slate-800"
       >
