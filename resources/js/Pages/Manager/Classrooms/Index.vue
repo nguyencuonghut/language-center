@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, computed, ref } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import { createClassroomService } from '@/service/ClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
@@ -15,6 +15,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import SplitButton from 'primevue/splitbutton'
 
 defineOptions({ layout: AppLayout })
 
@@ -73,6 +74,51 @@ function onSort(event) {
 /* Actions */
 function destroy(id) {
   classroomService.delete(id)
+}
+
+/* Menu actions for each row */
+function getMenuItems(classroom) {
+  return [
+    {
+      label: 'Phân công giáo viên',
+      icon: 'pi pi-user-edit',
+      command: () => {
+        router.visit(route('manager.classrooms.assignments.index', { classroom: classroom.id }))
+      }
+    },
+    {
+      label: 'Danh sách buổi học',
+      icon: 'pi pi-list',
+      command: () => {
+        router.visit(route('manager.classrooms.sessions.index', { classroom: classroom.id }))
+      }
+    },
+    {
+      label: 'Lịch tuần',
+      icon: 'pi pi-calendar',
+      command: () => {
+        router.visit(route('manager.classrooms.sessions.week', { classroom: classroom.id }))
+      }
+    },
+    {
+      separator: true
+    },
+    {
+      label: 'Sửa lớp',
+      icon: 'pi pi-pencil',
+      command: () => {
+        router.visit(route('manager.classrooms.edit', classroom.id))
+      }
+    },
+    {
+      label: 'Xóa lớp',
+      icon: 'pi pi-trash',
+      class: 'text-red-600 dark:text-red-400',
+      command: () => {
+        destroy(classroom.id)
+      }
+    }
+  ]
 }
 
 /* DataTable props */
@@ -181,69 +227,22 @@ function statusSeverity(s) {
       </Column>
 
       <!-- Actions -->
-      <Column header="" style="width: 360px">
+      <Column header="Thao tác" style="width: 240px">
         <template #body="{ data }">
-            <div class="flex flex-wrap gap-2 justify-end">
-            <!-- Đi đến ghi danh học viên -->
-            <Link
-                :href="route('manager.classrooms.enrollments.index', { classroom: data.id })"
-                class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
-                    dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
-            >
-            <i class="pi pi-user-plus mr-1"></i> Ghi danh
-            </Link>
-
-            <!-- Đi đến phân công giáo viên -->
-            <Link
-                :href="route('manager.classrooms.assignments.index', { classroom: data.id })"
-                class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
-                    dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
-            >
-            <i class="pi pi-user-edit mr-1"></i> Phân công GV
-            </Link>
-
-            <!-- Đi đến danh sách buổi -->
-            <Link
-                :href="route('manager.classrooms.sessions.index', { classroom: data.id })"
-                class="px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50
-                    dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20"
-                title="Danh sách buổi học"
-            >
-                <i class="pi pi-list mr-1"></i> Buổi học
-            </Link>
-
-            <!-- Đi đến lịch tuần -->
-            <Link
-                :href="route('manager.classrooms.sessions.week', { classroom: data.id })"
-                class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
-                    dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
-                title="Xem lịch tuần"
-            >
-                <i class="pi pi-calendar mr-1"></i> Lịch tuần
-            </Link>
-
-            <!-- Sửa lớp -->
-            <Link
-                :href="route('manager.classrooms.edit', data.id)"
-                class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
-                    dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
-                title="Sửa lớp"
-            >
-                <i class="pi pi-pencil mr-1"></i> Sửa
-            </Link>
-
-            <!-- Xoá lớp -->
-            <button
-                @click="destroy(data.id)"
-                class="px-3 py-1.5 rounded border border-red-300 text-red-600 hover:bg-red-50
-                    dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
-                title="Xoá lớp"
-            >
-                <i class="pi pi-trash mr-1"></i> Xoá
-            </button>
-            </div>
+          <div class="flex items-center gap-2 justify-end">
+            <!-- Split Button: Primary action + dropdown menu -->
+            <SplitButton
+              label="Ghi danh"
+              icon="pi pi-user-plus"
+              size="small"
+              severity="success"
+              :model="getMenuItems(data)"
+              @click="router.visit(route('manager.classrooms.enrollments.index', { classroom: data.id }))"
+              class="text-sm"
+            />
+          </div>
         </template>
-        </Column>
+      </Column>
 
       <template #empty>
         <div class="p-6 text-center text-slate-500 dark:text-slate-400">Chưa có lớp nào.</div>
