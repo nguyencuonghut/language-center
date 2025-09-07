@@ -443,7 +443,7 @@ const confirmRetarget = () => {
             <Column header="" style="width: 160px">
               <template #body="{ data }">
                 <Link
-                  :href="route('admin.invoices.show', data.id)"
+                  :href="route('manager.invoices.show', data.id)"
                   class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Chi tiết

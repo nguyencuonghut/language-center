@@ -69,7 +69,7 @@ const adminMenu = [
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: false },
   { label: 'Chuyển lớp', icon: 'pi pi-arrow-right-arrow-left', url: '/manager/transfers', ready: true },
   { label: 'Khóa học',  icon: 'pi pi-book',     url: '/manager/courses',     ready: true },
-  { label: 'Hoá đơn', icon: 'pi pi-wallet', url: '/admin/invoices', ready: true },
+  { label: 'Hoá đơn', icon: 'pi pi-wallet', url: '/manager/invoices', ready: true },
   { label: 'Báo cáo',   icon: 'pi pi-chart-bar',url: '/admin/reports',     ready: false },
   { label: 'Cài đặt',   icon: 'pi pi-cog',      url: '/admin/settings',    ready: false },
 ]
