@@ -55,14 +55,14 @@ function buildQuery(extra = {}) {
   return q
 }
 function applyFilters() {
-  router.visit(route('admin.classrooms.sessions.index', { classroom: props.classroom.id, ...buildQuery() }), {
+  router.visit(route('manager.classrooms.sessions.index', { classroom: props.classroom.id, ...buildQuery() }), {
     preserveScroll: true,
     preserveState: true
   })
 }
 function onPage(event) {
   const page = Math.floor(event.first / event.rows) + 1
-  router.visit(route('admin.classrooms.sessions.index', {
+  router.visit(route('manager.classrooms.sessions.index', {
     classroom: props.classroom.id,
     ...buildQuery({
       per_page: event.rows,
@@ -131,7 +131,7 @@ function saveRow(row) {
   if (Object.keys(model.errors).length) return
 
   model.saving = true
-  router.put(route('admin.classrooms.sessions.update', { classroom: props.classroom.id, session: id }), {
+  router.put(route('manager.classrooms.sessions.update', { classroom: props.classroom.id, session: id }), {
     date: model.date ? toYmdLocal(model.date) : null,
     start_time: toHHmm(model.start_time),
     end_time: toHHmm(model.end_time),
@@ -179,7 +179,7 @@ function saveCreate() {
   if (Object.keys(createForm.errors).length) return
 
   createForm.saving = true
-  router.post(route('admin.classrooms.sessions.store', { classroom: props.classroom.id }), {
+  router.post(route('manager.classrooms.sessions.store', { classroom: props.classroom.id }), {
     date: toYmdLocal(createForm.date),
     start_time: toHHmm(createForm.start_time),
     end_time: toHHmm(createForm.end_time),
@@ -212,7 +212,7 @@ function bulkAssignRoom() {
   const ids = selection.value.map(x => x.id)
   if (!confirm(`Gán phòng cho ${ids.length} buổi?`)) return
 
-  router.post(route('admin.classrooms.sessions.bulk-room', { classroom: props.classroom.id }), {
+  router.post(route('manager.classrooms.sessions.bulk-room', { classroom: props.classroom.id }), {
     ids,
     room_id: Number(bulkRoom.value),
   }, {
@@ -245,7 +245,7 @@ function bulkAssignRoom() {
       <Button label="Thêm buổi" icon="pi pi-plus" @click="openCreate" />
 
       <Link
-        :href="route('admin.classrooms.sessions.week', { classroom: classroom.id })"
+        :href="route('manager.classrooms.sessions.week', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50
                dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
       >
@@ -253,21 +253,21 @@ function bulkAssignRoom() {
       </Link>
 
       <Link
-        :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })"
+        :href="route('manager.classrooms.schedules.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         Lịch tuần mẫu
       </Link>
 
       <Link
-        :href="route('admin.classrooms.edit', { classroom: classroom.id })"
+        :href="route('manager.classrooms.edit', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         Chi tiết lớp
       </Link>
 
       <Link
-        :href="route('admin.classrooms.index')"
+        :href="route('manager.classrooms.index')"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         ← Danh sách lớp

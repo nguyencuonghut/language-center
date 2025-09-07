@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateSessionsRequest;
@@ -81,7 +81,7 @@ class ClassSessionController extends Controller
             'value'=> (string)$r->id,
         ]);
 
-    return Inertia::render('Admin/Classrooms/Sessions/Index', [
+    return Inertia::render('Manager/Classrooms/Sessions/Index', [
         'classroom' => $classroom->only(['id','code','name','branch_id']),
         'sessions'  => $sessions,
         'rooms'     => $rooms, // <-- thêm
@@ -182,7 +182,7 @@ class ClassSessionController extends Controller
             return $items->values();
         });
 
-        return Inertia::render('Admin/Classrooms/Sessions/Week', [
+        return Inertia::render('Manager/Classrooms/Sessions/Week', [
             'classroom' => $classroom->only(['id','code','name','branch_id']),
             'filters'   => [
                 'date'    => $ref->toDateString(),

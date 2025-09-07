@@ -40,14 +40,14 @@ const state = reactive({
   perPage: props.filters?.perPage ?? (props.assignments?.per_page ?? 20),
 })
 function applyFilters() {
-  router.visit(route('admin.classrooms.assignments.index', {
+  router.visit(route('manager.classrooms.assignments.index', {
     classroom: props.classroom.id,
     per_page: state.perPage !== props.assignments?.per_page ? state.perPage : undefined
   }), { preserveScroll: true, preserveState: true })
 }
 function onPage(e) {
   const page = Math.floor(e.first / e.rows) + 1
-  router.visit(route('admin.classrooms.assignments.index', {
+  router.visit(route('manager.classrooms.assignments.index', {
     classroom: props.classroom.id,
     per_page: e.rows,
     page: page > 1 ? page : undefined
@@ -164,7 +164,7 @@ function destroy(id) {
     <div class="flex flex-wrap items-center gap-2">
       <Button label="Thêm phân công" icon="pi pi-plus" @click="openCreate" />
       <Link
-        :href="route('admin.classrooms.index')"
+        :href="route('manager.classrooms.index')"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         ← Danh sách lớp

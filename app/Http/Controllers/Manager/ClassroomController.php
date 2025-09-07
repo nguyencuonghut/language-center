@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Manager;
+
+use App\Http\Controllers\Controller;
 
 use App\Http\Requests\ClassroomRequest;
 use App\Models\Classroom;
@@ -87,7 +89,7 @@ class ClassroomController extends Controller
 
         $branches = Branch::select('id','name')->orderBy('name')->get();
 
-        return Inertia::render('Admin/Classrooms/Index', [
+        return Inertia::render('Manager/Classrooms/Index', [
             'classrooms' => $classrooms,
             'branches'   => $branches,
             'filters'    => [
@@ -110,7 +112,7 @@ class ClassroomController extends Controller
         $suggestBranch = $request->query('branch');
         $suggestBranchId = ($suggestBranch && $suggestBranch !== 'all') ? (int) $suggestBranch : null;
 
-        return Inertia::render('Admin/Classrooms/Create', [
+        return Inertia::render('Manager/Classrooms/Create', [
             'branches'        => $branches,
             'courses'         => $courses,
             'suggestBranchId' => $suggestBranchId,
@@ -124,7 +126,7 @@ class ClassroomController extends Controller
         $cls = Classroom::create($data);
 
         return redirect()
-            ->route('admin.classrooms.index', $request->only('branch')) // giữ query nếu có
+            ->route('manager.classrooms.index', $request->only('branch')) // giữ query nếu có
             ->with('success', 'Tạo lớp thành công.');
     }
 
@@ -134,7 +136,7 @@ class ClassroomController extends Controller
         $branches = Branch::select('id','name')->orderBy('name')->get();
         $courses  = Course::select('id','name')->orderBy('name')->get();
 
-        return Inertia::render('Admin/Classrooms/Edit', [
+        return Inertia::render('Manager/Classrooms/Edit', [
             'classroom' => $classroom->only([
                 'id','code','name','term_code','course_id','branch_id',
                 'start_date','sessions_total','tuition_fee','status'
@@ -151,7 +153,7 @@ class ClassroomController extends Controller
         $classroom->update($data);
 
         return redirect()
-            ->route('admin.classrooms.index', $request->only('branch'))
+            ->route('manager.classrooms.index', $request->only('branch'))
             ->with('success', 'Cập nhật lớp thành công.');
     }
 
@@ -161,7 +163,7 @@ class ClassroomController extends Controller
         $classroom->delete();
 
         return redirect()
-            ->route('admin.classrooms.index', request()->only('branch'))
+            ->route('manager.classrooms.index', request()->only('branch'))
             ->with('success', 'Đã xoá lớp.');
     }
 

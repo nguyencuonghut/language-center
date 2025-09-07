@@ -8,10 +8,11 @@ use Inertia\Inertia;
 // Controllers (nếu có)
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\Manager\RoomController;
-use App\Http\Controllers\ClassroomController;
-use App\Http\Controllers\ClassScheduleController;
-use App\Http\Controllers\Admin\ClassSessionController;
-use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Manager\ClassroomController;
+use App\Http\Controllers\Manager\ClassScheduleController;
+use App\Http\Controllers\Manager\ClassSessionController;
+use App\Http\Controllers\Manager\EnrollmentController;
+use App\Http\Controllers\Manager\CourseController;
 use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
@@ -21,9 +22,11 @@ use App\Http\Controllers\Manager\TeacherController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoiceItemController;
 use App\Http\Controllers\Admin\PaymentController;
-use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Manager\TeachingAssignmentController;
 use App\Http\Controllers\Manager\TransferController;
+use App\Http\Controllers\Manager\TransferAnalyticsController;
+use App\Http\Controllers\Manager\TransferAdvancedController;
+use App\Http\Controllers\Manager\TransferAuditController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,49 +93,7 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('branches', BranchController::class);
 
         // Rooms moved to manager section for admin|manager access
-
-        // Classrooms (CRUD)
-        // Ví dụ permission-based chi tiết:
-        // Route::resource('classrooms', ClassroomController::class)
-        //     ->only(['index','show'])->middleware('permission:classrooms.view');
-        // Route::resource('classrooms', ClassroomController::class)
-        //     ->only(['create','store','edit','update','destroy'])->middleware('permission:classrooms.manage');
-        Route::resource('classrooms', ClassroomController::class);
-
-        // Nested resource: schedules thuộc về classroom
-        Route::prefix('classrooms/{classroom}')
-            ->name('classrooms.')
-            ->group(function () {
-            Route::resource('schedules', ClassScheduleController::class)
-            ->parameters(['schedules' => 'schedule'])   // {schedule} cho model binding
-            ->scoped(['schedule' => 'id']);             // scope theo id, hoặc có thể thay bằng 'uuid' nếu bạn dùng
-
-            // Generate sessions (needs classroom parameter for route-model binding)
-            Route::post('sessions/generate', [ClassSessionController::class, 'generate'])
-                ->name('sessions.generate');
-            Route::get('sessions', [ClassSessionController::class, 'index'])
-                ->name('sessions.index'); // List buổi theo lớp
-            Route::put('sessions/{session}', [ClassSessionController::class, 'update'])
-                ->name('sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
-            // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
-            Route::get('sessions/week', [ClassSessionController::class, 'week'])
-                ->name('sessions.week');
-            Route::post('sessions', [ClassSessionController::class, 'store'])
-                ->name('sessions.store');
-            Route::post('sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
-                ->name('sessions.bulk-room');
-            // ENROLLMENTS (ghi danh)
-            Route::get('enrollments', [EnrollmentController::class, 'index'])->name('enrollments.index');
-            Route::post('enrollments',       [EnrollmentController::class, 'store'])->name('enrollments.store');
-            Route::delete('enrollments/{enrollment}', [EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
-            Route::post('enrollments/bulk', [EnrollmentController::class, 'bulkStore'])->name('enrollments.bulk-store');
-
-            // (tuỳ chọn) API tìm học viên để gợi ý autocomplete
-            Route::get('enrollments/search-students', [EnrollmentController::class, 'searchStudents'])
-                ->name('enrollments.search-students');
-        });
-
-        // Courses moved to manager section for admin|manager access
+        // Classrooms moved to manager section for admin|manager access
 
         // =========================
         // Invoices
@@ -285,7 +246,43 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('rooms', RoomController::class);
 
         // COURSES (CRUD) - Shared by Admin and Manager
-        Route::resource('courses', \App\Http\Controllers\Manager\CourseController::class);
+        Route::resource('courses', CourseController::class);
+
+        // CLASSROOMS (CRUD) - Shared by Admin and Manager
+        Route::resource('classrooms', ClassroomController::class);
+
+        // Nested resource: schedules thuộc về classroom
+        Route::prefix('classrooms/{classroom}')
+            ->name('classrooms.')
+            ->group(function () {
+            Route::resource('schedules', ClassScheduleController::class)
+            ->parameters(['schedules' => 'schedule'])   // {schedule} cho model binding
+            ->scoped(['schedule' => 'id']);             // scope theo id, hoặc có thể thay bằng 'uuid' nếu bạn dùng
+
+            // Generate sessions (needs classroom parameter for route-model binding)
+            Route::post('sessions/generate', [ClassSessionController::class, 'generate'])
+                ->name('sessions.generate');
+            Route::get('sessions', [ClassSessionController::class, 'index'])
+                ->name('sessions.index'); // List buổi theo lớp
+            Route::put('sessions/{session}', [ClassSessionController::class, 'update'])
+                ->name('sessions.update'); // Cập nhật giờ/room/status, có kiểm tra trùng phòng
+            // ✅ NEW: Week View (theo lớp, có filter phòng và tuần)
+            Route::get('sessions/week', [ClassSessionController::class, 'week'])
+                ->name('sessions.week');
+            Route::post('sessions', [ClassSessionController::class, 'store'])
+                ->name('sessions.store');
+            Route::post('sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
+                ->name('sessions.bulk-room');
+            // ENROLLMENTS (ghi danh)
+            Route::get('enrollments', [EnrollmentController::class, 'index'])->name('enrollments.index');
+            Route::post('enrollments',       [EnrollmentController::class, 'store'])->name('enrollments.store');
+            Route::delete('enrollments/{enrollment}', [EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+            Route::post('enrollments/bulk', [EnrollmentController::class, 'bulkStore'])->name('enrollments.bulk-store');
+
+            // (tuỳ chọn) API tìm học viên để gợi ý autocomplete
+            Route::get('enrollments/search-students', [EnrollmentController::class, 'searchStudents'])
+                ->name('enrollments.search-students');
+        });
 
         // TIMESHEETS
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
@@ -333,25 +330,25 @@ Route::middleware(['auth'])->group(function () {
 
         // TRANSFERS
         // Analytics routes MUST come before resource routes to avoid conflicts
-        Route::get('transfers/analytics/export', [App\Http\Controllers\Manager\TransferAnalyticsController::class, 'export'])
+        Route::get('transfers/analytics/export', [TransferAnalyticsController::class, 'export'])
             ->name('transfers.analytics.export');
-        Route::get('transfers/analytics', [App\Http\Controllers\Manager\TransferAnalyticsController::class, 'index'])
+        Route::get('transfers/analytics', [TransferAnalyticsController::class, 'index'])
             ->name('transfers.analytics');
 
         // Advanced Transfer Features (Phase 4)
         Route::prefix('transfers/advanced')->name('transfers.advanced.')->group(function () {
-            Route::get('search', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'search'])
+            Route::get('search', [TransferAdvancedController::class, 'search'])
                 ->name('search');
-            Route::get('history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'history'])
+            Route::get('history', [TransferAdvancedController::class, 'history'])
                 ->name('history');
-            Route::get('reports', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'reports'])
+            Route::get('reports', [TransferAdvancedController::class, 'reports'])
                 ->name('reports');
-            Route::get('reports/export', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'exportReports'])
+            Route::get('reports/export', [TransferAdvancedController::class, 'exportReports'])
                 ->name('reports.export');
         });
 
         // Transfer History for specific student
-        Route::get('students/{student}/transfer-history', [App\Http\Controllers\Manager\TransferAdvancedController::class, 'studentHistory'])
+        Route::get('students/{student}/transfer-history', [TransferAdvancedController::class, 'studentHistory'])
             ->name('students.transfer-history');
 
         Route::resource('transfers', TransferController::class);
@@ -370,13 +367,13 @@ Route::middleware(['auth'])->group(function () {
 
         // Audit Routes (Priority 2 Enhancement)
         Route::prefix('transfers')->name('transfers.')->group(function () {
-            Route::get('audit/search', [App\Http\Controllers\Manager\TransferAuditController::class, 'search'])
+            Route::get('audit/search', [TransferAuditController::class, 'search'])
                 ->name('audit.search');
-            Route::get('audit/export-search', [App\Http\Controllers\Manager\TransferAuditController::class, 'exportSearch'])
+            Route::get('audit/export-search', [TransferAuditController::class, 'exportSearch'])
                 ->name('audit.export-search');
-            Route::get('{transfer}/audit', [App\Http\Controllers\Manager\TransferAuditController::class, 'show'])
+            Route::get('{transfer}/audit', [TransferAuditController::class, 'show'])
                 ->name('audit.show');
-            Route::get('{transfer}/audit/export', [App\Http\Controllers\Manager\TransferAuditController::class, 'export'])
+            Route::get('{transfer}/audit/export', [TransferAuditController::class, 'export'])
                 ->name('audit.export');
         });
 

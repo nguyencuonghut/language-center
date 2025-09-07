@@ -75,12 +75,12 @@ function buildQuery(extra = {}) {
   return q
 }
 function applyFilters(){
-  router.visit(route('admin.classrooms.enrollments.index', { classroom: props.classroom.id, ...buildQuery() }),
+  router.visit(route('manager.classrooms.enrollments.index', { classroom: props.classroom.id, ...buildQuery() }),
     { preserveScroll: true, preserveState: true })
 }
 function onPage(e){
   const page = Math.floor(e.first / e.rows) + 1
-  router.visit(route('admin.classrooms.enrollments.index', {
+  router.visit(route('manager.classrooms.enrollments.index', {
     classroom: props.classroom.id,
     ...buildQuery({ per_page: e.rows, page: page > 1 ? page : undefined })
   }), { preserveScroll: true, preserveState: true })
@@ -169,12 +169,12 @@ function submitEnroll(){
   let routeName
   if (isBulk.value) {
     payload.student_ids = (form.studentsMulti || []).map(x => x.value)
-    routeName = routeExists('admin.classrooms.enrollments.bulk-store')
-      ? 'admin.classrooms.enrollments.bulk-store'
-      : 'admin.classrooms.enrollments.store' // fallback: backend tự nhận diện mảng student_ids
+    routeName = routeExists('manager.classrooms.enrollments.bulk-store')
+      ? 'manager.classrooms.enrollments.bulk-store'
+      : 'manager.classrooms.enrollments.store' // fallback: backend tự nhận diện mảng student_ids
   } else {
     payload.student_id = form.studentObj.value
-    routeName = 'admin.classrooms.enrollments.store'
+    routeName = 'manager.classrooms.enrollments.store'
   }
 
   form.saving = true
@@ -188,7 +188,7 @@ function submitEnroll(){
 
 function destroy(id){
   if (!confirm('Xoá ghi danh này?')) return
-  router.delete(route('admin.classrooms.enrollments.destroy', { classroom: props.classroom.id, enrollment: id }), {
+  router.delete(route('manager.classrooms.enrollments.destroy', { classroom: props.classroom.id, enrollment: id }), {
     preserveScroll: true
   })
 }
@@ -224,7 +224,7 @@ async function transferClass(id){
 function onTransferSuccess(){
   showTransferModal.value = false
   // Refresh the enrollments data
-  router.visit(route('admin.classrooms.enrollments.index', { classroom: props.classroom.id, ...buildQuery() }),
+  router.visit(route('manager.classrooms.enrollments.index', { classroom: props.classroom.id, ...buildQuery() }),
     { preserveScroll: true, preserveState: true })
 }
 </script>
@@ -244,13 +244,13 @@ function onTransferSuccess(){
       <Button label="Ghi danh" icon="pi pi-user-plus" @click="openDialog" />
 
       <Link
-        :href="route('admin.classrooms.edit', { classroom: classroom.id })"
+        :href="route('manager.classrooms.edit', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         Chi tiết lớp
       </Link>
       <Link
-        :href="route('admin.classrooms.index')"
+        :href="route('manager.classrooms.index')"
         class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         ← Danh sách lớp

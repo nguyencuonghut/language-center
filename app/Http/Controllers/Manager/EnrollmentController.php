@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EnrollmentRequest;
@@ -46,7 +46,7 @@ class EnrollmentController extends Controller
                 'value'=>(string)$s->id,
             ]);
 
-        return Inertia::render('Admin/Classrooms/Enrollments/Index', [
+        return Inertia::render('Manager/Classrooms/Enrollments/Index', [
             'classroom' => [
                 'id' => $classroom->id,
                 'code' => $classroom->code,

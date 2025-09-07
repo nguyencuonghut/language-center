@@ -42,7 +42,7 @@ class TeachingAssignmentController extends Controller
                 'value' => (string)$u->id,
             ]);
 
-        return Inertia::render('Admin/Classrooms/Assignments/Index', [
+        return Inertia::render('Manager/Classrooms/Assignments/Index', [
             'classroom'   => $classroom->only(['id','code','name','branch_id']),
             'assignments' => $assignments,
             'teachers'    => $teachers,

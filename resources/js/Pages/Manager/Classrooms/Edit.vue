@@ -82,7 +82,7 @@ function onSubmit() {
     <div class="flex flex-wrap gap-2">
       <!-- Nút đi đến Ghi danh học viên -->
       <Link
-        :href="route('admin.classrooms.enrollments.index', { classroom: classroom.id })"
+        :href="route('manager.classrooms.enrollments.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
         >
@@ -100,7 +100,7 @@ function onSubmit() {
 
       <!-- Nút đi đến Buổi học -->
       <Link
-        :href="route('admin.classrooms.sessions.index', { classroom: classroom.id })"
+        :href="route('manager.classrooms.sessions.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50
                dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20"
         title="Danh sách buổi học"
@@ -110,7 +110,7 @@ function onSubmit() {
 
       <!-- Nút đi đến Lịch tuần -->
       <Link
-        :href="route('admin.classrooms.sessions.week', { classroom: classroom.id })"
+        :href="route('manager.classrooms.sessions.week', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
                dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
         title="Xem lịch tuần"
@@ -120,7 +120,7 @@ function onSubmit() {
 
       <!-- Quay lại danh sách lớp -->
       <Link
-        :href="route('admin.classrooms.index')"
+        :href="route('manager.classrooms.index')"
         class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         ← Danh sách lớp
@@ -190,7 +190,7 @@ function onSubmit() {
 
     <div class="flex items-center gap-2 justify-end pt-2">
       <Link
-        :href="route('admin.classrooms.index')"
+        :href="route('manager.classrooms.index')"
         class="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         Huỷ

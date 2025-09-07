@@ -106,9 +106,9 @@ function submit() {
 
   <div class="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
     <nav class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
-      <Link :href="route('admin.classrooms.index')" class="hover:text-emerald-600 dark:hover:text-emerald-300">Lớp học</Link>
+      <Link :href="route('manager.classrooms.index')" class="hover:text-emerald-600 dark:hover:text-emerald-300">Lớp học</Link>
       <span>/</span>
-      <Link :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })" class="hover:text-emerald-600 dark:hover:text-emerald-300">
+      <Link :href="route('manager.classrooms.schedules.index', { classroom: classroom.id })" class="hover:text-emerald-600 dark:hover:text-emerald-300">
         {{ classroom.name }} / Lịch học
       </Link>
       <span>/</span>
@@ -116,7 +116,7 @@ function submit() {
     </nav>
 
     <Link
-      :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })"
+      :href="route('manager.classrooms.schedules.index', { classroom: classroom.id })"
       class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 self-start md:self-auto"
     >
       ← Danh sách lịch
@@ -155,7 +155,7 @@ function submit() {
       <div class="mt-5 flex gap-2 justify-end">
         <Button label="Cập nhật" icon="pi pi-check" severity="success" @click="submit" />
         <Link
-          :href="route('admin.classrooms.schedules.index', { classroom: classroom.id })"
+          :href="route('manager.classrooms.schedules.index', { classroom: classroom.id })"
           class="px-3 py-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-700/30"
         >
           Huỷ

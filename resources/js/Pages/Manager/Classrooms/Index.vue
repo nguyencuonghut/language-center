@@ -123,7 +123,7 @@ function statusSeverity(s) {
       />
 
       <!-- Nút tạo lớp (tùy môi trường của bạn) -->
-      <Link :href="route('admin.classrooms.create')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+      <Link :href="route('manager.classrooms.create')" class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
         <i class="pi pi-plus mr-1"></i> Tạo lớp
       </Link>
     </div>
@@ -186,7 +186,7 @@ function statusSeverity(s) {
             <div class="flex flex-wrap gap-2 justify-end">
             <!-- Đi đến ghi danh học viên -->
             <Link
-                :href="route('admin.classrooms.enrollments.index', { classroom: data.id })"
+                :href="route('manager.classrooms.enrollments.index', { classroom: data.id })"
                 class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                     dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
             >
@@ -204,7 +204,7 @@ function statusSeverity(s) {
 
             <!-- Đi đến danh sách buổi -->
             <Link
-                :href="route('admin.classrooms.sessions.index', { classroom: data.id })"
+                :href="route('manager.classrooms.sessions.index', { classroom: data.id })"
                 class="px-3 py-1.5 rounded border border-sky-300 text-sky-700 hover:bg-sky-50
                     dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900/20"
                 title="Danh sách buổi học"
@@ -214,7 +214,7 @@ function statusSeverity(s) {
 
             <!-- Đi đến lịch tuần -->
             <Link
-                :href="route('admin.classrooms.sessions.week', { classroom: data.id })"
+                :href="route('manager.classrooms.sessions.week', { classroom: data.id })"
                 class="px-3 py-1.5 rounded border border-indigo-300 text-indigo-700 hover:bg-indigo-50
                     dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-900/20"
                 title="Xem lịch tuần"
@@ -224,7 +224,7 @@ function statusSeverity(s) {
 
             <!-- Sửa lớp -->
             <Link
-                :href="route('admin.classrooms.edit', data.id)"
+                :href="route('manager.classrooms.edit', data.id)"
                 class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                     dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
                 title="Sửa lớp"

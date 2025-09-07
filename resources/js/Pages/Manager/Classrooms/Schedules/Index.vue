@@ -44,7 +44,7 @@ function openGenerateDialog() {
 
 function submitGenerate() {
   router.post(
-    route('admin.classrooms.sessions.generate', { classroom: props.classroom.id }),
+    route('manager.classrooms.sessions.generate', { classroom: props.classroom.id }),
     {
       from_date: form.from_date instanceof Date
         ? new Date(form.from_date).toISOString().slice(0, 10)
@@ -126,11 +126,11 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
     <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <!-- Breadcrumb -->
       <nav class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
-        <Link :href="route('admin.classrooms.index')" class="hover:text-emerald-600 dark:hover:text-emerald-300">
+        <Link :href="route('manager.classrooms.index')" class="hover:text-emerald-600 dark:hover:text-emerald-300">
           Lớp học
         </Link>
         <span>/</span>
-        <Link :href="route('admin.classrooms.edit', { classroom: classroom.id })" class="hover:text-emerald-600 dark:hover:text-emerald-300">
+        <Link :href="route('manager.classrooms.edit', { classroom: classroom.id })" class="hover:text-emerald-600 dark:hover:text-emerald-300">
           {{ classroom.name }}
         </Link>
         <span>/</span>
@@ -140,14 +140,14 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
       <!-- Actions -->
       <div class="flex flex-wrap items-center gap-2">
         <Link
-          :href="route('admin.classrooms.index')"
+          :href="route('manager.classrooms.index')"
           class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           ← Danh sách lớp
         </Link>
 
         <Link
-          :href="route('admin.classrooms.edit', { classroom: classroom.id })"
+          :href="route('manager.classrooms.edit', { classroom: classroom.id })"
           class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           Chi tiết lớp
@@ -162,7 +162,7 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
         />
 
         <Link
-          :href="route('admin.classrooms.schedules.create', { classroom: classroom.id })"
+          :href="route('manager.classrooms.schedules.create', { classroom: classroom.id })"
           class="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
         >
           <i class="pi pi-plus mr-1"></i> Thêm lịch
@@ -209,7 +209,7 @@ const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
         <template #body="{ data }">
           <div class="flex gap-2 justify-end">
             <Link
-              :href="route('admin.classrooms.schedules.edit', { classroom: classroom.id, schedule: data.id })"
+              :href="route('manager.classrooms.schedules.edit', { classroom: classroom.id, schedule: data.id })"
               class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
             >
               <i class="pi pi-pencil mr-1"></i>Sửa

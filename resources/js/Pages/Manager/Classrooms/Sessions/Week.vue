@@ -29,7 +29,7 @@ const state = reactive({
 
 /* ---- Helpers ---- */
 function applyFilters() {
-  router.get(route('admin.classrooms.sessions.week', { classroom: props.classroom.id }), {
+  router.get(route('manager.classrooms.sessions.week', { classroom: props.classroom.id }), {
     date: state.refDate,
     room_id: state.roomId,
   }, {
@@ -90,7 +90,7 @@ function fmt(t) {
       />
 
       <Link
-        :href="route('admin.classrooms.sessions.index', { classroom: classroom.id })"
+        :href="route('manager.classrooms.sessions.index', { classroom: classroom.id })"
         class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         Danh sách buổi
@@ -117,7 +117,7 @@ function fmt(t) {
             <div class="flex justify-between items-center">
               <Tag :value="s.status" />
               <Link
-                :href="route('admin.classrooms.sessions.index', { classroom: classroom.id }) + '?focus='+s.id"
+                :href="route('manager.classrooms.sessions.index', { classroom: classroom.id }) + '?focus='+s.id"
                 class="text-emerald-600 hover:underline text-xs"
               >Chi tiết</Link>
             </div>

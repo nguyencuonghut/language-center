@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Manager;
+
+use App\Http\Controllers\Controller;
 
 use App\Http\Requests\ClassScheduleRequest;
 use App\Models\Classroom;
@@ -30,7 +32,7 @@ class ClassScheduleController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        return Inertia::render('Admin/Classrooms/Schedules/Index', [
+        return Inertia::render('Manager/Classrooms/Schedules/Index', [
             'classroom' => $classroom->only('id', 'code', 'name', 'branch_id'),
             'schedules' => $schedules,
             'filters'   => [
@@ -46,7 +48,7 @@ class ClassScheduleController extends Controller
      */
     public function create(Classroom $classroom)
     {
-        return Inertia::render('Admin/Classrooms/Schedules/Create', [
+        return Inertia::render('Manager/Classrooms/Schedules/Create', [
             'classroom' => $classroom->only('id', 'code', 'name', 'branch_id'),
         ]);
     }
@@ -60,7 +62,7 @@ class ClassScheduleController extends Controller
         ClassSchedule::create($request->validated());
 
         return redirect()
-            ->route('admin.classrooms.schedules.index', $classroom->id)
+            ->route('manager.classrooms.schedules.index', $classroom->id)
             ->with('success', 'Đã thêm lịch cho lớp.');
     }
 
@@ -74,7 +76,7 @@ class ClassScheduleController extends Controller
             abort(404);
         }
 
-        return Inertia::render('Admin/Classrooms/Schedules/Edit', [
+        return Inertia::render('Manager/Classrooms/Schedules/Edit', [
             'classroom' => $classroom->only('id', 'code', 'name', 'branch_id'),
             'schedule'  => $schedule->only('id', 'class_id', 'weekday', 'start_time', 'end_time'),
         ]);
@@ -92,7 +94,7 @@ class ClassScheduleController extends Controller
         $schedule->update($request->validated());
 
         return redirect()
-            ->route('admin.classrooms.schedules.index', $classroom->id)
+            ->route('manager.classrooms.schedules.index', $classroom->id)
             ->with('success', 'Đã cập nhật lịch.');
     }
 
@@ -108,7 +110,7 @@ class ClassScheduleController extends Controller
         $schedule->delete();
 
         return redirect()
-            ->route('admin.classrooms.schedules.index', $classroom->id)
+            ->route('manager.classrooms.schedules.index', $classroom->id)
             ->with('success', 'Đã xoá lịch.');
     }
 }
