@@ -7,7 +7,7 @@ use Inertia\Inertia;
 
 // Controllers (nếu có)
 use App\Http\Controllers\BranchController;
-use App\Http\Controllers\RoomController;
+use App\Http\Controllers\Manager\RoomController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\ClassScheduleController;
 use App\Http\Controllers\Admin\ClassSessionController;
@@ -89,9 +89,7 @@ Route::middleware(['auth'])->group(function () {
         // Route::resource('branches', BranchController::class)->middleware('permission:branches.view');
         Route::resource('branches', BranchController::class);
 
-        // Rooms (CRUD) — nếu muốn permission-based:
-        // Route::resource('rooms', RoomController::class)->middleware('permission:rooms.view');
-        Route::resource('rooms', RoomController::class);
+        // Rooms moved to manager section for admin|manager access
 
         // Classrooms (CRUD)
         // Ví dụ permission-based chi tiết:
@@ -291,6 +289,9 @@ Route::middleware(['auth'])->group(function () {
     ->prefix('manager')
     ->name('manager.')
     ->group(function () {
+        // ROOMS (CRUD) - Shared by Admin and Manager
+        Route::resource('rooms', RoomController::class);
+
         // TIMESHEETS
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');
         Route::post('timesheets/{id}/approve', [TimesheetController::class, 'approve'])->name('timesheets.approve');

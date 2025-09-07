@@ -61,7 +61,7 @@ const isTeacher = computed(() => hasRole('teacher'))
 const adminMenu = [
   { label: 'Dashboard', icon: 'pi pi-home',     url: '/admin/dashboard',   ready: true },
   { label: 'Chi nhánh', icon: 'pi pi-sitemap',  url: '/admin/branches',    ready: true },
-  { label: 'Phòng học', icon: 'pi pi-building', url: '/admin/rooms',       ready: true },
+  { label: 'Phòng học', icon: 'pi pi-building', url: '/manager/rooms',     ready: true },
   { label: 'Giáo viên', icon: 'pi pi-id-card',  url: '/manager/teachers',  ready: true },
   { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true },
   { label: 'Lớp học',   icon: 'pi pi-users',    url: '/admin/classrooms',  ready: true },

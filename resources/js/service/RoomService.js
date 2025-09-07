@@ -5,7 +5,7 @@ export const createRoomService = ({ showSuccess, showError }) => ({
      * Get list of rooms with pagination and filters
      */
     getList(params = {}) {
-        router.visit(route('admin.rooms.index', params), {
+        router.visit(route('manager.rooms.index', params), {
             preserveScroll: true,
             preserveState: true,
             onError: (errors) => {
@@ -18,7 +18,7 @@ export const createRoomService = ({ showSuccess, showError }) => ({
      * Create a new room
      */
     create(data, callbacks = {}) {
-        router.post(route('admin.rooms.store'), data, {
+        router.post(route('manager.rooms.store'), data, {
             onSuccess: () => {
                 callbacks.onSuccess?.()
             },
@@ -35,7 +35,7 @@ export const createRoomService = ({ showSuccess, showError }) => ({
      * Update a room
      */
     update(id, data, callbacks = {}) {
-        router.put(route('admin.rooms.update', id), data, {
+        router.put(route('manager.rooms.update', id), data, {
             onSuccess: () => {
                 callbacks.onSuccess?.()
             },
@@ -54,7 +54,7 @@ export const createRoomService = ({ showSuccess, showError }) => ({
     delete(id, callbacks = {}) {
         if (!confirm('Xác nhận xoá phòng học này?')) return
 
-        router.delete(route('admin.rooms.destroy', id), {
+        router.delete(route('manager.rooms.destroy', id), {
             preserveScroll: true,
             onSuccess: () => {
                 callbacks.onSuccess?.()
