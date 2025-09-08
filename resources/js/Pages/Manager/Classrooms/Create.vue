@@ -1,11 +1,11 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { createClassroomService } from '@/service/ClassroomService'
+import { createManagerClassroomService } from '@/service/ManagerClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
 
 const { showSuccess, showError } = usePageToast()
-const classroomService = createClassroomService({ showSuccess, showError })
+const classroomService = createManagerClassroomService({ showSuccess, showError })
 
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'

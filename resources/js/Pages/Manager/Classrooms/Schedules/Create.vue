@@ -2,7 +2,7 @@
 import { reactive } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { createClassScheduleService } from '@/service/ClassScheduleService'
+import { createManagerClassScheduleService } from '@/service/ManagerClassScheduleService'
 import { usePageToast } from '@/composables/usePageToast'
 
 // PrimeVue
@@ -18,7 +18,7 @@ const props = defineProps({
 })
 
 const { showSuccess, showError } = usePageToast()
-const scheduleService = createClassScheduleService({ showSuccess, showError })
+const scheduleService = createManagerClassScheduleService({ showSuccess, showError })
 
 const form = reactive({
   weekday: null,

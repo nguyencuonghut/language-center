@@ -2,11 +2,11 @@
 import { reactive, computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { createClassroomService } from '@/service/ClassroomService'
+import { createManagerClassroomService } from '@/service/ManagerClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
 
 const toast = usePageToast()
-const classroomService = createClassroomService(toast)
+const classroomService = createManagerClassroomService(toast)
 
 // PrimeVue
 import DataTable from 'primevue/datatable'

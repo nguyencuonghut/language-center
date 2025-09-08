@@ -92,9 +92,30 @@ Route::middleware(['auth'])->group(function () {
         // Route::resource('branches', BranchController::class)->middleware('permission:branches.view');
         Route::resource('branches', BranchController::class);
 
+        // =========================
+        // Invoices (Admin version)
+        // =========================
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/',            [\App\Http\Controllers\Admin\InvoiceController::class, 'index'])->name('index');
+            Route::get('/create',      [\App\Http\Controllers\Admin\InvoiceController::class, 'create'])->name('create');
+            Route::post('/',           [\App\Http\Controllers\Admin\InvoiceController::class, 'store'])->name('store');
+            Route::get('/{invoice}',   [\App\Http\Controllers\Admin\InvoiceController::class, 'show'])->name('show');
+            Route::get('/{invoice}/edit', [\App\Http\Controllers\Admin\InvoiceController::class, 'edit'])->name('edit');
+            Route::put('/{invoice}',   [\App\Http\Controllers\Admin\InvoiceController::class, 'update'])->name('update');
+            Route::delete('/{invoice}',[\App\Http\Controllers\Admin\InvoiceController::class, 'destroy'])->name('destroy');
+
+            // -------- Invoice Items (nested) --------
+            Route::post('/{invoice}/items',                         [\App\Http\Controllers\Admin\InvoiceItemController::class, 'store'])->name('items.store');
+            Route::put('/{invoice}/items/{item}',                   [\App\Http\Controllers\Admin\InvoiceItemController::class, 'update'])->name('items.update');
+            Route::delete('/{invoice}/items/{item}',                [\App\Http\Controllers\Admin\InvoiceItemController::class, 'destroy'])->name('items.destroy');
+
+            // -------- Payments (nested) --------
+            Route::post('/{invoice}/payments',                      [\App\Http\Controllers\Admin\PaymentController::class, 'store'])->name('payments.store');
+            Route::delete('/{invoice}/payments/{payment}',          [\App\Http\Controllers\Admin\PaymentController::class, 'destroy'])->name('payments.destroy');
+        });
+
         // Rooms moved to manager section for admin|manager access
         // Classrooms moved to manager section for admin|manager access
-        // Invoices moved to manager section for admin|manager access
 
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Báo cáo',

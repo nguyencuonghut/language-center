@@ -2,7 +2,7 @@
 import { reactive, computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { createInvoiceService } from '@/service/InvoiceService'
+import { createManagerInvoiceService } from '@/service/ManagerInvoiceService'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -59,7 +59,7 @@ function isNumericString(str) {
   return /^\d+$/.test(str)
 }
 
-const invoiceService = createInvoiceService()
+const invoiceService = createManagerInvoiceService()
 
 /* -------- Local UI state -------- */
 const state = reactive({

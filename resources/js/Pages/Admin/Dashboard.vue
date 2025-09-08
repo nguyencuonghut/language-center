@@ -189,7 +189,7 @@ const enrollmentChartOptions = {
         <Link :href="route('manager.students.create')">
           <Button label="Học viên" icon="pi pi-user-plus" size="small" severity="secondary" />
         </Link>
-        <Link :href="route('admin.classrooms.create')">
+        <Link :href="route('manager.classrooms.create')">
           <Button label="Lớp học" icon="pi pi-users" size="small" severity="secondary" />
         </Link>
       </div>
@@ -493,7 +493,7 @@ const enrollmentChartOptions = {
         <template #title>
           <div class="flex items-center justify-between">
             <span>Lớp sắp bắt đầu</span>
-            <Link :href="route('admin.classrooms.index')">
+            <Link :href="route('manager.classrooms.index')">
               <Button label="Xem tất cả" link size="small" />
             </Link>
           </div>

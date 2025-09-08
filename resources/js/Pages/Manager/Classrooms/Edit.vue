@@ -2,7 +2,7 @@
 import { reactive, toRefs } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { createClassroomService } from '@/service/ClassroomService'
+import { createManagerClassroomService } from '@/service/ManagerClassroomService'
 import { usePageToast } from '@/composables/usePageToast'
 
 // PrimeVue v4
@@ -23,7 +23,7 @@ const props = defineProps({
 })
 
 const { showSuccess, showError } = usePageToast()
-const classroomService = createClassroomService({ showSuccess, showError })
+const classroomService = createManagerClassroomService({ showSuccess, showError })
 
 /* ----- Local state ----- */
 const state = reactive({

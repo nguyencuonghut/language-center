@@ -168,7 +168,7 @@ class InvoiceController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.invoices.show', $invoice->id)
+            ->route('manager.invoices.show', $invoice->id)
             ->with('success', 'Đã tạo hoá đơn thành công.');
     }
 
@@ -213,7 +213,7 @@ class InvoiceController extends Controller
             'due_date'   => $data['due_date'] ?? null,
         ]);
 
-        return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Đã cập nhật hoá đơn.');
+        return redirect()->route('manager.invoices.show', $invoice)->with('success', 'Đã cập nhật hoá đơn.');
     }
 
     /**
@@ -228,6 +228,6 @@ class InvoiceController extends Controller
         $invoice->invoiceItems()->delete();
         $invoice->delete();
 
-        return redirect()->route('admin.invoices.index')->with('success', 'Đã xoá hoá đơn.');
+        return redirect()->route('manager.invoices.index')->with('success', 'Đã xoá hoá đơn.');
     }
 }
