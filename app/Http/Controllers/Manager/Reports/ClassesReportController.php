@@ -47,8 +47,8 @@ class ClassesReportController extends Controller
         // Get charts data
         $charts = $this->getChartsData($startDate, $endDate, $branchIds, $courseIds);
 
-        // Get detailed tables data
-        $tables = $this->getTablesData($startDate, $endDate, $branchIds, $courseIds, $request);
+        // Get recent data
+        $recent = $this->getRecentData($startDate, $endDate, $branchIds, $courseIds, $request);
 
         return Inertia::render('Manager/Reports/Classes', [
             'appliedFilters' => [
@@ -61,7 +61,7 @@ class ClassesReportController extends Controller
             ],
             'kpi' => $kpi,
             'charts' => $charts,
-            'tables' => $tables,
+            'recent' => $recent,
         ]);
     }
 
@@ -75,14 +75,18 @@ class ClassesReportController extends Controller
             ->count();
 
         // Average capacity utilization
-        $capacityUtilization = (clone $classQuery)
+        $classEnrollments = (clone $classQuery)
             ->leftJoin('enrollments', function($join) {
                 $join->on('classrooms.id', '=', 'enrollments.class_id')
                      ->where('enrollments.status', '=', 'active');
             })
-            ->selectRaw('AVG(COUNT(enrollments.id)) as avg_enrollment')
+            ->selectRaw('classrooms.id, COUNT(enrollments.id) as enrollment_count')
             ->groupBy('classrooms.id')
-            ->value('avg_enrollment') ?? 0;
+            ->get();
+
+        $totalClasses = $classEnrollments->count();
+        $totalEnrollments = $classEnrollments->sum('enrollment_count');
+        $capacityUtilization = $totalClasses > 0 ? ($totalEnrollments / $totalClasses) : 0;
 
         // Assume average capacity is 15 students
         $avgCapacityRate = round(($capacityUtilization / 15) * 100, 1);
@@ -123,12 +127,16 @@ class ClassesReportController extends Controller
         ];
     }
 
-    private function getTablesData($startDate, $endDate, $branchIds, $courseIds, $request)
+    private function getRecentData($startDate, $endDate, $branchIds, $courseIds, $request)
     {
+        // Recent classes
+        $recentClasses = $this->getRecentClasses($branchIds, $courseIds);
+
         // Classes summary
         $classesSummary = $this->getClassesSummary($branchIds, $courseIds);
 
         return [
+            'classes' => $recentClasses,
             'classes_summary' => $classesSummary,
         ];
     }
@@ -235,6 +243,49 @@ class ClassesReportController extends Controller
                 'value' => (int) $item->usage_count
             ];
         });
+    }
+
+    private function getRecentClasses($branchIds, $courseIds)
+    {
+        $query = $this->buildClassQuery($branchIds, $courseIds)
+            ->join('courses', 'classrooms.course_id', '=', 'courses.id')
+            ->join('branches', 'classrooms.branch_id', '=', 'branches.id')
+            ->leftJoin('enrollments', function($join) {
+                $join->on('classrooms.id', '=', 'enrollments.class_id')
+                     ->where('enrollments.status', '=', 'active');
+            })
+            ->leftJoin('teaching_assignments', function($join) {
+                $join->on('classrooms.id', '=', 'teaching_assignments.class_id')
+                     ->whereNull('teaching_assignments.effective_to');
+            })
+            ->leftJoin('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id');
+
+        return $query
+            ->selectRaw('
+                classrooms.id,
+                classrooms.code,
+                classrooms.name as class_name,
+                courses.name as course_name,
+                branches.name as branch_name,
+                classrooms.status,
+                COUNT(enrollments.id) as students_count,
+                teachers.name as teacher_name
+            ')
+            ->groupBy('classrooms.id', 'classrooms.code', 'classrooms.name', 'courses.name', 'branches.name', 'classrooms.status', 'teachers.name')
+            ->orderBy('classrooms.start_date', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->class_name ? $item->code . ' - ' . $item->class_name : $item->code,
+                    'course_name' => $item->course_name,
+                    'branch_name' => $item->branch_name,
+                    'status' => $item->status,
+                    'students_count' => (int) $item->students_count,
+                    'teacher_name' => $item->teacher_name,
+                ];
+            });
     }
 
     private function getClassesSummary($branchIds, $courseIds)

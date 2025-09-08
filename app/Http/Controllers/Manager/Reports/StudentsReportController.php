@@ -49,8 +49,8 @@ class StudentsReportController extends Controller
         // Get charts data
         $charts = $this->getChartsData($startDate, $endDate, $branchIds, $courseIds);
 
-        // Get detailed tables data
-        $tables = $this->getTablesData($startDate, $endDate, $branchIds, $courseIds, $request);
+        // Get recent data
+        $recent = $this->getRecentData($startDate, $endDate, $branchIds, $courseIds, $request);
 
         return Inertia::render('Manager/Reports/Students', [
             'appliedFilters' => [
@@ -64,7 +64,7 @@ class StudentsReportController extends Controller
             ],
             'kpi' => $kpi,
             'charts' => $charts,
-            'tables' => $tables,
+            'recent' => $recent,
         ]);
     }
 
@@ -77,6 +77,9 @@ class StudentsReportController extends Controller
             ->where('enrollments.status', 'active')
             ->distinct('enrollments.student_id')
             ->count('enrollments.student_id');
+
+        // Active students (same as total for now)
+        $activeStudents = $totalStudents;
 
         // New enrollments in period
         $newEnrollments = (clone $enrollmentQuery)
@@ -109,8 +112,9 @@ class StudentsReportController extends Controller
 
         return [
             'total_students' => ['total' => $totalStudents],
+            'active_students' => ['total' => $activeStudents],
             'new_enrollments' => ['total' => $newEnrollments],
-            'attendance_rate' => ['rate' => $attendanceRate],
+            'avg_attendance' => ['total' => $attendanceRate],
         ];
     }
 
@@ -122,17 +126,21 @@ class StudentsReportController extends Controller
         // Students by course
         $studentsByCourse = $this->getStudentsByCourse($branchIds, $courseIds);
 
+        // Students by branch
+        $studentsByBranch = $this->getStudentsByBranch($branchIds, $courseIds);
+
         // Attendance rate by class
         $attendanceByClass = $this->getAttendanceByClass($startDate, $endDate, $branchIds, $courseIds);
 
         return [
             'enrollment_trend' => $enrollmentTrend,
             'students_by_course' => $studentsByCourse,
+            'students_by_branch' => $studentsByBranch,
             'attendance_by_class' => $attendanceByClass,
         ];
     }
 
-    private function getTablesData($startDate, $endDate, $branchIds, $courseIds, $request)
+    private function getRecentData($startDate, $endDate, $branchIds, $courseIds, $request)
     {
         // Recent enrollments
         $recentEnrollments = $this->getRecentEnrollments($startDate, $endDate, $branchIds, $courseIds);
@@ -141,7 +149,7 @@ class StudentsReportController extends Controller
         $studentsSummary = $this->getStudentsSummary($branchIds, $courseIds);
 
         return [
-            'recent_enrollments' => $recentEnrollments,
+            'enrollments' => $recentEnrollments,
             'students_summary' => $studentsSummary,
         ];
     }
@@ -203,6 +211,28 @@ class StudentsReportController extends Controller
             });
     }
 
+    private function getStudentsByBranch($branchIds, $courseIds)
+    {
+        $query = $this->buildEnrollmentQuery($branchIds, $courseIds)
+            ->join('branches', 'classrooms.branch_id', '=', 'branches.id')
+            ->where('enrollments.status', 'active');
+
+        return $query
+            ->selectRaw('
+                branches.name as branch_name,
+                COUNT(DISTINCT enrollments.student_id) as student_count
+            ')
+            ->groupBy('branches.id', 'branches.name')
+            ->orderByDesc('student_count')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'name' => $item->branch_name,
+                    'value' => (int) $item->student_count
+                ];
+            });
+    }
+
     private function getAttendanceByClass($startDate, $endDate, $branchIds, $courseIds)
     {
         $query = DB::table('attendances')
@@ -248,11 +278,13 @@ class StudentsReportController extends Controller
 
         return $query
             ->select([
+                'enrollments.id',
                 'students.name as student_name',
                 'students.phone as student_phone',
                 'courses.name as course_name',
                 'branches.name as branch_name',
                 'classrooms.code as class_code',
+                'classrooms.name as class_name',
                 'enrollments.enrolled_at',
                 'enrollments.status'
             ])
@@ -261,13 +293,15 @@ class StudentsReportController extends Controller
             ->get()
             ->map(function($item) {
                 return [
+                    'id' => $item->id,
                     'student_name' => $item->student_name,
                     'student_phone' => $item->student_phone,
-                    'course' => $item->course_name,
-                    'branch' => $item->branch_name,
+                    'course_name' => $item->course_name,
+                    'branch_name' => $item->branch_name,
                     'class_code' => $item->class_code,
-                    'enrolled_at' => Carbon::parse($item->enrolled_at)->format('d/m/Y'),
-                    'status' => ucfirst($item->status),
+                    'class_name' => $item->class_name ? $item->class_code . ' - ' . $item->class_name : $item->class_code,
+                    'enrolled_at' => $item->enrolled_at,
+                    'status' => $item->status,
                 ];
             });
     }

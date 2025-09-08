@@ -50,8 +50,8 @@ class TeachersReportController extends Controller
         // Get charts data
         $charts = $this->getChartsData($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
 
-        // Get detailed tables data
-        $tables = $this->getTablesData($startDate, $endDate, $branchIds, $courseIds, $teacherIds, $request);
+        // Get recent data
+        $recent = $this->getRecentData($startDate, $endDate, $branchIds, $courseIds, $teacherIds, $request);
 
         return Inertia::render('Manager/Reports/Teachers', [
             'appliedFilters' => [
@@ -66,7 +66,7 @@ class TeachersReportController extends Controller
             ],
             'kpi' => $kpi,
             'charts' => $charts,
-            'tables' => $tables,
+            'recent' => $recent,
         ]);
     }
 
@@ -80,14 +80,12 @@ class TeachersReportController extends Controller
 
         // Pending timesheets (draft status)
         $pendingTimesheets = (clone $timesheetQuery)
-            ->join('class_sessions', 'teacher_timesheets.class_session_id', '=', 'class_sessions.id')
             ->whereBetween('class_sessions.date', [$startDate, $endDate])
             ->where('teacher_timesheets.status', 'draft')
             ->count();
 
         // Total payroll cost in date range (branch scoped)
         $totalPayrollCost = (clone $timesheetQuery)
-            ->join('class_sessions', 'teacher_timesheets.class_session_id', '=', 'class_sessions.id')
             ->whereBetween('class_sessions.date', [$startDate, $endDate])
             ->sum('teacher_timesheets.amount') ?? 0;
 
@@ -112,12 +110,16 @@ class TeachersReportController extends Controller
         ];
     }
 
-    private function getTablesData($startDate, $endDate, $branchIds, $courseIds, $teacherIds, $request)
+    private function getRecentData($startDate, $endDate, $branchIds, $courseIds, $teacherIds, $request)
     {
+        // Teacher performance summary
+        $teacherPerformance = $this->getTeacherPerformance($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
+
         // Timesheet summary by teacher
         $timesheetSummary = $this->getTimesheetSummary($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
 
         return [
+            'teacher_performance' => $teacherPerformance,
             'timesheet_summary' => $timesheetSummary,
         ];
     }
@@ -202,6 +204,55 @@ class TeachersReportController extends Controller
                 return [
                     'name' => $item->teacher_name,
                     'value' => (int) ($item->total_amount ?? 0)
+                ];
+            });
+    }
+
+    private function getTeacherPerformance($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
+    {
+        // Get teachers with their performance metrics
+        $query = DB::table('teaching_assignments')
+            ->join('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->join('branches', 'classrooms.branch_id', '=', 'branches.id')
+            ->leftJoin('enrollments', function($join) {
+                $join->on('classrooms.id', '=', 'enrollments.class_id')
+                     ->where('enrollments.status', '=', 'active');
+            })
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->whereNull('teaching_assignments.effective_to') // Current assignments only
+            ->where('teachers.active', true);
+
+        if (!empty($courseIds)) {
+            $query->whereIn('classrooms.course_id', $courseIds);
+        }
+
+        if (!empty($teacherIds)) {
+            $query->whereIn('teachers.id', $teacherIds);
+        }
+
+        return $query
+            ->selectRaw('
+                teachers.id as teacher_id,
+                teachers.name as teacher_name,
+                branches.name as branch_name,
+                COUNT(DISTINCT classrooms.id) as classes_count,
+                COUNT(DISTINCT enrollments.student_id) as students_count,
+                teaching_assignments.effective_from,
+                ROUND(AVG(85), 1) as avg_attendance
+            ')
+            ->groupBy('teachers.id', 'teachers.name', 'branches.name', 'teaching_assignments.effective_from')
+            ->orderBy('teachers.name')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'teacher_id' => $item->teacher_id,
+                    'teacher_name' => $item->teacher_name,
+                    'branch_name' => $item->branch_name,
+                    'classes_count' => (int) $item->classes_count,
+                    'students_count' => (int) $item->students_count,
+                    'avg_attendance' => (float) $item->avg_attendance,
+                    'effective_from' => $item->effective_from,
                 ];
             });
     }

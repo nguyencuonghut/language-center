@@ -87,10 +87,16 @@ class FinanceReportController extends Controller
         $collectionRate = $totalInvoiced > 0 ? round(($totalPaid / $totalInvoiced) * 100, 1) : 0;
 
         // Outstanding amount
-        $outstanding = (clone $query)
+        $outstandingInvoices = (clone $query)
             ->whereIn('invoices.status', ['unpaid', 'partial'])
-            ->selectRaw('SUM(total - COALESCE(paid_amount, 0)) as outstanding')
-            ->value('outstanding') ?? 0;
+            ->select('invoices.id', 'invoices.total')
+            ->get();
+
+        $outstanding = 0;
+        foreach ($outstandingInvoices as $invoice) {
+            $paidAmount = Payment::where('invoice_id', $invoice->id)->sum('amount') ?? 0;
+            $outstanding += ($invoice->total - $paidAmount);
+        }
 
         return [
             'revenue_month' => ['total' => (int) $revenueThisMonth],
@@ -245,7 +251,6 @@ class FinanceReportController extends Controller
                 'classrooms.code as class_code',
                 'classrooms.name as class_name',
                 'invoices.total',
-                'invoices.paid_amount',
                 'invoices.due_date',
                 'invoices.status',
                 'invoices.created_at'
@@ -261,14 +266,17 @@ class FinanceReportController extends Controller
                     'refunded' => 'Đã hoàn'
                 ];
 
+                // Calculate paid amount from payments table
+                $paidAmount = Payment::where('invoice_id', $item->id)->sum('amount') ?? 0;
+
                 return [
                     'id' => $item->id,
                     'code' => $item->code,
                     'student' => "{$item->student_code} - {$item->student_name}",
                     'class' => "{$item->class_code} - {$item->class_name}",
                     'total' => (int) $item->total,
-                    'paid_amount' => (int) $item->paid_amount,
-                    'remaining' => (int) ($item->total - $item->paid_amount),
+                    'paid_amount' => (int) $paidAmount,
+                    'remaining' => (int) ($item->total - $paidAmount),
                     'due_date' => $item->due_date ? Carbon::parse($item->due_date)->format('d/m/Y') : null,
                     'status' => $statusNames[$item->status] ?? ucfirst($item->status),
                     'created_at' => Carbon::parse($item->created_at)->format('d/m/Y'),

@@ -140,7 +140,7 @@ function isActive(item) {
       return currentPath.value === base || currentPath.value.startsWith(base + '/')
     })
   }
-  
+
   // Kiểm tra item thường
   const base = normalizePath(item.url)
   return currentPath.value === base || currentPath.value.startsWith(base + '/')
