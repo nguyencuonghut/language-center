@@ -9,6 +9,7 @@ use App\Models\TeacherTimesheet;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\ClassSession;
+use App\Models\Classroom;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -72,41 +73,62 @@ class TeachersReportController extends Controller
 
     private function calculateKPIs($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
     {
-        $sessionQuery = $this->buildSessionQuery($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
-        $timesheetQuery = $this->buildTimesheetQuery($branchIds, $courseIds, $teacherIds);
-
-        // Total sessions taught in date range
-        $totalSessions = (clone $sessionQuery)->count();
-
-        // Pending timesheets (draft status)
-        $pendingTimesheets = (clone $timesheetQuery)
-            ->whereBetween('class_sessions.date', [$startDate, $endDate])
-            ->where('teacher_timesheets.status', 'draft')
+        // Total teachers in branches (teachers currently or previously assigned to classes in these branches)
+        $totalTeachers = DB::table('teaching_assignments')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->join('users', 'teaching_assignments.teacher_id', '=', 'users.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->where('users.active', true)
+            ->distinct('teaching_assignments.teacher_id')
             ->count();
 
-        // Total payroll cost in date range (branch scoped)
-        $totalPayrollCost = (clone $timesheetQuery)
-            ->whereBetween('class_sessions.date', [$startDate, $endDate])
-            ->sum('teacher_timesheets.amount') ?? 0;
+        // Active teachers (currently assigned to classes)
+        $activeTeachers = DB::table('teaching_assignments')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->whereNull('teaching_assignments.effective_to')
+            ->distinct('teaching_assignments.teacher_id')
+            ->count();
+
+        // Total classes in branches
+        $totalClasses = Classroom::whereIn('branch_id', $branchIds)
+            ->when(!empty($courseIds), function($query) use ($courseIds) {
+                return $query->whereIn('course_id', $courseIds);
+            })
+            ->count();
+
+        // Average students per teacher
+        $totalStudents = DB::table('enrollments')
+            ->join('classrooms', 'enrollments.class_id', '=', 'classrooms.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->where('enrollments.status', 'active')
+            ->count();
+
+        $avgStudentsPerTeacher = $activeTeachers > 0 ? round($totalStudents / $activeTeachers, 1) : 0;
 
         return [
-            'total_sessions' => ['total' => $totalSessions],
-            'pending_timesheets' => ['total' => $pendingTimesheets],
-            'total_payroll_cost' => ['total' => (int) $totalPayrollCost],
+            'total_teachers' => ['total' => $totalTeachers],
+            'active_teachers' => ['total' => $activeTeachers],
+            'total_classes' => ['total' => $totalClasses],
+            'avg_students_per_teacher' => ['total' => $avgStudentsPerTeacher],
         ];
     }
 
     private function getChartsData($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
     {
-        // Sessions by teacher
-        $sessionsByTeacher = $this->getSessionsByTeacher($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
+        // Teachers by branch
+        $teachersByBranch = $this->getTeachersByBranch($branchIds, $courseIds, $teacherIds);
 
-        // Payroll cost distribution by teacher
-        $payrollByTeacher = $this->getPayrollByTeacher($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
+        // Teacher workload (classes per teacher)
+        $teacherWorkload = $this->getTeacherWorkload($branchIds, $courseIds, $teacherIds);
+
+        // Assignment timeline (new assignments over time)
+        $assignmentTimeline = $this->getAssignmentTimeline($startDate, $endDate, $branchIds, $courseIds, $teacherIds);
 
         return [
-            'sessions_by_teacher' => $sessionsByTeacher,
-            'payroll_by_teacher' => $payrollByTeacher,
+            'teachers_by_branch' => $teachersByBranch,
+            'teacher_workload' => $teacherWorkload,
+            'assignment_timeline' => $assignmentTimeline,
         ];
     }
 
@@ -289,5 +311,105 @@ class TeachersReportController extends Controller
                     'last_updated' => Carbon::parse($item->last_updated)->format('d/m/Y H:i'),
                 ];
             });
+    }
+
+    private function getTeachersByBranch($branchIds, $courseIds, $teacherIds)
+    {
+        $query = DB::table('teaching_assignments')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->join('branches', 'classrooms.branch_id', '=', 'branches.id')
+            ->join('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->whereNull('teaching_assignments.effective_to')
+            ->where('teachers.active', true);
+
+        if (!empty($courseIds)) {
+            $query->whereIn('classrooms.course_id', $courseIds);
+        }
+
+        if (!empty($teacherIds)) {
+            $query->whereIn('teachers.id', $teacherIds);
+        }
+
+        return $query
+            ->selectRaw('
+                branches.name as branch_name,
+                COUNT(DISTINCT teaching_assignments.teacher_id) as teacher_count
+            ')
+            ->groupBy('branches.id', 'branches.name')
+            ->orderByDesc('teacher_count')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'name' => $item->branch_name,
+                    'value' => (int) $item->teacher_count
+                ];
+            });
+    }
+
+    private function getTeacherWorkload($branchIds, $courseIds, $teacherIds)
+    {
+        $query = DB::table('teaching_assignments')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->join('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->whereNull('teaching_assignments.effective_to')
+            ->where('teachers.active', true);
+
+        if (!empty($courseIds)) {
+            $query->whereIn('classrooms.course_id', $courseIds);
+        }
+
+        if (!empty($teacherIds)) {
+            $query->whereIn('teachers.id', $teacherIds);
+        }
+
+        return $query
+            ->selectRaw('
+                teachers.name as teacher_name,
+                COUNT(DISTINCT teaching_assignments.class_id) as class_count
+            ')
+            ->groupBy('teachers.id', 'teachers.name')
+            ->orderByDesc('class_count')
+            ->limit(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'name' => $item->teacher_name,
+                    'value' => (int) $item->class_count
+                ];
+            });
+    }
+
+    private function getAssignmentTimeline($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
+    {
+        $query = DB::table('teaching_assignments')
+            ->join('classrooms', 'teaching_assignments.class_id', '=', 'classrooms.id')
+            ->whereIn('classrooms.branch_id', $branchIds)
+            ->whereBetween('teaching_assignments.effective_from', [$startDate, $endDate]);
+
+        if (!empty($courseIds)) {
+            $query->whereIn('classrooms.course_id', $courseIds);
+        }
+
+        if (!empty($teacherIds)) {
+            $query->whereIn('teaching_assignments.teacher_id', $teacherIds);
+        }
+
+        $results = $query
+            ->selectRaw('
+                DATE_FORMAT(teaching_assignments.effective_from, "%Y-%m") as month,
+                COUNT(*) as count
+            ')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        return $results->map(function($item) {
+            return [
+                'month' => Carbon::createFromFormat('Y-m', $item->month)->format('M Y'),
+                'value' => (int) $item->count
+            ];
+        });
     }
 }

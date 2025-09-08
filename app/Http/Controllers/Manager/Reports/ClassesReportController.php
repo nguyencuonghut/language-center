@@ -69,8 +69,11 @@ class ClassesReportController extends Controller
     {
         $classQuery = $this->buildClassQuery($branchIds, $courseIds);
 
-        // Open classes
-        $openClasses = (clone $classQuery)
+        // Total classes
+        $totalClasses = (clone $classQuery)->count();
+
+        // Active classes
+        $activeClasses = (clone $classQuery)
             ->whereIn('status', ['open', 'active'])
             ->count();
 
@@ -84,46 +87,32 @@ class ClassesReportController extends Controller
             ->groupBy('classrooms.id')
             ->get();
 
-        $totalClasses = $classEnrollments->count();
-        $totalEnrollments = $classEnrollments->sum('enrollment_count');
-        $capacityUtilization = $totalClasses > 0 ? ($totalEnrollments / $totalClasses) : 0;
-
-        // Assume average capacity is 15 students
-        $avgCapacityRate = round(($capacityUtilization / 15) * 100, 1);
-
-        // Canceled/moved sessions in date range
-        $canceledMovedSessions = ClassSession::query()
-            ->join('classrooms', 'class_sessions.class_id', '=', 'classrooms.id')
-            ->whereIn('classrooms.branch_id', $branchIds)
-            ->when(!empty($courseIds), function($query) use ($courseIds) {
-                return $query->whereIn('classrooms.course_id', $courseIds);
-            })
-            ->whereBetween('class_sessions.date', [$startDate, $endDate])
-            ->whereIn('class_sessions.status', ['canceled', 'moved'])
-            ->count();
+        $totalStudents = $classEnrollments->sum('enrollment_count');
+        $avgClassSize = $totalClasses > 0 ? round($totalStudents / $totalClasses, 1) : 0;
 
         return [
-            'open_classes' => ['total' => $openClasses],
-            'avg_capacity_rate' => ['rate' => $avgCapacityRate],
-            'canceled_moved_sessions' => ['total' => $canceledMovedSessions],
+            'total_classes' => ['total' => $totalClasses],
+            'active_classes' => ['total' => $activeClasses],
+            'total_students' => ['total' => $totalStudents],
+            'avg_class_size' => ['total' => $avgClassSize],
         ];
     }
 
     private function getChartsData($startDate, $endDate, $branchIds, $courseIds)
     {
-        // Student count by class
-        $studentsByClass = $this->getStudentsByClass($branchIds, $courseIds);
+        // Classes by status
+        $classesByStatus = $this->getClassesByStatus($branchIds, $courseIds);
 
-        // Monthly canceled/moved sessions trend
-        $canceledMovedTrend = $this->getCanceledMovedTrend($startDate, $endDate, $branchIds, $courseIds);
+        // Monthly class creation
+        $monthlyClassCreation = $this->getMonthlyClassCreation($startDate, $endDate, $branchIds, $courseIds);
 
-        // Room utilization
-        $roomUtilization = $this->getRoomUtilization($branchIds);
+        // Classes by course
+        $classesByCourse = $this->getClassesByCourse($branchIds, $courseIds);
 
         return [
-            'students_by_class' => $studentsByClass,
-            'canceled_moved_trend' => $canceledMovedTrend,
-            'room_utilization' => $roomUtilization,
+            'classes_by_status' => $classesByStatus,
+            'monthly_class_creation' => $monthlyClassCreation,
+            'classes_by_course' => $classesByCourse,
         ];
     }
 
@@ -333,6 +322,77 @@ class ClassesReportController extends Controller
                     'status' => $statusNames[$item->status] ?? ucfirst($item->status),
                     'student_count' => (int) $item->student_count,
                     'teacher' => $item->teacher_name ?? 'Chưa phân công',
+                ];
+            });
+    }
+
+    private function getClassesByStatus($branchIds, $courseIds)
+    {
+        $query = $this->buildClassQuery($branchIds, $courseIds);
+
+        $results = $query
+            ->selectRaw('
+                classrooms.status,
+                COUNT(*) as count
+            ')
+            ->groupBy('classrooms.status')
+            ->get();
+
+        return $results->map(function($item) {
+            $statusNames = [
+                'open' => 'Mở',
+                'active' => 'Đang học',
+                'closed' => 'Đã đóng',
+                'completed' => 'Hoàn thành',
+                'cancelled' => 'Đã hủy'
+            ];
+
+            return [
+                'name' => $statusNames[$item->status] ?? ucfirst($item->status),
+                'value' => (int) $item->count
+            ];
+        });
+    }
+
+    private function getMonthlyClassCreation($startDate, $endDate, $branchIds, $courseIds)
+    {
+        $query = $this->buildClassQuery($branchIds, $courseIds)
+            ->whereBetween('classrooms.created_at', [$startDate, $endDate]);
+
+        $results = $query
+            ->selectRaw('
+                DATE_FORMAT(classrooms.created_at, "%Y-%m") as month,
+                COUNT(*) as count
+            ')
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        return $results->map(function($item) {
+            return [
+                'month' => Carbon::createFromFormat('Y-m', $item->month)->format('M Y'),
+                'value' => (int) $item->count
+            ];
+        });
+    }
+
+    private function getClassesByCourse($branchIds, $courseIds)
+    {
+        $query = $this->buildClassQuery($branchIds, $courseIds)
+            ->join('courses', 'classrooms.course_id', '=', 'courses.id');
+
+        return $query
+            ->selectRaw('
+                courses.name as course_name,
+                COUNT(*) as count
+            ')
+            ->groupBy('courses.id', 'courses.name')
+            ->orderByDesc('count')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'name' => $item->course_name,
+                    'value' => (int) $item->count
                 ];
             });
     }
