@@ -108,11 +108,11 @@
                     </template>
                 </Card>
 
-                <!-- Teacher Performance -->
+                <!-- Hiệu suất Giáo viên -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Teacher Performance</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Hiệu suất Giáo viên</h3>
                         </div>
                     </template>
                     <template #content>
@@ -128,7 +128,7 @@
                                             {{ teacher.teacher_name }}
                                         </div>
                                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                                            {{ teacher.classes_count }} classes • {{ teacher.students_count }} students
+                                            {{ teacher.classes_count }} lớp • {{ teacher.students_count }} học viên
                                         </div>
                                         <div class="text-xs text-gray-500">
                                             {{ teacher.branch_name }}
@@ -136,16 +136,16 @@
                                     </div>
                                     <div class="text-right">
                                         <div class="font-medium text-blue-600 dark:text-blue-400">
-                                            {{ teacher.avg_attendance }}% attendance
+                                            {{ teacher.avg_attendance }}% điểm danh
                                         </div>
                                         <div class="text-xs text-gray-500">
-                                            Active since {{ formatDate(teacher.effective_from) }}
+                                            Hoạt động từ {{ formatDate(teacher.effective_from) }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div v-else class="flex items-center justify-center h-full text-gray-500">
-                                No teacher performance data
+                                Không có dữ liệu hiệu suất giáo viên
                             </div>
                         </div>
                     </template>

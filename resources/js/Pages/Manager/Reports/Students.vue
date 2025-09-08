@@ -89,11 +89,11 @@
                     </template>
                 </Card>
 
-                <!-- Students by Branch -->
+                <!-- Học viên theo Chi nhánh -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Students by Branch</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Học viên theo Chi nhánh</h3>
                         </div>
                     </template>
                     <template #content>
@@ -108,11 +108,11 @@
                     </template>
                 </Card>
 
-                <!-- Recent Enrollments -->
+                <!-- Đăng ký Gần đây -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Enrollments</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Đăng ký Gần đây</h3>
                         </div>
                     </template>
                     <template #content>
@@ -146,7 +146,7 @@
                                 </div>
                             </div>
                             <div v-else class="flex items-center justify-center h-full text-gray-500">
-                                No recent enrollments
+                                Không có đăng ký gần đây
                             </div>
                         </div>
                     </template>

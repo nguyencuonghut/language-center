@@ -317,12 +317,20 @@ class ClassesReportController extends Controller
             ->orderBy('classrooms.start_date', 'desc')
             ->get()
             ->map(function($item) {
+                $statusNames = [
+                    'open' => 'Mở',
+                    'active' => 'Đang học',
+                    'closed' => 'Đã đóng',
+                    'completed' => 'Hoàn thành',
+                    'cancelled' => 'Đã hủy'
+                ];
+
                 return [
                     'id' => $item->id,
                     'code' => $item->code,
                     'name' => $item->class_name,
                     'course' => $item->course_name,
-                    'status' => ucfirst($item->status),
+                    'status' => $statusNames[$item->status] ?? ucfirst($item->status),
                     'student_count' => (int) $item->student_count,
                     'teacher' => $item->teacher_name ?? 'Chưa phân công',
                 ];

@@ -108,11 +108,11 @@
                     </template>
                 </Card>
 
-                <!-- Recent Classes -->
+                <!-- Lớp học Gần đây -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Classes</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Lớp học Gần đây</h3>
                         </div>
                     </template>
                     <template #content>
@@ -146,7 +146,7 @@
                                 </div>
                             </div>
                             <div v-else class="flex items-center justify-center h-full text-gray-500">
-                                No recent classes
+                                Không có lớp học gần đây
                             </div>
                         </div>
                     </template>

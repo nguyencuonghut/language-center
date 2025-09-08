@@ -328,6 +328,14 @@ class StudentsReportController extends Controller
             ->orderBy('students.name')
             ->get()
             ->map(function($item) {
+                $statusNames = [
+                    'active' => 'Đang học',
+                    'pending' => 'Chờ xử lý',
+                    'suspended' => 'Tạm dừng',
+                    'completed' => 'Hoàn thành',
+                    'cancelled' => 'Đã hủy'
+                ];
+
                 return [
                     'id' => $item->id,
                     'name' => $item->student_name,
@@ -336,7 +344,7 @@ class StudentsReportController extends Controller
                     'course' => $item->course_name,
                     'branch' => $item->branch_name,
                     'class_code' => $item->class_code,
-                    'status' => ucfirst($item->status),
+                    'status' => $statusNames[$item->status] ?? ucfirst($item->status),
                     'enrolled_at' => Carbon::parse($item->enrolled_at)->format('d/m/Y'),
                 ];
             });
