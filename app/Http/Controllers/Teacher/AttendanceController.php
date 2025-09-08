@@ -19,11 +19,22 @@ class AttendanceController extends Controller
     // Danh sách buổi của giáo viên (lấy buổi thuộc các lớp mà giáo viên được phân công)
     public function index(Request $request)
     {
-        $teacherId = Auth::id();
+        $user = Auth::user();
 
-        $sessions = ClassSession::query()
-            ->with(['classroom:id,code,name'])
-            ->whereHas('classroom', function($q) use ($teacherId) {
+        // Get user roles
+        $roles = $user->roles->pluck('name')->toArray();
+        $isTeacher = in_array('teacher', $roles);
+        $isManager = in_array('manager', $roles);
+        $isAdmin = in_array('admin', $roles);
+
+        // Branch scoping for managers
+        $query = ClassSession::query()
+            ->with(['classroom:id,code,name,branch_id']);
+
+        if ($isTeacher) {
+            // Teacher: chỉ xem buổi của các lớp mình được phân công
+            $teacherId = $user->id;
+            $query->whereHas('classroom', function($q) use ($teacherId) {
                 $q->whereExists(function($query) use ($teacherId) {
                     $query->select(DB::raw(1))
                           ->from('teaching_assignments')
@@ -34,13 +45,33 @@ class AttendanceController extends Controller
                                 ->orWhere('effective_to', '>=', now()->toDateString());
                           });
                 });
-            })
+            });
+        } elseif ($isManager) {
+            // Manager: scope theo branches được quản lý
+            $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+            if (!empty($branchIds)) {
+                $query->whereHas('classroom', function($q) use ($branchIds) {
+                    $q->whereIn('branch_id', $branchIds);
+                });
+            }
+        }
+        // Admin: xem tất cả (không cần filter)
+
+        $sessions = $query
             ->orderBy('date', 'asc')
             ->orderBy('start_time', 'asc')
             ->paginate(20)
             ->withQueryString();
 
-        return Inertia::render('Teacher/Attendance/Index', [
+        // Determine the correct page to render based on user role
+        $page = 'Teacher/Attendance/Index';
+        if ($isAdmin) {
+            $page = 'Admin/Attendance/Index';
+        } elseif ($isManager) {
+            $page = 'Manager/Attendance/Index';
+        }
+
+        return Inertia::render($page, [
             'sessions' => $sessions,
         ]);
     }
@@ -48,8 +79,21 @@ class AttendanceController extends Controller
     // Màn phiếu điểm danh
     public function show(Request $request, ClassSession $session)
     {
-        // (tối giản) quyền: phiên thuộc về lớp mà tôi là teacher
-        $this->authorizeSession($session);
+        $user = Auth::user();
+
+        // Get user roles
+        $roles = $user->roles->pluck('name')->toArray();
+        $isTeacher = in_array('teacher', $roles);
+        $isManager = in_array('manager', $roles);
+        $isAdmin = in_array('admin', $roles);
+
+        // Authorization based on role
+        if ($isTeacher) {
+            $this->authorizeSession($session);
+        } elseif ($isManager) {
+            $this->authorizeSessionForManager($session, $user);
+        }
+        // Admin có quyền truy cập tất cả
 
         // Lấy danh sách học viên đã ghi danh lớp
         $enrollments = Enrollment::query()
@@ -78,7 +122,15 @@ class AttendanceController extends Controller
             ];
         });
 
-        return Inertia::render('Teacher/Attendance/Session', [
+        // Determine the correct page to render based on user role
+        $page = 'Teacher/Attendance/Session';
+        if ($isAdmin) {
+            $page = 'Admin/Attendance/Session';
+        } elseif ($isManager) {
+            $page = 'Manager/Attendance/Session';
+        }
+
+        return Inertia::render($page, [
             'session' => [
                 'id'          => $session->id,
                 'class_id'    => $session->class_id,
@@ -185,6 +237,17 @@ class AttendanceController extends Controller
 
         // TODO (bước sau): tính cả dạy thay qua bảng session_substitutions
         if (!$belongs) {
+            abort(403, 'Bạn không có quyền điểm danh buổi này.');
+        }
+    }
+
+    private function authorizeSessionForManager(ClassSession $session, $user): void
+    {
+        // Manager chỉ được truy cập session thuộc về branch mình quản lý
+        $session->load('classroom:id,branch_id');
+        $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+
+        if (!in_array($session->classroom->branch_id, $branchIds)) {
             abort(403, 'Bạn không có quyền điểm danh buổi này.');
         }
     }

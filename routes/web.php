@@ -15,6 +15,7 @@ use App\Http\Controllers\Manager\EnrollmentController;
 use App\Http\Controllers\Manager\CourseController;
 use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\StudentController;
@@ -117,6 +118,15 @@ Route::middleware(['auth'])->group(function () {
         // Rooms moved to manager section for admin|manager access
         // Classrooms moved to manager section for admin|manager access
 
+        // =========================
+        // Attendance (alias to teacher attendance with admin permissions)
+        // =========================
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [AdminAttendanceController::class, 'index'])->name('index');
+            Route::get('/sessions/{session}', [AdminAttendanceController::class, 'show'])->name('show');
+            Route::post('/sessions/{session}', [AdminAttendanceController::class, 'store'])->name('store');
+        });
+
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Báo cáo',
             'note'  => 'Tính năng đang phát triển.',
@@ -178,6 +188,15 @@ Route::middleware(['auth'])->group(function () {
             // -------- Payments (nested) --------
             Route::post('/{invoice}/payments',                      [PaymentController::class, 'store'])->name('payments.store');
             Route::delete('/{invoice}/payments/{payment}',          [PaymentController::class, 'destroy'])->name('payments.destroy');
+        });
+
+        // =========================
+        // Attendance (alias to teacher attendance with manager permissions)
+        // =========================
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [AttendanceController::class, 'index'])->name('index');
+            Route::get('/sessions/{session}', [AttendanceController::class, 'show'])->name('show');
+            Route::post('/sessions/{session}', [AttendanceController::class, 'store'])->name('store');
         });
 
         Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
