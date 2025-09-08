@@ -127,10 +127,15 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/sessions/{session}', [AdminAttendanceController::class, 'store'])->name('store');
         });
 
-        Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Báo cáo',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('reports');
+        // =========================
+        // Reports
+        // =========================
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/revenue',         \App\Http\Controllers\Admin\Reports\RevenueReportController::class)->name('revenue');
+            Route::get('/students-classes', \App\Http\Controllers\Admin\Reports\StudentsClassesReportController::class)->name('students-classes');
+            Route::get('/teachers-timesheet', \App\Http\Controllers\Admin\Reports\TeachersTimesheetReportController::class)->name('teachers-timesheet');
+            Route::get('/transfers',       \App\Http\Controllers\Admin\Reports\TransfersReportController::class)->name('transfers');
+        });
 
         Route::get('/settings', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Cài đặt',
@@ -199,10 +204,15 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/sessions/{session}', [AttendanceController::class, 'store'])->name('store');
         });
 
-        Route::get('/reports', fn () => Inertia::render('Placeholders/ComingSoon', [
-            'title' => 'Báo cáo',
-            'note'  => 'Tính năng đang phát triển.',
-        ]))->name('reports');
+        // =========================
+        // Reports
+        // =========================
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/students',        \App\Http\Controllers\Manager\Reports\StudentsReportController::class)->name('students');
+            Route::get('/classes',         \App\Http\Controllers\Manager\Reports\ClassesReportController::class)->name('classes');
+            Route::get('/teachers',        \App\Http\Controllers\Manager\Reports\TeachersReportController::class)->name('teachers');
+            Route::get('/finance',         \App\Http\Controllers\Manager\Reports\FinanceReportController::class)->name('finance');
+        });
     });
 
     /*

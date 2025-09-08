@@ -22,7 +22,19 @@ import {
     Title,
     Tooltip,
     Legend,
-    Colors
+    Colors,
+    Filler,
+    TimeScale,
+    TimeSeriesScale,
+    RadialLinearScale,
+    PolarAreaController,
+    DoughnutController,
+    PieController,
+    LineController,
+    BarController,
+    ScatterController,
+    BubbleController,
+    RadarController
 } from 'chart.js'
 
 ChartJS.register(
@@ -35,7 +47,19 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Colors
+    Colors,
+    Filler,
+    TimeScale,
+    TimeSeriesScale,
+    RadialLinearScale,
+    PolarAreaController,
+    DoughnutController,
+    PieController,
+    LineController,
+    BarController,
+    ScatterController,
+    BubbleController,
+    RadarController
 )
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';

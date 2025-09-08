@@ -133,15 +133,6 @@ function normalizePath(path = '') {
 }
 const currentPath = computed(() => normalizePath(page.url || window.location.pathname))
 function isActive(item) {
-  // Nếu có submenu, kiểm tra xem có item con nào active không
-  if (item.submenu) {
-    return item.submenu.some(subitem => {
-      const base = normalizePath(subitem.url)
-      return currentPath.value === base || currentPath.value.startsWith(base + '/')
-    })
-  }
-  
-  // Kiểm tra item thường
   const base = normalizePath(item.url)
   return currentPath.value === base || currentPath.value.startsWith(base + '/')
 }
@@ -188,25 +179,17 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             <div
               :class="[
                 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
-                isActive(item)
-                  ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
-                  : 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]',
+                'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]',
                 isCollapsed ? 'justify-center' : ''
               ]"
             >
               <i :class="['pi', item.icon, 'text-lg']"></i>
               <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
-              <i v-if="!isCollapsed && item.submenu" :class="[
-                'pi pi-chevron-down ml-auto text-xs transition-transform',
-                isActive(item) ? 'rotate-180' : 'group-hover:rotate-180'
-              ]"></i>
+              <i v-if="!isCollapsed && item.submenu" class="pi pi-chevron-down ml-auto text-xs transition-transform group-hover:rotate-180"></i>
             </div>
 
             <!-- Submenu items -->
-            <div v-if="!isCollapsed" :class="[
-              'ml-6 mt-1 space-y-1 transition-opacity duration-300',
-              isActive(item) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            ]">
+            <div v-if="!isCollapsed" class="ml-6 mt-1 space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button
                 v-for="(subitem, j) in item.submenu"
                 :key="j"
@@ -262,24 +245,16 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             <div
               :class="[
                 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
-                isActive(item)
-                  ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
-                  : 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
+                'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
               ]"
             >
               <i :class="['pi', item.icon, 'text-lg']"></i>
               <span class="truncate">{{ item.label }}</span>
-              <i :class="[
-                'pi pi-chevron-down ml-auto text-xs transition-transform',
-                isActive(item) ? 'rotate-180' : 'group-hover:rotate-180'
-              ]"></i>
+              <i class="pi pi-chevron-down ml-auto text-xs transition-transform group-hover:rotate-180"></i>
             </div>
 
             <!-- Submenu items -->
-            <div :class="[
-              'ml-6 mt-1 space-y-1 transition-opacity duration-300',
-              isActive(item) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            ]">
+            <div class="ml-6 mt-1 space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button
                 v-for="(subitem, j) in item.submenu"
                 :key="j"
