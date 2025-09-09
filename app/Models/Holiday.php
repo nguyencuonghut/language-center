@@ -38,6 +38,15 @@ class Holiday extends Model
     }
 
     /**
+     * Get class sessions that fall within this holiday period
+     * This is for checking if holiday can be safely deleted
+     */
+    public function classSessions()
+    {
+        return $this->hasMany(\App\Models\ClassSession::class, 'holiday_id');
+    }
+
+    /**
      * Scope: holidays for a given branch or global
      */
     public function scopeForBranchOrGlobal($query, $branchId)
@@ -48,5 +57,13 @@ class Holiday extends Model
                   $q2->where('scope', 'branch')->where('branch_id', $branchId);
               });
         });
+    }
+
+    /**
+     * Scope: active holidays (not deleted, within date range)
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereRaw('? BETWEEN start_date AND end_date', [now()->toDateString()]);
     }
 }
