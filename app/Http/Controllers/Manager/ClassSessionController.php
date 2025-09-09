@@ -10,12 +10,15 @@ use App\Models\Classroom;
 use App\Http\Requests\UpdateSessionRequest;
 use App\Models\ClassSession;
 use App\Models\Room;
+use App\Services\HolidayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ClassSessionController extends Controller
 {
+    public function __construct(private HolidayService $holidayService) {}
+
     public function generate(GenerateSessionsRequest $request, Classroom $classroom)
     {
         // Có thể kiểm tra nhanh lớp đã có schedule hay chưa (nhẹ) nếu muốn
@@ -68,6 +71,12 @@ class ClassSessionController extends Controller
     $perPage  = (int) ($request->integer('per_page') ?: 20);
     $sessions = $query->paginate($perPage)->withQueryString();
 
+    // Thêm cờ is_holiday cho từng session
+    $sessions->getCollection()->transform(function ($session) use ($classroom) {
+        $session->is_holiday = $this->holidayService->isHoliday($classroom->id, $classroom->branch_id, $session->date);
+        return $session;
+    });
+
     // NEW: danh sách phòng cùng chi nhánh của lớp
     $rooms = Room::query()
         ->where('branch_id', $classroom->branch_id)
@@ -105,6 +114,10 @@ class ClassSessionController extends Controller
         }
 
         $data = $request->validated();
+        // Chặn ngày nghỉ
+        if (isset($data['date']) && $this->holidayService->isHoliday($classroom->id, $classroom->branch_id, $data['date'])) {
+            return back()->withErrors(['date' => 'Ngày này trùng kỳ nghỉ. Vui lòng chọn ngày khác.'])->withInput();
+        }
 
         // nếu FE gửi HH:mm, DB cột time sẽ tự parse OK
         $session->update($data);
@@ -115,6 +128,11 @@ class ClassSessionController extends Controller
     public function store(StoreSessionRequest $request, Classroom $classroom)
     {
         $data = $request->validated();
+
+        // Chặn ngày nghỉ
+        if ($this->holidayService->isHoliday($classroom->id, $classroom->branch_id, $data['date'])) {
+            return back()->withErrors(['date' => 'Ngày này trùng kỳ nghỉ. Vui lòng chọn ngày khác.'])->withInput();
+        }
 
         // session_no = max + 1 theo lớp
         $nextNo = (int) (ClassSession::where('class_id', $classroom->id)->max('session_no') ?? 0) + 1;

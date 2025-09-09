@@ -332,12 +332,15 @@ function bulkAssignRoom() {
       <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
       <Column field="session_no" header="#" style="width: 80px" :sortable="true" />
-      <Column field="date" header="Ngày" style="width: 160px" :sortable="true">
+      <Column field="date" header="Ngày" style="width: 200px" :sortable="true">
         <template #body="{ data }">
           <div v-if="isEditing(data.id)" class="flex items-center gap-2">
             <DatePicker v-model="editing[data.id].date" dateFormat="yy-mm-dd" showIcon iconDisplay="input" />
           </div>
-          <div v-else>{{ data.date }}</div>
+          <div v-else class="flex items-center gap-2">
+            <span>{{ data.date }}</span>
+            <Tag v-if="data.is_holiday" value="Nghỉ lễ" severity="warning" />
+          </div>
           <div v-if="editing[data.id]?.errors?.date" class="text-red-500 text-xs mt-1">
             {{ editing[data.id].errors.date }}
           </div>
