@@ -128,6 +128,11 @@ Route::middleware(['auth'])->group(function () {
         });
 
         // =========================
+        // Holidays (resource routes)
+        // =========================
+        Route::resource('holidays', App\Http\Controllers\Admin\HolidayController::class);
+
+        // =========================
         // Reports
         // =========================
         Route::prefix('reports')->name('reports.')->group(function () {

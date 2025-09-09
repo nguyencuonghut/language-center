@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             DemoDataSeeder::class,
             TransferDemoSeeder::class,
             TeacherDashboardSeeder::class,
+            HolidaySeeder::class,
         ]);
     }
 }

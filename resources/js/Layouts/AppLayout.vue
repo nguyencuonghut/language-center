@@ -70,6 +70,7 @@ const adminMenu = [
   { label: 'Chuyển lớp', icon: 'pi pi-arrow-right-arrow-left', url: '/manager/transfers', ready: true },
   { label: 'Khóa học',  icon: 'pi pi-book',     url: '/manager/courses',     ready: true },
   { label: 'Hoá đơn', icon: 'pi pi-wallet', url: '/manager/invoices', ready: true },
+  { label: 'Ngày nghỉ lễ', icon: 'pi pi-calendar-times', url: '/admin/holidays', ready: true },
   {
     label: 'Báo cáo',
     icon: 'pi pi-chart-bar',
