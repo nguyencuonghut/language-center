@@ -31,6 +31,11 @@ class ClassSession extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    public function substitution()
+    {
+        return $this->hasOne(\App\Models\SessionSubstitution::class, 'class_session_id');
+    }
+
     /**
      * Scope: tìm các buổi cùng phòng, cùng ngày, bị chồng lấn khoảng thời gian.
      * Điều kiện chồng lấn: (startA < endB) && (endA > startB)

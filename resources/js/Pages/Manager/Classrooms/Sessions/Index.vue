@@ -2,6 +2,7 @@
 import { reactive, computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import SessionSubstituteDialog from './Partials/SessionSubstituteDialog.vue'
 
 // PrimeVue
 import DataTable from 'primevue/datatable'
@@ -20,6 +21,7 @@ const props = defineProps({
   classroom: Object,   // {id, code, name, branch_id}
   sessions: Object,    // paginator
   rooms: Array,        // [{id,code,name,label,value}]
+  teachers: Array,     // [{id,name,label,value}]
   filters: Object,     // {sort, order, perPage}
 })
 
@@ -85,13 +87,12 @@ const totalRecords = computed(() => props.sessions?.total ?? value.value.length)
 const rows = computed(() => props.sessions?.per_page ?? 20)
 const first = computed(() => Math.max(0, (props.sessions?.from ?? 1) - 1))
 
-/* ---------- UI helpers ---------- */
-const weekdays = ['CN','T2','T3','T4','T5','T6','T7']
-const statusOptions = [
-  { label: 'Kế hoạch', value: 'planned' },
-  { label: 'Đã dạy', value: 'taught' },
-  { label: 'Huỷ', value: 'cancelled' }
-]
+function getSubstitutionText(session) {
+  if (!session.substitution) return 'Dạy thay'
+
+  const teacherName = session.substitution.substitute_teacher?.name || 'N/A'
+  return `Dạy thay: ${teacherName}`
+}
 
 /* ---------- Row inline edit ---------- */
 const editing = reactive({}) // key: session.id
@@ -227,6 +228,20 @@ function bulkAssignRoom() {
     }
   })
 }
+
+/* ------------ Dạy thay (substitute) ------------ */
+const showSubDialog = ref(false)
+const subCtx = reactive({
+  sessionId: null,
+  substitution: null, // hoặc {} nếu có data hiện có
+})
+// danh sách giáo viên dạng [{id,name,label,value}]
+const teacherOptions = computed(() => props.teachers || [])
+function openSubstitute(row){
+  subCtx.sessionId = row.id
+  subCtx.substitution = row.substitution ?? null // nếu BE trả về info dạy thay hiện tại
+  showSubDialog.value = true
+}
 </script>
 
 <template>
@@ -331,7 +346,7 @@ function bulkAssignRoom() {
       <!-- Checkbox chọn nhiều -->
       <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-      <Column field="session_no" header="#" style="width: 80px" :sortable="true" />
+      <Column field="id" header="ID" style="width: 80px" :sortable="true" />
       <Column field="date" header="Ngày" style="width: 200px" :sortable="true">
         <template #body="{ data }">
           <div v-if="isEditing(data.id)" class="flex items-center gap-2">
@@ -417,19 +432,40 @@ function bulkAssignRoom() {
           <div v-if="isEditing(data.id)">
             <Textarea v-model="editing[data.id].note" autoResize rows="1" class="w-full" />
           </div>
-          <div v-else class="truncate max-w-[360px]">{{ data.note || '—' }}</div>
+          <div v-else class="space-y-1">
+            <div v-if="data.substitution" class="flex items-center gap-2">
+              <Tag :value="getSubstitutionText(data)" severity="warning" class="text-xs" />
+            </div>
+            <div class="truncate max-w-[360px] text-slate-600 dark:text-slate-400">
+              {{ data.note || '—' }}
+            </div>
+          </div>
         </template>
       </Column>
 
-      <Column header="" style="width: 220px">
+      <Column header="" style="width: 280px">
         <template #body="{ data }">
-          <div class="flex justify-end gap-2">
+          <div class="flex gap-2 justify-end">
+            <button
+              @click="openSubstitute(data)"
+              class="px-3 py-1.5 rounded border border-blue-300 text-blue-700 hover:bg-blue-50
+                     dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20"
+            >
+              <i class="pi pi-user-edit mr-1"></i> Dạy thay
+            </button>
+
             <template v-if="!isEditing(data.id)">
-              <Button label="Sửa" icon="pi pi-pencil" text @click="startEdit(data)" />
+              <button
+                @click="startEdit(data)"
+                class="px-3 py-1.5 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
+                       dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+              >
+                <i class="pi pi-pencil mr-1"></i> Sửa
+              </button>
             </template>
             <template v-else>
-              <Button label="Huỷ" icon="pi pi-times" text :disabled="editing[data.id].saving" @click="cancelEdit(data.id)" />
-              <Button label="Lưu" icon="pi pi-check" :loading="editing[data.id].saving" @click="saveRow(data)" />
+              <Button label="Huỷ" icon="pi pi-times" size="small" text :disabled="editing[data.id].saving" @click="cancelEdit(data.id)" />
+              <Button label="Lưu" icon="pi pi-check" size="small" :loading="editing[data.id].saving" @click="saveRow(data)" />
             </template>
           </div>
         </template>
@@ -499,4 +535,13 @@ function bulkAssignRoom() {
       <Button label="Tạo" icon="pi pi-check" :loading="createForm.saving" @click="saveCreate" autofocus />
     </template>
   </Dialog>
+
+  <SessionSubstituteDialog
+    v-model:visible="showSubDialog"
+    :classroom-id="classroom.id"
+    :session-id="subCtx.sessionId"
+    :teachers="teacherOptions"
+    :substitution="subCtx.substitution"
+  />
+
 </template>

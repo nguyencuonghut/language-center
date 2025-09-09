@@ -28,6 +28,8 @@ use App\Http\Controllers\Manager\TransferController;
 use App\Http\Controllers\Manager\TransferAnalyticsController;
 use App\Http\Controllers\Manager\TransferAdvancedController;
 use App\Http\Controllers\Manager\TransferAuditController;
+use App\Http\Controllers\Manager\SessionSubstitutionController;
+use App\Http\Controllers\Manager\SubstitutionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -319,6 +321,14 @@ Route::middleware(['auth'])->group(function () {
                 ->name('sessions.store');
             Route::post('sessions/bulk-room', [ClassSessionController::class, 'bulkAssignRoom'])
                 ->name('sessions.bulk-room');
+            // Dạy thay (substitutions)
+            Route::prefix('sessions/{class_session}')->name('sessions.')->where(['class_session' => '[0-9]+'])->group(function () {
+                // Dạy thay (substitutions)
+                Route::post('substitutions',               [SessionSubstitutionController::class, 'store'])->name('substitutions.store');
+                Route::put('substitutions/{substitution}', [SessionSubstitutionController::class, 'update'])->name('substitutions.update')->where('substitution', '[0-9]+');
+                Route::delete('substitutions/{substitution}', [SessionSubstitutionController::class, 'destroy'])->name('substitutions.destroy')->where('substitution', '[0-9]+');
+            });
+
             // ENROLLMENTS (ghi danh)
             Route::get('enrollments', [EnrollmentController::class, 'index'])->name('enrollments.index');
             Route::post('enrollments',       [EnrollmentController::class, 'store'])->name('enrollments.store');
@@ -329,6 +339,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('enrollments/search-students', [EnrollmentController::class, 'searchStudents'])
                 ->name('enrollments.search-students');
         });
+
+        // SUBSTITUTIONS (dạy thay)
+        Route::get('substitutions', [SubstitutionController::class, 'index'])
+            ->name('substitutions.index');
 
         // TIMESHEETS
         Route::get('timesheets', [TimesheetController::class, 'index'])->name('timesheets.index');

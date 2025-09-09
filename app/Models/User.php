@@ -57,6 +57,16 @@ class User extends Authenticatable
         return $this->belongsToMany(Branch::class, 'manager_branch')->withTimestamps();
     }
 
+    public function sessionSubstitutions()
+    {
+        return $this->hasMany(\App\Models\SessionSubstitution::class, 'substitute_teacher_id');
+    }
+
+    public function approvedSubstitutions()
+    {
+        return $this->hasMany(\App\Models\SessionSubstitution::class, 'approved_by');
+    }
+
     /**
      * Get roles in Vietnamese
      */

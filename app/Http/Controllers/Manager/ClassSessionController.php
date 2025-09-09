@@ -10,6 +10,7 @@ use App\Models\Classroom;
 use App\Http\Requests\UpdateSessionRequest;
 use App\Models\ClassSession;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\HolidayService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -49,11 +50,16 @@ class ClassSessionController extends Controller
 {
     $query = ClassSession::query()
         ->where('class_id', $classroom->id)
-        ->with(['room:id,code,name']);
+        ->with([
+            'room:id,code,name',
+            'substitution' => function($q) {
+                $q->with('substituteTeacher:id,name');
+            }
+        ]);
 
     $sort  = $request->string('sort')->toString() ?: 'date';
     $order = $request->string('order')->toString() === 'desc' ? 'desc' : 'asc';
-    if (!in_array($sort, ['date','start_time','end_time','session_no','status','room'])) {
+    if (!in_array($sort, ['date','start_time','end_time','id','status','room'])) {
         $sort = 'date';
     }
 
@@ -90,10 +96,24 @@ class ClassSessionController extends Controller
             'value'=> (string)$r->id,
         ]);
 
+    // NEW: danh sách giáo viên (có thể lọc theo chi nhánh hoặc tất cả)
+    $teachers = User::query()
+        ->whereHas('roles', fn($q) => $q->where('name', 'teacher'))
+        ->where('active', true)
+        ->orderBy('name')
+        ->get(['id','name'])
+        ->map(fn($t) => [
+            'id'    => $t->id,
+            'name'  => $t->name,
+            'label' => $t->name,
+            'value' => (string)$t->id,
+        ]);
+
     return Inertia::render('Manager/Classrooms/Sessions/Index', [
         'classroom' => $classroom->only(['id','code','name','branch_id']),
         'sessions'  => $sessions,
         'rooms'     => $rooms, // <-- thêm
+        'teachers'  => $teachers, // <-- thêm
         'filters'   => [
             'sort'    => $sort,
             'order'   => $order,

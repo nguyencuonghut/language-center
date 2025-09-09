@@ -10,6 +10,7 @@ use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 class TimesheetController extends Controller
 {
@@ -21,6 +22,7 @@ class TimesheetController extends Controller
         $filters = [
             'status'  => $request->input('status', 'draft'),
             'branch'  => $request->input('branch', 'all'),
+            'onlySubstitution' => $request->boolean('only_substitution', false),
             'perPage' => (int) $request->input('per_page', 20),
         ];
 
@@ -30,8 +32,12 @@ class TimesheetController extends Controller
                 'session:id,class_id,date,start_time,end_time,room_id',
                 'session.classroom:id,code,name,branch_id',
                 'session.room:id,code,name',
+                'session.substitution' => function ($query) {
+                    $query->with('substituteTeacher:id,name');
+                },
             ])
             ->when($filters['status'] !== 'all', fn($q) => $q->where('status', $filters['status']))
+            ->when($filters['onlySubstitution'], fn($q) => $q->whereHas('session.substitution'))
             ->orderByDesc('id');
 
         if ($filters['branch'] !== 'all') {
@@ -41,6 +47,16 @@ class TimesheetController extends Controller
 
         $branches   = Branch::select('id','name')->orderBy('name')->get();
         $timesheets = $q->paginate($filters['perPage'])->withQueryString();
+
+        // Load lại relationships để đảm bảo
+        $timesheets->getCollection()->load([
+            'session' => function ($query) {
+                $query->with([
+                    'substitution:id,class_session_id,substitute_teacher_id,reason',
+                    'substitution.substituteTeacher:id,name'
+                ]);
+            }
+        ]);
 
         return Inertia::render('Manager/Timesheets/Index', [
             'timesheets' => $timesheets,

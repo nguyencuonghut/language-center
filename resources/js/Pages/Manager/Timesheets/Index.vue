@@ -22,6 +22,7 @@ const props = defineProps({
 const state = reactive({
   status: props.filters?.status ?? 'draft',
   branch: props.filters?.branch ?? 'all',
+  onlySubstitution: props.filters?.onlySubstitution ?? false,
   perPage: props.filters?.perPage ?? (props.timesheets?.per_page ?? 20),
 })
 
@@ -29,6 +30,7 @@ function buildQuery(extra = {}) {
   const q = {}
   if (state.status) q.status = state.status
   if (state.branch && state.branch !== 'all') q.branch = state.branch
+  if (state.onlySubstitution) q.only_substitution = '1'
   if (state.perPage && state.perPage !== props.timesheets?.per_page) q.per_page = state.perPage
   Object.assign(q, extra)
   return q
@@ -81,7 +83,12 @@ function bulkApprove() {
   <Head title="Duyệt bảng công" />
 
   <div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold">Duyệt bảng công</h1>
+    <div>
+      <h1 class="text-xl md:text-2xl font-heading font-semibold">Duyệt bảng công</h1>
+      <div v-if="state.onlySubstitution" class="text-sm text-orange-600 dark:text-orange-400 mt-1">
+        <i class="pi pi-filter mr-1"></i> Chỉ hiển thị dạy thay
+      </div>
+    </div>
 
     <div class="flex flex-wrap items-center gap-2">
       <Select
@@ -99,6 +106,10 @@ function bulkApprove() {
         :options="[{label:'Tất cả chi nhánh', value:'all'}, ...(props.branches||[]).map(b=>({label:b.name, value:String(b.id)}))]"
         optionLabel="label" optionValue="value" class="w-56" @change="applyFilters"
       />
+      <div class="flex items-center gap-2">
+        <Checkbox v-model="state.onlySubstitution" :binary="true" @change="applyFilters" />
+        <label class="text-sm text-slate-700 dark:text-slate-300">Chỉ hiển thị dạy thay</label>
+      </div>
       <Select
         v-model="state.perPage"
         :options="[{label:'20 / trang',value:20},{label:'50 / trang',value:50},{label:'100 / trang',value:100}]"
@@ -151,9 +162,18 @@ function bulkApprove() {
           {{ formatVND(data.amount) }}
         </template>
       </Column>
-      <Column field="status" header="Trạng thái" style="width: 140px">
+      <Column header="Dạy thay" style="width: 200px">
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="data.status==='draft' ? 'info' : data.status==='approved' ? 'success' : 'warning'" />
+          <div v-if="data.session?.substitution" class="space-y-1">
+            <div class="text-xs text-slate-600 dark:text-slate-400">
+              <i class="pi pi-user mr-1"></i>
+              {{ data.session.substitution.substitute_teacher?.name ?? 'N/A' }}
+            </div>
+            <div v-if="data.session.substitution.reason" class="text-xs text-slate-500 dark:text-slate-500 italic">
+              "{{ data.session.substitution.reason }}"
+            </div>
+          </div>
+          <span v-else class="text-slate-400">—</span>
         </template>
       </Column>
       <Column header="" style="width: 160px">
