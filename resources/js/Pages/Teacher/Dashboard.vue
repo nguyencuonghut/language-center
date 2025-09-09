@@ -6,7 +6,7 @@ import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
-import Dropdown from 'primevue/dropdown'
+import Select from 'primevue/select'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
@@ -24,6 +24,8 @@ const props = defineProps({
     alerts: Object,
     recentTimesheets: Array,
     studentsAttention: Array,
+    upcomingSubstitutions: Array,
+    range: { type: Object, default: () => ({ from: null, to: null }) }, // {from,to} ngày bắt đầu/kết thúc của khoảng 14 ngày tới
     meta: Object,
     branches: Array, // Danh sách chi nhánh (nếu teacher dạy nhiều CN)
 })
@@ -87,7 +89,8 @@ const { showSuccess, showError, showInfo } = usePageToast()
 const hasAlerts = computed(() => {
     return props.alerts.sessions_no_attendance > 0 ||
            props.alerts.pending_timesheets > 0 ||
-           props.alerts.overdue_sessions > 0
+           props.alerts.overdue_sessions > 0 ||
+           props.alerts.pending_substitutions > 0
 })
 
 // Phase 3: Advanced Computed Properties
@@ -101,6 +104,7 @@ const filteredTodaySchedule = computed(() => {
         session.room.toLowerCase().includes(query)
     )
 })
+
 
 const filteredTimesheets = computed(() => {
     if (!searchQuery.value) return props.recentTimesheets
@@ -145,6 +149,16 @@ const urgentTasks = computed(() => {
         })
     }
 
+    // Add pending substitutions
+    if (props.alerts.pending_substitutions > 0) {
+        tasks.push({
+            type: 'substitution',
+            count: props.alerts.pending_substitutions,
+            message: `${props.alerts.pending_substitutions} buổi dạy thay chờ duyệt`,
+            urgency: 'high'
+        })
+    }
+
     return tasks.sort((a, b) => {
         const urgencyOrder = { critical: 3, high: 2, medium: 1 }
         return urgencyOrder[b.urgency] - urgencyOrder[a.urgency]
@@ -175,31 +189,50 @@ const quickActionsItems = computed(() => {
 })
 
 // Helper functions
+const formatCurrency = (amount) => {
+    if (amount == null || isNaN(amount)) return ''
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0
+    }).format(amount)
+}
+const formatTime = (time) => {
+    if (!time) return ''
+    // Nếu đã là dạng HH:mm thì trả về luôn
+    if (/^\d{2}:\d{2}$/.test(time)) return time
+    // Nếu là dạng HH:mm:ss hoặc có giây
+    if (/^\d{2}:\d{2}:\d{2}$/.test(time)) return time.slice(0,5)
+    // Nếu là số (giây hoặc phút), có thể xử lý thêm nếu cần
+    return time
+}
+/** dd/mm/yyyy (hiển thị, không đổi timezone) */
+function toDdMmYyyy(d) {
+if (!d) return '—'
+const dt = new Date(String(d).replace(' ', 'T'))
+if (isNaN(dt.getTime())) {
+    const [y,m,day] = String(d).split('-')
+    if (y && m && day) return `${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`
+    return String(d)
+}
+const dd = String(dt.getDate()).padStart(2,'0')
+const mm = String(dt.getMonth()+1).padStart(2,'0')
+const yy = dt.getFullYear()
+return `${dd}/${mm}/${yy}`
+}
+
 const formatNumber = (num) => {
     return new Intl.NumberFormat('vi-VN').format(num)
 }
 
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-    }).format(amount)
-}
-
-const formatTime = (time) => {
-    return time
-}
-
 const formatDate = (dateString) => {
     if (!dateString) return ''
-
     try {
         // Handle multiple datetime formats:
         // 1. YYYY-MM-DD (date only)
         // 2. YYYY-MM-DD HH:MM:SS (datetime with space)
         // 3. 2025-09-05T22:08:03.000000Z (ISO 8601 UTC)
         let dateOnly
-
         if (dateString.includes('T')) {
             // ISO 8601 format: 2025-09-05T22:08:03.000000Z
             dateOnly = dateString.split('T')[0]
@@ -210,16 +243,12 @@ const formatDate = (dateString) => {
             // Date only format: 2025-09-05
             dateOnly = dateString
         }
-
         const dateParts = String(dateOnly).split('-')
-
         if (dateParts.length !== 3) {
             console.warn('formatDate - Invalid date format:', dateString, 'dateOnly:', dateOnly)
             return dateString // Return original string if format is wrong
         }
-
         const [year, month, day] = dateParts.map(Number)
-
         // Validate date components
         if (isNaN(year) || isNaN(month) || isNaN(day) ||
             year < 1900 || year > 2100 ||
@@ -228,15 +257,12 @@ const formatDate = (dateString) => {
             console.warn('formatDate - Invalid date values:', { year, month, day, originalInput: dateString })
             return dateString
         }
-
         const date = new Date(year, month - 1, day)
-
         // Check if the date is valid
         if (isNaN(date.getTime())) {
             console.warn('formatDate - Invalid date object:', dateString)
             return dateString
         }
-
         return new Intl.DateTimeFormat('vi-VN', {
             day: '2-digit',
             month: '2-digit',
@@ -312,25 +338,27 @@ const getDayOfWeek = (date) => {
     if (!date) return ''
 
     try {
-        // Parse date trong local timezone
-        const dateParts = String(date).split('-')
+        // Support ISO 8601, datetime, and date-only strings
+        let dateOnly = String(date)
+        if (dateOnly.includes('T')) {
+            dateOnly = dateOnly.split('T')[0]
+        } else if (dateOnly.includes(' ')) {
+            dateOnly = dateOnly.split(' ')[0]
+        }
 
+        const dateParts = dateOnly.split('-')
         if (dateParts.length !== 3) {
             console.warn('getDayOfWeek - Invalid date format:', date)
             return ''
         }
 
         const [year, month, day] = dateParts.map(Number)
-
-        // Validate date components
         if (isNaN(year) || isNaN(month) || isNaN(day)) {
             console.warn('getDayOfWeek - Invalid date values:', { year, month, day, originalInput: date })
             return ''
         }
 
         const dateObj = new Date(year, month - 1, day)
-
-        // Check if the date is valid
         if (isNaN(dateObj.getTime())) {
             console.warn('getDayOfWeek - Invalid date object:', date)
             return ''
@@ -566,6 +594,14 @@ const loadNotifications = () => {
             'error'
         )
     }
+
+    if (props.alerts.pending_substitutions > 0) {
+        addNotification(
+            'Pending Substitutions',
+            `${props.alerts.pending_substitutions} substitution requests need approval`,
+            'warning'
+        )
+    }
 }
 
 const quickAttendance = () => {
@@ -694,7 +730,7 @@ const toggleQuickActionsMenu = (event) => {
             <!-- Branch Filter (if teacher teaches in multiple branches) -->
             <div v-if="branches && branches.length > 1" class="flex items-center gap-2">
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Chi nhánh:</label>
-                <Dropdown
+                <Select
                     v-model="selectedBranch"
                     :options="branches"
                     optionLabel="name"
@@ -745,7 +781,7 @@ const toggleQuickActionsMenu = (event) => {
     </div>
 
     <!-- Alerts Row -->
-    <div v-if="hasAlerts" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div v-if="hasAlerts" class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Sessions without attendance -->
         <div v-show="alerts.sessions_no_attendance > 0" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <div class="flex items-center">
@@ -786,6 +822,21 @@ const toggleQuickActionsMenu = (event) => {
                     </p>
                     <p class="text-xs text-orange-600 dark:text-orange-300">
                         Quá 3 ngày chưa điểm danh
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending substitutions -->
+        <div v-show="alerts.pending_substitutions > 0" class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="pi pi-user-plus text-purple-600 dark:text-purple-400 mr-3"></i>
+                <div>
+                    <p class="text-sm font-medium text-purple-800 dark:text-purple-200">
+                        {{ alerts.pending_substitutions }} buổi dạy thay chờ duyệt
+                    </p>
+                    <p class="text-xs text-purple-600 dark:text-purple-300">
+                        Cần phê duyệt từ quản lý
                     </p>
                 </div>
             </div>
@@ -877,7 +928,7 @@ const toggleQuickActionsMenu = (event) => {
     </div>
 
     <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <!-- Classes Teaching -->
         <Card>
             <template #content>
@@ -949,6 +1000,25 @@ const toggleQuickActionsMenu = (event) => {
                     </div>
                     <div class="bg-orange-100 dark:bg-orange-900/20 p-3 rounded-full">
                         <i class="pi pi-check-square text-orange-600 dark:text-orange-400 text-xl"></i>
+                    </div>
+                </div>
+            </template>
+        </Card>
+
+        <!-- Upcoming Substitutions -->
+        <Card>
+            <template #content>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            Buổi dạy thay (14 ngày)
+                        </p>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">
+                            {{ formatNumber(kpi.upcoming_substitutions.total) }}
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-full">
+                        <i class="pi pi-user-plus text-purple-600 dark:text-purple-400 text-xl"></i>
                     </div>
                 </div>
             </template>
@@ -1093,6 +1163,83 @@ const toggleQuickActionsMenu = (event) => {
                                 </div>
                                 <div class="text-xs text-gray-500">
                                     Tỷ lệ tham dự
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </Card>
+    </div>
+
+    <!-- Upcoming Substitutions -->
+    <div class="mb-8">
+        <Card>
+            <template #content>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Buổi dạy thay sắp tới trong 14 ngày tới
+                    </h3>
+                    <i class="pi pi-user-plus text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div class="space-y-3">
+                    <div v-if="upcomingSubstitutions.length === 0" class="text-center py-8">
+                        <i class="pi pi-calendar-times text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400">
+                            Không có buổi dạy thay nào trong 14 ngày tới
+                        </p>
+                    </div>
+                    <div v-else v-for="substitution in upcomingSubstitutions" :key="substitution.id"
+                         class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                                        {{ substitution.class_name }}
+                                    </h4>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        ({{ substitution.class_code }})
+                                    </span>
+                                    <Tag
+                                        v-if="substitution.approved_at"
+                                        value="Đã duyệt"
+                                        severity="success"
+                                        class="text-xs"
+                                    />
+                                    <Tag
+                                        v-else
+                                        value="Chờ duyệt"
+                                        severity="warning"
+                                        class="text-xs"
+                                    />
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="pi pi-calendar mr-1"></i>
+                                    {{ toDdMmYyyy(substitution.date) }} •
+                                    <i class="pi pi-clock ml-2 mr-1"></i>
+                                    {{ formatTime(substitution.start_time) }} - {{ formatTime(substitution.end_time) }}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="pi pi-building mr-1"></i>
+                                    {{ substitution.room }} •
+                                    <i class="pi pi-hashtag ml-2 mr-1"></i>
+                                    Buổi {{ substitution.session_no }}
+                                </p>
+                                <p v-if="substitution.reason" class="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                    <i class="pi pi-info-circle mr-1"></i>
+                                    Lý do: {{ substitution.reason }}
+                                </p>
+                                <p v-if="substitution.rate_override" class="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    <i class="pi pi-dollar mr-1"></i>
+                                    Tiền buổi: {{ formatCurrency(substitution.rate_override) }}
+                                </p>
+                            </div>
+                            <div class="flex flex-col items-end space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ getDayOfWeek(substitution.date) }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{ new Date(substitution.date).getDate() }}
                                 </div>
                             </div>
                         </div>

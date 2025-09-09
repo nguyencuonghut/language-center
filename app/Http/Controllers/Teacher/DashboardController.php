@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\Classroom;
@@ -15,6 +16,7 @@ use App\Models\Enrollment;
 use App\Models\User;
 use App\Models\TeachingAssignment;
 use App\Models\TeacherTimesheet;
+use App\Models\SessionSubstitution;
 
 class DashboardController extends Controller
 {
@@ -80,6 +82,15 @@ class DashboardController extends Controller
             'pending_timesheets' => [
                 'total' => TeacherTimesheet::where('teacher_id', $teacherId)
                     ->whereIn('status', ['draft'])
+                    ->count(),
+            ],
+            'upcoming_substitutions' => [
+                'total' => SessionSubstitution::join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
+                    ->whereBetween('class_sessions.date', [
+                        $today->copy()->toDateString(),
+                        $today->copy()->addDays(14)->toDateString()
+                    ])
+                    ->where('substitute_teacher_id', $teacherId)
                     ->count(),
             ],
         ];
@@ -158,6 +169,11 @@ class DashboardController extends Controller
                 ->whereDate('date', '<', $today->subDays(3)->toDateString())
                 ->whereDoesntHave('attendances')
                 ->count(),
+            'pending_substitutions' => SessionSubstitution::where('substitute_teacher_id', $teacherId)
+                ->whereNull('approved_at')
+                ->join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
+                ->where('class_sessions.date', '>=', $today->toDateString())
+                ->count(),
         ];
 
         // Recent timesheets với dữ liệu thực từ database
@@ -225,6 +241,39 @@ class DashboardController extends Controller
             }
         }
 
+        // Upcoming substitutions (0-14 days ahead)
+        $upcomingSubstitutions = SessionSubstitution::with([
+            'session.classroom',
+            'session.room',
+            'substituteTeacher'
+        ])
+            ->join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
+            ->whereBetween('class_sessions.date', [
+                Carbon::now()->toDateString(),
+                Carbon::now()->copy()->addDays(14)->toDateString()
+            ])
+            ->where('substitute_teacher_id', $teacherId)
+            ->orderBy('class_sessions.date')
+            ->orderBy('class_sessions.start_time')
+            ->select('session_substitutions.*')
+            ->get()
+            ->map(function($substitution) {
+                return [
+                    'id' => $substitution->id,
+                    'session_id' => $substitution->class_session_id,
+                    'class_name' => optional($substitution->session->classroom)->name,
+                    'class_code' => optional($substitution->session->classroom)->code,
+                    'date' => optional($substitution->session)->date,
+                    'start_time' => optional($substitution->session && $substitution->session->start_time) ? \Carbon\Carbon::parse($substitution->session->start_time)->format('H:i') : null,
+                    'end_time' => optional($substitution->session && $substitution->session->end_time) ? \Carbon\Carbon::parse($substitution->session->end_time)->format('H:i') : null,
+                    'room' => optional($substitution->session->room)->name ?? 'Chưa xếp phòng',
+                    'reason' => $substitution->reason,
+                    'rate_override' => $substitution->rate_override,
+                    'approved_at' => $substitution->approved_at,
+                    'session_no' => optional($substitution->session)->session_no,
+                ];
+            });
+
         return Inertia::render('Teacher/Dashboard', [
             'kpi' => $kpi,
             'todaySchedule' => $todaySchedule,
@@ -232,6 +281,11 @@ class DashboardController extends Controller
             'alerts' => $alerts,
             'recentTimesheets' => $recentTimesheets,
             'studentsAttention' => $studentsAttention->take(5), // Giới hạn 5 học viên
+            'upcomingSubstitutions' => $upcomingSubstitutions,
+            'range' => [
+                'from' => $today->copy()->toDateString(),
+                'to'   => $today->copy()->addDays(14)->toDateString(),
+            ],
             'branches' => $teacherBranches, // Branches that teacher teaches in
             'latestExportId' => session('latest_export_id'), // Pass export ID if exists
             'meta' => [
