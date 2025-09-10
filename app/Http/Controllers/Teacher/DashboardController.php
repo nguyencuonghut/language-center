@@ -203,7 +203,7 @@ class DashboardController extends Controller
                     'id' => $timesheet->id,
                     'class_name' => $timesheet->session->classroom->name,
                     'class_code' => $timesheet->session->classroom->code,
-                    'session_date' => $timesheet->session->date,
+                    'session_date' => $timesheet->session && $timesheet->session->date ? \Carbon\Carbon::parse($timesheet->session->date)->timezone(config('app.timezone'))->toDateString() : null,
                     'amount' => $timesheet->amount,
                     'status' => $timesheet->status,
                     'created_at' => $timesheet->created_at,
