@@ -32,7 +32,8 @@ const props = defineProps({
 
 // State cho filters và UI
 const selectedWeek = ref(new Date(props.meta.week_range[0]))
-const selectedBranch = ref(null)
+// Đảm bảo selectedBranch luôn cùng kiểu với id của option (số hoặc string)
+const selectedBranch = ref(props.meta.selected_branch ?? null)
 const showWeekScheduleModal = ref(false)
 const selectedSessionDetail = ref(null)
 
@@ -720,7 +721,7 @@ const toggleQuickActionsMenu = (event) => {
                     optionValue="id"
                     placeholder="Tất cả chi nhánh"
                     class="w-48"
-                    @change="onBranchChange"
+                    @update:modelValue="onBranchChange"
                 />
             </div>
 

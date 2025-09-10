@@ -38,25 +38,31 @@ class DashboardController extends Controller
         // Branch filtering (if teacher teaches in multiple branches)
         $branchFilter = $request->get('branch_id');
 
-        // Lấy các lớp mà giáo viên đang dạy hiện tại (teaching_assignments)
-        $currentAssignments = TeachingAssignment::with(['classroom.branch'])
+        // Lấy tất cả assignment của giáo viên để lấy danh sách branch
+        $allAssignments = TeachingAssignment::with(['classroom.branch'])
             ->where('teacher_id', $teacherId)
             ->where('effective_from', '<=', $today)
             ->where(function($q) use ($today) {
                 $q->whereNull('effective_to')
                   ->orWhere('effective_to', '>=', $today);
             })
-            ->when($branchFilter, function($q) use ($branchFilter) {
-                $q->whereHas('classroom', function($subQ) use ($branchFilter) {
-                    $subQ->where('branch_id', $branchFilter);
-                });
-            })
             ->get();
 
-        $classroomIds = $currentAssignments->pluck('class_id');
 
-        // Get branches that teacher teaches in
-        $teacherBranches = $currentAssignments->pluck('classroom.branch')->unique()->values();
+    // Danh sách branch mà giáo viên được phân công (không filter branch_id)
+    $teacherBranches = $allAssignments->pluck('classroom.branch')->unique('id')->values()->all();
+    // Thêm option 'Tất cả chi nhánh' vào đầu mảng
+    array_unshift($teacherBranches, (object)['id' => null, 'name' => 'Tất cả chi nhánh']);
+
+        // Chỉ filter assignment theo branch_id cho dữ liệu dashboard
+        $currentAssignments = $allAssignments;
+        if ($branchFilter !== null && $branchFilter !== '' && $branchFilter !== 'null') {
+            $currentAssignments = $allAssignments->filter(function($a) use ($branchFilter) {
+                return $a->classroom && $a->classroom->branch_id == $branchFilter;
+            })->values();
+        }
+
+        $classroomIds = $currentAssignments->pluck('class_id');
 
         // KPI calculations với dữ liệu thực
         $kpi = [
