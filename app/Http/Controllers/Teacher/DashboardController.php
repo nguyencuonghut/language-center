@@ -91,13 +91,20 @@ class DashboardController extends Controller
                     ->count(),
             ],
             'upcoming_substitutions' => [
-                'total' => SessionSubstitution::join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
-                    ->whereBetween('class_sessions.date', [
-                        $today->copy()->toDateString(),
-                        $today->copy()->addDays(14)->toDateString()
-                    ])
-                    ->where('substitute_teacher_id', $teacherId)
-                    ->count(),
+                'total' => (function() use ($teacherId, $today, $branchFilter) {
+                    $query = SessionSubstitution::join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
+                        ->whereBetween('class_sessions.date', [
+                            $today->copy()->toDateString(),
+                            $today->copy()->addDays(14)->toDateString()
+                        ])
+                        ->where('substitute_teacher_id', $teacherId);
+                    if ($branchFilter !== null && $branchFilter !== '' && $branchFilter !== 'null') {
+                        $query = $query->whereHas('session.classroom', function($q) use ($branchFilter) {
+                            $q->where('branch_id', $branchFilter);
+                        });
+                    }
+                    return $query->count();
+                })(),
             ],
         ];
 
