@@ -81,7 +81,11 @@ const quickActionsMenuRef = ref(null)
 const quickActionsMenu = ref(null)
 const quickActionsButton = ref(null)
 
+// Helper: xác định session có phải là buổi dạy thay không
 
+const isSubstitutionSession = (sessionId) => {
+    return props.upcomingSubstitutions.some(sub => sub.session_id === sessionId)
+}
 
 // Toast notifications
 const { showSuccess, showError, showInfo } = usePageToast()
@@ -1268,7 +1272,10 @@ const toggleQuickActionsMenu = (event) => {
                                         : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                                  ]"
                                  @click="viewSessionDetail(session)">
-                                <p class="font-medium">{{ session.class_name }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium">{{ session.class_name }}</p>
+                                    <Tag v-if="isSubstitutionSession(session.id)" value="Dạy thay" severity="warn" class="text-xs ml-1" />
+                                </div>
                                 <p>{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</p>
                                 <p class="text-gray-500">{{ session.room }}</p>
                                 <Tag
