@@ -630,7 +630,7 @@ function formatCurrency(amount) {
         />
         <Button
           label="Xác nhận sửa hướng"
-          severity="warning"
+          severity="warn"
           @click="handleRetargetSubmit"
           :disabled="!retargetData.to_class_id || retargetSaving"
           :loading="retargetSaving"

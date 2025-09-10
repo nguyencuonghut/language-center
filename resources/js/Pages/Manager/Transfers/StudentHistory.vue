@@ -334,7 +334,7 @@ function viewTransferDetails(transfer) {
                       <div class="flex items-center gap-2 mb-1">
                         <span class="text-sm font-medium">{{ item.description }}</span>
                         <Badge v-if="item.type === 'created'" value="Tạo" severity="success" />
-                        <Badge v-else-if="item.type === 'status_change'" value="Trạng thái" severity="warning" />
+                        <Badge v-else-if="item.type === 'status_change'" value="Trạng thái" severity="warn" />
                         <Badge v-else value="Chỉnh sửa" severity="info" />
                       </div>
                       <div class="text-xs text-slate-500">

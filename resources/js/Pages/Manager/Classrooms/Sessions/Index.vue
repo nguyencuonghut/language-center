@@ -354,7 +354,7 @@ function openSubstitute(row){
           </div>
           <div v-else class="flex items-center gap-2">
             <span>{{ data.date }}</span>
-            <Tag v-if="data.is_holiday" value="Nghỉ lễ" severity="warning" />
+            <Tag v-if="data.is_holiday" value="Nghỉ lễ" severity="warn" />
           </div>
           <div v-if="editing[data.id]?.errors?.date" class="text-red-500 text-xs mt-1">
             {{ editing[data.id].errors.date }}
@@ -434,7 +434,7 @@ function openSubstitute(row){
           </div>
           <div v-else class="space-y-1">
             <div v-if="data.substitution" class="flex items-center gap-2">
-              <Tag :value="getSubstitutionText(data)" severity="warning" class="text-xs" />
+              <Tag :value="getSubstitutionText(data)" severity="warn" class="text-xs" />
             </div>
             <div class="truncate max-w-[360px] text-slate-600 dark:text-slate-400">
               {{ data.note || '—' }}

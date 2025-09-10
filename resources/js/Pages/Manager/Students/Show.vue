@@ -378,7 +378,7 @@ const confirmRetarget = () => {
                     label="Hoàn tác"
                     icon="pi pi-undo"
                     size="small"
-                    severity="warning"
+                    severity="warn"
                     @click="revertTransfer(data)"
                   />
                   <Button
@@ -648,7 +648,7 @@ const confirmRetarget = () => {
         />
         <Button
           label="Xác nhận sửa hướng"
-          severity="warning"
+          severity="warn"
           @click="confirmRetarget"
           :disabled="!retargetData.to_class_id || retargetSaving"
           :loading="retargetSaving"

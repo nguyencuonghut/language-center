@@ -1197,7 +1197,7 @@ const toggleQuickActionsMenu = (event) => {
                                     <Tag
                                         v-else
                                         value="Chờ duyệt"
-                                        severity="warning"
+                                        severity="warn"
                                         class="text-xs"
                                     />
                                 </div>
@@ -1386,7 +1386,7 @@ const toggleQuickActionsMenu = (event) => {
                         label="Khóa timesheet"
                         icon="pi pi-lock"
                         size="small"
-                        severity="warning"
+                        severity="warn"
                         @click="lockLastWeekTimesheet"
                     />
                 </div>

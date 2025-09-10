@@ -142,7 +142,7 @@ function timeShort(t){ return t ? String(t).slice(0,5) : '—' }
       <Column header="Giáo viên" style="width: 220px">
         <template #body="{ data }">
           <div class="font-medium">{{ data.teacher_name }}</div>
-          <Tag value="Dạy thay" severity="warning" class="mt-1" />
+          <Tag value="Dạy thay" severity="warn" class="mt-1" />
         </template>
       </Column>
       <Column header="Lý do" style="width: 200px">
