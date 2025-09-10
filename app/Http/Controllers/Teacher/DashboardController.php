@@ -133,27 +133,43 @@ class DashboardController extends Controller
                 ];
             });
 
-        // This week's schedule với dữ liệu thực
-        $weekSchedule = ClassSession::with(['classroom', 'room'])
+        // This week's schedule: main + substitution sessions
+        $mainSessions = ClassSession::with(['classroom', 'room'])
             ->whereIn('class_id', $classroomIds)
             ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->orderBy('date')
             ->orderBy('start_time')
-            ->get()
-            ->map(function($session) {
-                return [
-                    'id' => $session->id,
-                    'class_name' => $session->classroom->name,
-                    'class_code' => $session->classroom->code,
-                    'class_id' => $session->class_id,
-                    'date' => $session->date,
-                    'day_name' => Carbon::parse($session->date)->format('l'),
-                    'start_time' => Carbon::parse($session->start_time)->format('H:i'),
-                    'end_time' => Carbon::parse($session->end_time)->format('H:i'),
-                    'room' => $session->room->name ?? 'Chưa xếp phòng',
-                    'status' => $session->status,
-                ];
-            });
+            ->get();
+
+        $subSessionIds = SessionSubstitution::join('class_sessions', 'session_substitutions.class_session_id', '=', 'class_sessions.id')
+            ->where('substitute_teacher_id', $teacherId)
+            ->whereBetween('class_sessions.date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->pluck('class_sessions.id')
+            ->toArray();
+
+        $subSessions = ClassSession::with(['classroom', 'room'])
+            ->whereIn('id', $subSessionIds)
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get();
+
+        // Merge, avoid duplicate sessions (if any)
+        $allSessions = $mainSessions->concat($subSessions)->unique('id');
+
+        $weekSchedule = $allSessions->map(function($session) {
+            return [
+                'id' => $session->id,
+                'class_name' => $session->classroom->name,
+                'class_code' => $session->classroom->code,
+                'class_id' => $session->class_id,
+                'date' => $session->date ? Carbon::parse($session->date)->timezone(config('app.timezone'))->toDateString() : null,
+                'day_name' => $session->date ? Carbon::parse($session->date)->timezone(config('app.timezone'))->format('l') : null,
+                'start_time' => Carbon::parse($session->start_time)->format('H:i'),
+                'end_time' => Carbon::parse($session->end_time)->format('H:i'),
+                'room' => $session->room->name ?? 'Chưa xếp phòng',
+                'status' => $session->status,
+            ];
+        })->sortBy([['date', 'asc'], ['start_time', 'asc']])->values();
 
         // Alerts với dữ liệu thực
         $alerts = [
@@ -258,19 +274,20 @@ class DashboardController extends Controller
             ->select('session_substitutions.*')
             ->get()
             ->map(function($substitution) {
+                $session = optional($substitution->session);
                 return [
                     'id' => $substitution->id,
                     'session_id' => $substitution->class_session_id,
-                    'class_name' => optional($substitution->session->classroom)->name,
-                    'class_code' => optional($substitution->session->classroom)->code,
-                    'date' => optional($substitution->session)->date,
-                    'start_time' => optional($substitution->session && $substitution->session->start_time) ? \Carbon\Carbon::parse($substitution->session->start_time)->format('H:i') : null,
-                    'end_time' => optional($substitution->session && $substitution->session->end_time) ? \Carbon\Carbon::parse($substitution->session->end_time)->format('H:i') : null,
-                    'room' => optional($substitution->session->room)->name ?? 'Chưa xếp phòng',
+                    'class_name' => optional($session->classroom)->name,
+                    'class_code' => optional($session->classroom)->code,
+                    'date' => $session && $session->date ? Carbon::parse($session->date)->timezone(config('app.timezone'))->toDateString() : null,
+                    'start_time' => $session && $session->start_time ? Carbon::parse($session->start_time)->format('H:i') : null,
+                    'end_time' => $session && $session->end_time ? Carbon::parse($session->end_time)->format('H:i') : null,
+                    'room' => optional($session->room)->name ?? 'Chưa xếp phòng',
                     'reason' => $substitution->reason,
                     'rate_override' => $substitution->rate_override,
                     'approved_at' => $substitution->approved_at,
-                    'session_no' => optional($substitution->session)->session_no,
+                    'session_no' => $session ? $session->session_no : null,
                 ];
             });
 

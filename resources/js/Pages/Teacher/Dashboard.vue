@@ -381,39 +381,22 @@ const weekDates = computed(() => {
         console.error('weekDates computed - No week_range[0] found, props.meta:', props.meta)
         return []
     }
-
     try {
-        // Parse date từ props.meta.week_range[0] trong local timezone
-        const startDateStr = props.meta.week_range[0]
-        const dateParts = String(startDateStr).split('-')
-
-        if (dateParts.length !== 3) {
-            console.error('weekDates computed - Invalid date format:', startDateStr)
-            return []
-        }
-
-        const [year, month, day] = dateParts.map(Number)
-
+        // Lấy ngày bắt đầu tuần ở dạng string 'YYYY-MM-DD'
+        let [year, month, day] = props.meta.week_range[0].split('-').map(Number)
         if (isNaN(year) || isNaN(month) || isNaN(day)) {
-            console.error('weekDates computed - Invalid date values:', { year, month, day, startDateStr })
+            console.error('weekDates computed - Invalid date values:', { year, month, day })
             return []
         }
-
-        const startDate = new Date(year, month - 1, day) // month - 1 vì JavaScript month là 0-indexed
-
+        const pad = n => String(n).padStart(2, '0')
         const dates = []
+        // Tạo Date object ở local timezone
+        const startDate = new Date(year, month - 1, day)
         for (let i = 0; i < 7; i++) {
-            const date = new Date(startDate)
-            date.setDate(startDate.getDate() + i)
-
-            // Format thành string trong local timezone
-            const dateYear = date.getFullYear()
-            const dateMonth = String(date.getMonth() + 1).padStart(2, '0')
-            const dateDay = String(date.getDate()).padStart(2, '0')
-            const dateString = `${dateYear}-${dateMonth}-${dateDay}`
-            dates.push(dateString)
+            const d = new Date(startDate)
+            d.setDate(startDate.getDate() + i)
+            dates.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
         }
-
         return dates
     } catch (error) {
         console.error('weekDates computed - Error:', error)
@@ -1266,11 +1249,16 @@ const toggleQuickActionsMenu = (event) => {
                                 {{ getDayOfWeek(date) }}
                             </p>
                             <p class="text-xs text-gray-500">
-                                {{ new Date(date).getDate() }}
+                                <!-- Hiển thị ngày dạng dd/mm/yyyy, luôn đúng local timezone -->
+                                {{ toDdMmYyyy(date) }}
                             </p>
                         </div>
                         <div class="space-y-1">
-                            <div v-for="session in weekSchedule.filter(s => s.date === date)"
+                            <div v-for="session in weekSchedule.filter(s => {
+                                // So sánh ngày dạng 'YYYY-MM-DD' tuyệt đối, không dùng Date object
+                                const sessionDate = typeof s.date === 'string' ? s.date.split('T')[0] : ''
+                                return sessionDate === date
+                            })"
                                  :key="session.id"
                                  :class="[
                                      'p-2 rounded text-xs cursor-pointer transition-colors hover:bg-opacity-80',
