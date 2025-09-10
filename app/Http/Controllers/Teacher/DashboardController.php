@@ -264,7 +264,7 @@ class DashboardController extends Controller
         }
 
         // Upcoming substitutions (0-14 days ahead)
-        $upcomingSubstitutions = SessionSubstitution::with([
+        $upcomingSubstitutionsQuery = SessionSubstitution::with([
             'session.classroom',
             'session.room',
             'substituteTeacher'
@@ -274,7 +274,16 @@ class DashboardController extends Controller
                 Carbon::now()->toDateString(),
                 Carbon::now()->copy()->addDays(14)->toDateString()
             ])
-            ->where('substitute_teacher_id', $teacherId)
+            ->where('substitute_teacher_id', $teacherId);
+
+        // Nếu filter branch, chỉ lấy session thuộc branch đó
+        if ($branchFilter !== null && $branchFilter !== '' && $branchFilter !== 'null') {
+            $upcomingSubstitutionsQuery = $upcomingSubstitutionsQuery->whereHas('session.classroom', function($q) use ($branchFilter) {
+                $q->where('branch_id', $branchFilter);
+            });
+        }
+
+        $upcomingSubstitutions = $upcomingSubstitutionsQuery
             ->orderBy('class_sessions.date')
             ->orderBy('class_sessions.start_time')
             ->select('session_substitutions.*')
