@@ -7,6 +7,9 @@ use App\Models\Branch;
 use App\Models\Classroom;
 use App\Models\ClassSession;
 use App\Models\User;
+use App\Models\TeachingAssignment;
+use App\Models\Attendance;
+use App\Models\Enrollment;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -236,6 +239,110 @@ class ScheduleController extends Controller
                 'id' => $t->id,
                 'name' => $t->name,
             ]),
+        ]);
+    }
+
+    public function sessionMeta(Request $request, ClassSession $session)
+    {
+        // Load relations cơ bản
+        $session->load([
+            'classroom:id,code,name,branch_id',
+            'room:id,code,name',
+            'classroom.branch:id,name',
+        ]);
+
+        // Lấy GV hiệu lực tại ngày buổi học (nếu bạn có effective_from/to)
+        $teachers = TeachingAssignment::with('teacher:id,name')
+            ->where('class_id', $session->class_id)
+            ->when(true, function ($q) use ($session) {
+                // hiệu lực tại ngày buổi học
+                $q->where(function ($qq) use ($session) {
+                    $qq->whereNull('effective_from')->orWhere('effective_from', '<=', $session->date);
+                })->where(function ($qq) use ($session) {
+                    $qq->whereNull('effective_to')->orWhere('effective_to', '>=', $session->date);
+                });
+            })
+            ->get()
+            ->map(fn($ta) => ['id' => $ta->teacher_id, 'name' => $ta->teacher->name])
+            ->values();
+
+        // Điểm danh đã nhập (map theo student_id)
+        $attMap = Attendance::where('class_session_id', $session->id)
+            ->get()
+            ->keyBy('student_id');
+
+        // Học viên đã ghi danh và đến buổi này (status active, vào không muộn hơn session_no)
+        $enrollments = Enrollment::with('student:id,code,name')
+            ->where('class_id', $session->class_id)
+            ->where('status', 'active')
+            ->where('start_session_no', '<=', $session->session_no)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($en) use ($attMap) {
+                $att = $attMap->get($en->student_id);
+                return [
+                    'id'        => $en->student_id,
+                    'code'      => $en->student->code,
+                    'name'      => $en->student->name,
+                    'status'    => $att ? $att->status : null,   // present|absent|late|excused|null
+                    'note'      => $att ? $att->note : null,
+                ];
+            })
+            ->values();
+
+        // (Tuỳ chọn) kiểm tra xung đột phòng — đơn giản, cùng ngày, cùng phòng, trùng giờ
+        $roomConflicts = [];
+        if ($session->room_id) {
+            $roomConflicts = ClassSession::with(['classroom:id,code,name'])
+                ->where('id', '!=', $session->id)
+                ->where('room_id', $session->room_id)
+                ->where('date', $session->date)
+                ->where(function ($q) use ($session) {
+                    $q->whereBetween('start_time', [$session->start_time, $session->end_time])
+                    ->orWhereBetween('end_time',   [$session->start_time, $session->end_time])
+                    ->orWhere(function ($qq) use ($session) {
+                        $qq->where('start_time', '<=', $session->start_time)
+                            ->where('end_time',   '>=', $session->end_time);
+                    });
+                })
+                ->orderBy('start_time')
+                ->get()
+                ->map(fn($s) => [
+                    'id' => $s->id,
+                    'class' => $s->classroom?->code . ' · ' . $s->classroom?->name,
+                    'time'  => substr($s->start_time,0,5) . '–' . substr($s->end_time,0,5),
+                ])
+                ->values();
+        }
+
+        // (Tuỳ chọn) xung đột GV (nếu cần, làm tương tự dựa trên TeachingAssignment)
+
+        return response()->json([
+            'session' => [
+                'id'         => $session->id,
+                'date'       => $session->date,
+                'start_time' => substr($session->start_time,0,5),
+                'end_time'   => substr($session->end_time,0,5),
+                'status'     => $session->status,
+                'note'       => $session->note,
+                'classroom'  => [
+                    'id'   => $session->classroom->id,
+                    'code' => $session->classroom->code,
+                    'name' => $session->classroom->name,
+                    'branch'=> $session->classroom->branch?->name,
+                ],
+                'room' => $session->room ? [
+                    'id' => $session->room->id,
+                    'code' => $session->room->code,
+                    'name' => $session->room->name,
+                ] : null,
+            ],
+            'teachers'    => $teachers,       // danh sách GV hiệu lực
+            'enrollments' => $enrollments,    // <<< CÁI BẠN ĐANG CẦN
+            'conflicts'   => [
+                'room'    => $roomConflicts,
+                'teacher' => [], // TODO: bổ sung nếu bạn cần
+            ],
         ]);
     }
 }

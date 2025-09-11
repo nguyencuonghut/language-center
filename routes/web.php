@@ -220,6 +220,9 @@ Route::middleware(['auth'])->group(function () {
         // NEW: Week view
         Route::get('schedule/week', [ManagerScheduleController::class, 'week'])
             ->name('schedule.week');
+        // API lấy dữ liệu lịch dạy (JSON)
+        Route::get('schedule/{session}/meta', [ManagerScheduleController::class, 'sessionMeta'])
+            ->name('schedule.session.meta');
 
 
         // =========================
