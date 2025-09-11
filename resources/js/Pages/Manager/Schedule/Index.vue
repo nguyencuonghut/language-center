@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, Link } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 // PrimeVue
@@ -54,7 +54,7 @@ function resetFilters() {
   apply(1)
 }
 
-// Helper hiển thị ngày dd/mm
+// Helper hiển thị ngày dd/mm/yyyy
 function toYmdLocal(d){
   if (!d) return null
   const dt = new Date(d)
@@ -69,80 +69,79 @@ function toYmdLocal(d){
   <!-- Header -->
   <div class="mb-2">
     <h1 class="text-xl md:text-2xl font-heading font-semibold">Lịch lớp</h1>
-    <p class="text-slate-500 dark:text-slate-400 text-sm">Dạng danh sách theo khoảng thời gian</p>
   </div>
 
-  <!-- Filters -->
-  <div class="mb-3 flex flex-wrap items-end gap-2">
-    <!-- Branch -->
-    <div class="min-w-[220px]">
-      <label class="block text-xs text-slate-500 mb-1">Chi nhánh</label>
-      <Select
-        v-model="state.branch_id"
-        :options="[{label:'Tất cả', value:null}, ...(props.branches||[]).map(b=>({label:b.name, value:b.id}))]"
-        optionLabel="label"
-        optionValue="value"
-        class="w-full"
-        showClear
-        placeholder="Tất cả"
-      />
+  <!-- Filters & Actions -->
+  <div class="mb-3 flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+    <!-- Filters: 2 rows, 3 columns each -->
+    <div class="flex flex-col gap-2 w-full md:w-auto">
+      <div class="flex flex-col md:flex-row gap-2">
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Chi nhánh</label>
+          <Select
+            v-model="state.branch_id"
+            :options="[{label:'Tất cả', value:null}, ...(props.branches||[]).map(b=>({label:b.name, value:b.id}))]"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            showClear
+            placeholder="Tất cả"
+          />
+        </div>
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Lớp</label>
+          <Select
+            v-model="state.class_id"
+            :options="[{label:'Tất cả', value:null}, ...(props.classes||[]).map(c=>({label:`${c.code} · ${c.name}`, value:c.id}))]"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            showClear
+            placeholder="Tất cả"
+          />
+        </div>
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Giáo viên</label>
+          <Select
+            v-model="state.teacher_id"
+            :options="[{label:'Tất cả', value:null}, ...(props.teachers||[]).map(t=>({label:t.name, value:t.id}))]"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            showClear
+            placeholder="Tất cả"
+          />
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row gap-2">
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Từ ngày</label>
+          <DatePicker v-model="state.from" dateFormat="yy-mm-dd" showIcon iconDisplay="input" class="w-full" />
+        </div>
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Đến ngày</label>
+          <DatePicker v-model="state.to" dateFormat="yy-mm-dd" showIcon iconDisplay="input" class="w-full" />
+        </div>
+        <div class="min-w-[180px] flex-1">
+          <label class="block text-xs text-slate-500 mb-1">Sắp xếp</label>
+          <Select
+            v-model="state.order"
+            :options="[{label:'Tăng dần',value:'asc'},{label:'Giảm dần',value:'desc'}]"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+          />
+        </div>
+      </div>
     </div>
-
-    <!-- Class -->
-    <div class="min-w-[260px]">
-      <label class="block text-xs text-slate-500 mb-1">Lớp</label>
-      <Select
-        v-model="state.class_id"
-        :options="[{label:'Tất cả', value:null}, ...(props.classes||[]).map(c=>({label:`${c.code} · ${c.name}`, value:c.id}))]"
-        optionLabel="label"
-        optionValue="value"
-        class="w-full"
-        showClear
-        placeholder="Tất cả"
-      />
-    </div>
-
-    <!-- Teacher -->
-    <div class="min-w-[220px]">
-      <label class="block text-xs text-slate-500 mb-1">Giáo viên</label>
-      <Select
-        v-model="state.teacher_id"
-        :options="[{label:'Tất cả', value:null}, ...(props.teachers||[]).map(t=>({label:t.name, value:t.id}))]"
-        optionLabel="label"
-        optionValue="value"
-        class="w-full"
-        showClear
-        placeholder="Tất cả"
-      />
-    </div>
-
-    <!-- From -->
-    <div>
-      <label class="block text-xs text-slate-500 mb-1">Từ ngày</label>
-      <DatePicker v-model="state.from" dateFormat="yy-mm-dd" showIcon iconDisplay="input" />
-    </div>
-    <!-- To -->
-    <div>
-      <label class="block text-xs text-slate-500 mb-1">Đến ngày</label>
-      <DatePicker v-model="state.to" dateFormat="yy-mm-dd" showIcon iconDisplay="input" />
-    </div>
-
-    <!-- Order -->
-    <div>
-      <label class="block text-xs text-slate-500 mb-1">Sắp xếp</label>
-      <Select
-        v-model="state.order"
-        :options="[{label:'Tăng dần',value:'asc'},{label:'Giảm dần',value:'desc'}]"
-        optionLabel="label"
-        optionValue="value"
-      />
-    </div>
-
-    <div>
+    <!-- Actions -->
+    <div class="flex gap-2 mt-2 md:mt-0 justify-end">
       <Button label="Lọc" icon="pi pi-filter" @click="apply()" />
-    </div>
-    <div>
-      <Button label="Xóa lọc" icon="pi pi-times" severity="secondary" @click="resetFilters" outlined />
+      <Button label="Xóa lọc" icon="pi pi-times" severity="warn" @click="resetFilters" outlined />
+      <Link :href="route('manager.schedule.week')" class="p-button p-component p-button-info !px-4 !py-2 rounded-md flex items-center gap-2">
+        <i class="pi pi-calendar"></i>
+        <span>Lịch theo tuần</span>
+      </Link>
     </div>
   </div>
 

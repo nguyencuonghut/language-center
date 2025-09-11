@@ -127,100 +127,115 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function week(Request $request)
+    public function week(\Illuminate\Http\Request $request)
     {
-        $validated = $request->validate([
-            'branch_id'  => ['nullable','integer','exists:branches,id'],
-            'class_id'   => ['nullable','integer','exists:classes,id'],
-            'teacher_id' => ['nullable','integer','exists:users,id'],
-            'week_start' => ['nullable','date'], // ngày bất kỳ trong tuần hoặc đúng thứ 2/Chủ nhật — ta sẽ normalize
-        ]);
+        $user = auth()->user();
+        // Lấy các branch mà manager được phân quyền
+        $branchIds = $user->managerBranches()->pluck('branches.id')->all();
 
-        // Chuẩn hoá đầu tuần (Mon)
-        $ws = isset($validated['week_start'])
-            ? CarbonImmutable::parse($validated['week_start'])
-            : CarbonImmutable::now();
-        // Bắt đầu từ thứ Hai (ISO week)
-        $weekStart = $ws->startOfWeek(CarbonImmutable::MONDAY);
-        $weekEnd   = $weekStart->endOfWeek(CarbonImmutable::SUNDAY);
+        // Lấy filter
+        $branchId   = $request->filled('branch_id')   ? $request->branch_id   : null;
+        $classId    = $request->filled('class_id')    ? $request->class_id    : null;
+        $teacherId  = $request->filled('teacher_id')  ? $request->teacher_id  : null;
+        $weekStart  = $request->filled('week_start')  ? \Carbon\Carbon::parse($request->week_start) : \Carbon\Carbon::now()->startOfWeek();
 
-        $branchId  = $validated['branch_id']  ?? null;
-        $classId   = $validated['class_id']   ?? null;
-        $teacherId = $validated['teacher_id'] ?? null;
+        // Đảm bảo branch filter nằm trong quyền của manager
+        if ($branchId && !in_array($branchId, $branchIds)) {
+            abort(403, 'Bạn không có quyền xem chi nhánh này');
+        }
 
-        $q = ClassSession::query()
-            ->with([
-                'room:id,code,name',
-                'classroom:id,code,name,branch_id',
-            ])
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->when($branchId, fn($qq) =>
-                $qq->whereHas('classroom', fn($c) => $c->where('branch_id', $branchId))
-            )
-            ->when($classId, fn($qq) => $qq->where('class_id', $classId));
+        // Tính ngày đầu và cuối tuần
+        $start = $weekStart->copy()->startOfWeek();
+        $end   = $weekStart->copy()->endOfWeek();
 
-        // Lọc theo giáo viên (phân công + dạy thay nếu bạn có bảng dạy thay)
+        // Lấy danh sách lớp thuộc các branch manager quản lý
+        $classQuery = \App\Models\Classroom::query()
+            ->whereIn('branch_id', $branchIds)
+            ->where('status', 'open');
+
+        if ($branchId) {
+            $classQuery->where('branch_id', $branchId);
+        }
+        if ($classId) {
+            $classQuery->where('id', $classId);
+        }
+        $classes = $classQuery->get();
+
+        // Lấy danh sách giáo viên thuộc các lớp này
+        $teacherIds = \App\Models\TeachingAssignment::whereIn('class_id', $classes->pluck('id'))
+            ->pluck('teacher_id')->unique()->values();
+        $teachers = \App\Models\User::whereIn('id', $teacherIds)->get();
+
+        // Lấy các session trong tuần theo filter
+        $sessionQuery = \App\Models\ClassSession::query()
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->whereIn('class_id', $classes->pluck('id'));
+
         if ($teacherId) {
-            $q->where(function($w) use ($teacherId) {
-                $w->whereHas('classroom.teachingAssignments', fn($ta) => $ta->where('teacher_id', $teacherId));
-                if (method_exists(\App\Models\ClassSession::class, 'substitution')) {
-                    $w->orWhereHas('substitution', fn($s) => $s->where('substitute_teacher_id', $teacherId));
-                }
+            $sessionQuery->whereHas('teachingAssignments', function($q) use ($teacherId) {
+                $q->where('teacher_id', $teacherId);
             });
         }
 
-        $sessions = $q->orderBy('date')->orderBy('start_time')->get()->map(function ($s) {
+        $sessions = $sessionQuery
+            ->with(['classroom', 'room', 'substitution'])
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get();
+        $sessions = $sessions->map(function($s) {
             return [
                 'id'         => $s->id,
-                'date'       => $s->date,
+                'date'       => $s->date instanceof \Carbon\Carbon ? $s->date->toDateString() : (string)$s->date,
                 'start_time' => substr($s->start_time, 0, 5),
                 'end_time'   => substr($s->end_time, 0, 5),
                 'status'     => $s->status,
                 'note'       => $s->note,
                 'room'       => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
                 'classroom'  => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
+                'substitute' => method_exists($s, 'substitution') && $s->substitution
+                    ? ['id'=>$s->substitution->substitute_teacher_id, 'name'=>$s->substitution->substituteTeacher?->name]
+                    : null,
+                'is_conflict' => false,
             ];
         });
 
-        // Build mảng 7 ngày
+        // Chuẩn bị dữ liệu tuần
         $days = [];
-        for ($i=0; $i<7; $i++) {
-            $d = $weekStart->addDays($i);
-            $ds = $d->toDateString();
+        $cur = $start->copy();
+        while ($cur->lte($end)) {
+            $iso = $cur->toDateString();
+            $label = $cur->translatedFormat('D d/m');
+            $items = $sessions->where('date', $iso)->values();
             $days[] = [
-                'iso'  => $ds,
-                'dow'  => $d->isoWeekday(),                 // 1..7
-                'dd'   => $d->format('d'),
-                'mm'   => $d->format('m'),
-                'yyyy' => $d->format('Y'),
-                'label'=> $d->isoFormat('dd DD/MM'),        // Mo 02/09
-                'items'=> $sessions->where('date', $ds)->values(),
+                'iso' => $iso,
+                'label' => $label,
+                'items' => $items,
             ];
+            $cur->addDay();
         }
 
-        // Dropdowns
-        $branches = Branch::select('id','name')->orderBy('name')->get();
-        $classes  = Classroom::when($branchId, fn($qq) => $qq->where('branch_id', $branchId))
-            ->select('id','code','name')->orderBy('code')->get()
-            ->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
-        $teachers = User::whereHas('roles', fn($r)=>$r->where('name','teacher'))
-            ->select('id','name')->orderBy('name')->get();
-
-        return Inertia::render('Manager/Schedule/Week', [
-            'filters'   => [
-                'branch_id'  => $branchId,
-                'class_id'   => $classId,
-                'teacher_id' => $teacherId,
-                'week_start' => $weekStart->toDateString(),
+        return inertia('Manager/Schedule/Week', [
+            'filters'  => [
+                'branch_id'   => $branchId,
+                'class_id'    => $classId,
+                'teacher_id'  => $teacherId,
+                'week_start'  => $start->toDateString(),
             ],
-            'week'      => [
-                'start' => $weekStart->toDateString(),
-                'end'   => $weekEnd->toDateString(),
+            'week' => [
+                'start' => $start->toDateString(),
+                'end'   => $end->toDateString(),
                 'days'  => $days,
             ],
-            'branches'  => $branches,
-            'classes'   => $classes,
-            'teachers'  => $teachers,
+            'branches' => \App\Models\Branch::whereIn('id', $branchIds)->where('active', 1)->get(['id','name']),
+            'classes'  => $classes->map(fn($c) => [
+                'id' => $c->id,
+                'code' => $c->code,
+                'name' => $c->name,
+            ]),
+            'teachers' => $teachers->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+            ]),
         ]);
     }
 }
