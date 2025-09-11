@@ -1322,6 +1322,7 @@ const toggleQuickActionsMenu = (event) => {
                                 <span class="text-xs text-gray-500 dark:text-gray-400">
                                     ({{ timesheet.class_code }})
                                 </span>
+                                <Tag v-if="isSubstitutionSession(timesheet.session_id)" value="Dạy thay" severity="warn" class="text-xs ml-1" />
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 <i class="pi pi-calendar mr-1"></i>
