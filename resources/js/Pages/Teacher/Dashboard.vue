@@ -469,7 +469,7 @@ const closeModal = () => {
 const viewFullSchedule = () => {
     // Placeholder - navigate to full schedule view
     console.log('Navigate to full schedule')
-    // router.visit('/teacher/schedule')
+    router.visit('/teacher/schedule')
 }
 
 const lockLastWeekTimesheet = () => {
