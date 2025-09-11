@@ -17,6 +17,7 @@ use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
+use App\Http\Controllers\Teacher\ScheduleController;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\StudentController;
 use App\Http\Controllers\Manager\TeacherController;
@@ -252,6 +253,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::post('attendance/sessions/{session}', [AttendanceController::class, 'store'])
             ->name('attendance.store');  // Lưu điểm danh
+
+        // Lịch dạy
+        Route::get('schedule', [ScheduleController::class, 'index'])
+            ->name('schedule.index'); // Lịch dạy của tôi
     });
 
     /*
