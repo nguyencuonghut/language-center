@@ -31,6 +31,7 @@ use App\Http\Controllers\Manager\TransferAdvancedController;
 use App\Http\Controllers\Manager\TransferAuditController;
 use App\Http\Controllers\Manager\SessionSubstitutionController;
 use App\Http\Controllers\Manager\SubstitutionController;
+use App\Http\Controllers\Manager\ScheduleController as ManagerScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -211,6 +212,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/sessions/{session}', [AttendanceController::class, 'show'])->name('show');
             Route::post('/sessions/{session}', [AttendanceController::class, 'store'])->name('store');
         });
+
+        // =========================
+        // Lịch dạy
+        // =========================
+        Route::get('/schedule', [ManagerScheduleController::class, 'index'])->name('schedule.index');
+        // NEW: Week view
+        Route::get('schedule/week', [ManagerScheduleController::class, 'week'])
+            ->name('schedule.week');
+
 
         // =========================
         // Reports

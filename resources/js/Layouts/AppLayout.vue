@@ -94,6 +94,7 @@ const managerMenu = [
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/manager/attendance', ready: true },
   { label: 'Dạy thay',   icon: 'pi pi-user-edit', url: '/manager/substitutions', ready: true },
   { label: 'Chuyển lớp', icon: 'pi pi-arrow-right-arrow-left', url: '/manager/transfers', ready: true },
+  { label: 'Lịch dạy',  icon: 'pi pi-calendar',     url: '/manager/schedule',     ready: true },
   { label: 'Phòng học',  icon: 'pi pi-building', url: '/manager/rooms',       ready: true },
   { label: 'Khóa học',   icon: 'pi pi-book',     url: '/manager/courses',     ready: true },
   { label: 'Giáo viên', icon: 'pi pi-id-card',  url: '/manager/teachers',  ready: true },
