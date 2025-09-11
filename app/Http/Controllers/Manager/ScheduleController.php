@@ -266,6 +266,12 @@ class ScheduleController extends Controller
             ->map(fn($ta) => ['id' => $ta->teacher_id, 'name' => $ta->teacher->name])
             ->values();
 
+        // Lấy danh sách các giao viên có thể dạy thay lớp này
+        $currentTeacherIds = $teachers->pluck('id')->all();
+        $substitutes = User::whereHas('roles', fn($q) => $q->where('name', 'teacher'))
+            ->whereNotIn('id', $currentTeacherIds)
+            ->get(['id', 'name']);
+
         // Điểm danh đã nhập (map theo student_id)
         $attMap = Attendance::where('class_session_id', $session->id)
             ->get()
@@ -336,8 +342,13 @@ class ScheduleController extends Controller
                     'code' => $session->room->code,
                     'name' => $session->room->name,
                 ] : null,
+                'substitution' => $session->substitution ? [ // Thêm substitute vào response
+                    'id' => $session->substitution->substitute_teacher_id,
+                    'name' => $session->substitution->substituteTeacher?->name,
+                ] : null,
             ],
             'teachers'    => $teachers,       // danh sách GV hiệu lực
+            'substitutes' => $substitutes,    // danh sách GV dạy thay (nếu có)
             'enrollments' => $enrollments,    // <<< CÁI BẠN ĐANG CẦN
             'conflicts'   => [
                 'room'    => $roomConflicts,

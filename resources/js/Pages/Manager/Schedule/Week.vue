@@ -2,6 +2,8 @@
 import { reactive, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import SessionSubstituteDialog from '@/Pages/Manager/Classrooms/Sessions/Partials/SessionSubstituteDialog.vue'
+
 
 // PrimeVue
 import Select from 'primevue/select'
@@ -82,6 +84,7 @@ async function openDetail(item) {
   showDrawer.value = true
   drawerLoading.value = true
   detail.teachers = []
+  detail.substitutes = []
   detail.session = []
   detail.enrollments = []
   detail.conflicts = { room: [], teacher: [] }
@@ -99,6 +102,7 @@ async function openDetail(item) {
       if (data?.session) detail.session = data.session
       if (Array.isArray(data?.enrollments)) detail.enrollments = data.enrollments
       if (Array.isArray(data?.teachers)) detail.teachers = data.teachers
+      if (Array.isArray(data?.substitutes)) detail.substitutes = data.substitutes
       if (Array.isArray(data?.room)) detail.room = data.room
       if (data?.conflicts) detail.conflicts = data.conflicts
     }
@@ -120,11 +124,20 @@ function goClassDetail() {
   if (!clsId) return
   router.visit(route('manager.classrooms.edit', { classroom: clsId }))
 }
+
+// State for substitute dialog
+const showSubstituteDialog = ref(false)
+const substituteSessionId = ref(null)
+const substituteClassroomId = ref('')
+
+// Mở dialog gán dạy thay
 function goAssignSubstitute() {
   const sessId = detail.session?.id
-  if (!sessId) return
-  // Ví dụ: mở trang/đối thoại gán dạy thay cho buổi này (tuỳ bạn đã cài)
-  router.visit(route('manager.sessions.substitution', { session: sessId }))
+  const classID = detail.session?.classroom?.id
+  if (!sessId || !classID) return
+  substituteSessionId.value = sessId
+  substituteClassroomId.value = classID
+  showSubstituteDialog.value = true
 }
 </script>
 
@@ -254,13 +267,14 @@ function goAssignSubstitute() {
         <div v-if="detail.session.room"class="text-sm mt-1">Phòng: {{ detail.session.room?.code + ' · ' + detail.session.room?.name}}</div>
         <div v-else class="text-sm mt-1">Phòng: chưa gán</div>
         <div class="text-sm mt-1">GV:
-            <span v-if="detail.teachers && detail.teachers.length">
+            <span v-if="detail.session.substitution">
+                {{ detail.session.substitution.name }}
+                <Tag value="Dạy thay" severity="warn" class="ml-2" />
+            </span>
+            <span v-else-if="detail.teachers && detail.teachers.length">
                 {{ detail.teachers.map(t => t.name).join(', ') }}
             </span>
             <span v-else>—</span>
-        </div>
-        <div v-if="detail.session.substitute" class="mt-2">
-          <Tag value="Buổi dạy thay" severity="warn" />
         </div>
       </div>
 
@@ -307,4 +321,13 @@ function goAssignSubstitute() {
       </div>
     </div>
   </Drawer>
+
+  <!-- Modal tạo dạy thay -->
+  <SessionSubstituteDialog
+    :visible="showSubstituteDialog"
+    :classroom-id="substituteClassroomId"
+    :session-id="substituteSessionId"
+    :teachers="detail.substitutes"
+    @update:visible="showSubstituteDialog = $event"
+  />
 </template>
