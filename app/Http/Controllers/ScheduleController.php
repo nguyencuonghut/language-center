@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Manager;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
@@ -11,7 +11,6 @@ use App\Models\TeachingAssignment;
 use App\Models\Attendance;
 use App\Models\Enrollment;
 use Carbon\Carbon;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -22,7 +21,7 @@ class ScheduleController extends Controller
         // ---- Validate nhẹ filters ----
         $validated = $request->validate([
             'branch_id'  => ['nullable','integer','exists:branches,id'],
-            'class_id'   => ['nullable','integer','exists:classes,id'],
+            'class_id'   => ['nullable','integer','exists:classrooms,id'],
             'teacher_id' => ['nullable','integer','exists:users,id'],
             'from'       => ['nullable','date'],
             'to'         => ['nullable','date','after_or_equal:from'],
@@ -113,7 +112,7 @@ class ScheduleController extends Controller
             ->whereHas('roles', fn($r) => $r->where('name','teacher'))
             ->select('id','name')->orderBy('name')->get();
 
-        return Inertia::render('Manager/Schedule/Index', [
+        return Inertia::render('Schedule/Index', [
             'filters' => [
                 'branch_id'  => $branchId,
                 'class_id'   => $classId,
@@ -130,7 +129,7 @@ class ScheduleController extends Controller
         ]);
     }
 
-    public function week(\Illuminate\Http\Request $request)
+    public function week(Request $request)
     {
         $user = auth()->user();
         // Lấy các branch mà manager được phân quyền
@@ -217,7 +216,7 @@ class ScheduleController extends Controller
             $cur->addDay();
         }
 
-        return inertia('Manager/Schedule/Week', [
+        return inertia('Schedule/Week', [
             'filters'  => [
                 'branch_id'   => $branchId,
                 'class_id'    => $classId,

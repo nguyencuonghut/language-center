@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { Head, router, Link } from '@inertiajs/vue3'
+import { Head, router, Link, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
 // PrimeVue
@@ -21,6 +21,9 @@ const props = defineProps({
   sessions: Object,
 })
 
+const page = usePage()
+const userRole = computed(() => page.props.auth?.user?.roles?.[0]?.name || '')
+
 const state = reactive({
   branch_id: props.filters?.branch_id ?? null,
   class_id: props.filters?.class_id ?? null,
@@ -32,7 +35,7 @@ const state = reactive({
 })
 
 function apply(page = 1) {
-  router.visit(route('manager.schedule.index'), {
+  router.visit(route('schedule.index'), {
     method: 'get',
     data: {
       ...state,
@@ -64,7 +67,7 @@ function toYmdLocal(d){
 </script>
 
 <template>
-  <Head title="Lịch lớp (Manager)" />
+  <Head title="Lịch lớp" />
 
   <!-- Header -->
   <div class="mb-2">
@@ -100,7 +103,7 @@ function toYmdLocal(d){
             placeholder="Tất cả"
           />
         </div>
-        <div class="min-w-[180px] flex-1">
+        <div v-if="userRole === 'admin' || userRole === 'manager'" class="min-w-[180px] flex-1">
           <label class="block text-xs text-slate-500 mb-1">Giáo viên</label>
           <Select
             v-model="state.teacher_id"
@@ -138,7 +141,7 @@ function toYmdLocal(d){
     <div class="flex gap-2 mt-2 md:mt-0 justify-end">
       <Button label="Lọc" icon="pi pi-filter" @click="apply()" />
       <Button label="Xóa lọc" icon="pi pi-times" severity="warn" @click="resetFilters" outlined />
-      <Link :href="route('manager.schedule.week')" class="p-button p-component p-button-info !px-4 !py-2 rounded-md flex items-center gap-2">
+      <Link :href="route('schedule.week')" class="p-button p-component p-button-info !px-4 !py-2 rounded-md flex items-center gap-2">
         <i class="pi pi-calendar"></i>
         <span>Lịch theo tuần</span>
       </Link>
