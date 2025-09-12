@@ -18,6 +18,10 @@ class ScheduleController extends Controller
 {
     public function index(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('ScheduleController@index', ['request' => $request->all()]);
+        $user = auth()->user();
+        $role = $user->roles->first()?->name; // 'admin', 'manager', 'teacher'
+
         // ---- Validate nhẹ filters ----
         $validated = $request->validate([
             'branch_id'  => ['nullable','integer','exists:branches,id'],
@@ -43,38 +47,77 @@ class ScheduleController extends Controller
         $order     = $validated['order']      ?? 'asc';
         $perPage   = (int)($validated['per_page'] ?? 20);
 
+        // ---- Scope queries dựa trên role ----
+        $branchIds = [];
+        $classIds = [];
+        $sessionIds = [];
+        if ($role === 'manager') {
+            $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+            if ($branchId && !in_array($branchId, $branchIds)) {
+                abort(403, 'Bạn không có quyền xem chi nhánh này');
+            }
+        } elseif ($role === 'teacher') {
+            // Lấy classIds từ teaching assignments hiệu lực trong khoảng thời gian
+            $classIds = TeachingAssignment::where('teacher_id', $user->id)
+                ->where(function($q) use ($from) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $from);
+                })->where(function($q) use ($to) {
+                    $q->whereNull('effective_from')->orWhere('effective_from', '<=', $to);
+                })->pluck('class_id')->unique()->values();
+
+            // Lấy sessionIds từ substitutions trong khoảng thời gian
+            $sessionIds = ClassSession::whereHas('substitution', function($q) use ($user) {
+                $q->where('substitute_teacher_id', $user->id);
+            })->whereBetween('date', [$from, $to])->pluck('id')->unique()->values();
+
+            // Lấy branchIds từ classIds
+            $branchIds = Classroom::whereIn('id', $classIds)->pluck('branch_id')->unique()->values();
+        }
+
         // ---- Query sessions (List view) ----
         $q = ClassSession::query()
-            ->with([
-                'room:id,code,name',
-                'classroom:id,code,name,branch_id',
-            ])
-            ->whereBetween('date', [$from, $to])
-            ->when($branchId, fn($qq) =>
-                $qq->whereHas('classroom', fn($c) => $c->where('branch_id', $branchId))
-            )
-            ->when($classId, fn($qq) => $qq->where('class_id', $classId));
+        ->with([
+            'room:id,code,name',
+            'classroom:id,code,name,branch_id',
+            'classroom.teachingAssignments' => function($query) use ($from, $to) {
+                $query->with('teacher:id,name')
+                    ->where(function($q) use ($to) {
+                        $q->whereNull('effective_from')->orWhere('effective_from', '<=', $to);
+                    })
+                    ->where(function($q) use ($from) {
+                        $q->whereNull('effective_to')->orWhere('effective_to', '>=', $from);
+                    });
+            },
+            'substitution.substituteTeacher:id,name',
+        ])
+        ->whereBetween('date', [$from, $to])
+        ->when($role === 'manager' && !$branchId, fn($qq) =>
+            $qq->whereHas('classroom', fn($c) => $c->whereIn('branch_id', $branchIds))
+        )
+        ->when($role === 'teacher', fn($qq) =>
+            $qq->where(function($w) use ($sessionIds, $classIds) {
+                $w->whereIn('id', $sessionIds) // Sessions dạy thay
+                ->orWhereIn('class_id', $classIds); // Sessions được phân công
+            })
+        )
+        ->when($branchId, fn($qq) =>
+            $qq->whereHas('classroom', fn($c) => $c->where('branch_id', $branchId))
+        )
+        ->when($classId, fn($qq) => $qq->where('class_id', $classId));
 
-        // Lọc theo giáo viên: theo phân công (teaching_assignments) hoặc dạy thay (session_substitutions) nếu bạn đã có bảng này
+        // Lọc theo giáo viên: theo phân công hoặc dạy thay
         if ($teacherId) {
             $q->where(function($w) use ($teacherId) {
-                // dạy thay
                 $w->whereHas('substitution', fn($s) => $s->where('substitute_teacher_id', $teacherId))
-                  // giáo viên theo phân công hiệu lực tại ngày buổi
-                  ->orWhereHas('classroom.teachingAssignments', function($ta){
-                      // join condition xử lý ở callback bên dưới
-                  });
-            });
-
-            // hack nhỏ cho whereHas with date range hiệu lực (nếu bạn có cột effective_from/to)
-            $q->whereHas('classroom.teachingAssignments', function($ta) use ($teacherId) {
-                $ta->where('teacher_id', $teacherId);
-                // Nếu bạn dùng hiệu lực theo ngày buổi:
-                // $ta->where(function($d){
-                //     $d->whereNull('effective_from')->orWhere('effective_from','<=',now()->toDateString());
-                // })->where(function($d){
-                //     $d->whereNull('effective_to')->orWhere('effective_to','>=',now()->toDateString());
-                // });
+                ->orWhereHas('classroom.teachingAssignments', function($ta) use ($teacherId) {
+                    $ta->where('teacher_id', $teacherId)
+                        ->where(function($q) {
+                            $q->whereNull('effective_from')->orWhereColumn('effective_from', '<=', now()->toDateString());
+                        })
+                        ->where(function($q) {
+                            $q->whereNull('effective_to')->orWhereColumn('effective_to', '>=', now()->toDateString());
+                        });
+                });
             });
         }
 
@@ -82,35 +125,100 @@ class ScheduleController extends Controller
 
         $paginator = $q->paginate($perPage)->appends($request->query());
 
-        // ---- Map data trả ra FE (gọn) ----
+        // ---- Map data trả ra FE ----
         $sessions = $paginator->through(function (ClassSession $s) {
-            // Nếu có quan hệ substitution() cho dạy thay
-            $sub = method_exists($s, 'substitution') ? $s->substitution : null;
+            $sub = $s->substitution;
+
+            // Tìm teacher hiệu lực tại ngày của session
+            $teacher = $s->classroom->teachingAssignments
+                ->where('effective_from', '<=', $s->date)
+                ->where(function($ta) use ($s) {
+                    return is_null($ta->effective_to) || $ta->effective_to >= $s->date;
+                })
+                ->first()?->teacher?->name;
 
             return [
                 'id'          => $s->id,
-                'date'        => $s->date,
+                'date'        => $s->date instanceof Carbon ? $s->date->toDateString() : (string)$s->date,
                 'start_time'  => substr($s->start_time, 0, 5),
                 'end_time'    => substr($s->end_time, 0, 5),
-                'status'      => $s->status, // planned|moved|canceled
+                'status'      => $s->status,
                 'note'        => $s->note,
                 'room'        => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
                 'classroom'   => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
-                // bạn có thể bổ sung teachers hiệu lực nếu cần (join phức tạp) — tạm thời hiển thị dạy thay nếu có
+                'teacher'     => $teacher, // Thêm teacher chính
                 'substitute'  => $sub ? ['id'=>$sub->substitute_teacher_id, 'name'=>$sub->substituteTeacher?->name] : null,
-                'is_conflict' => false, // TODO: cắm Room/TeacherConflictService nếu đã có
+                'is_conflict' => false,
             ];
         });
 
-        // ---- Dropdowns ----
-        $branches = Branch::query()->select('id','name')->orderBy('name')->get();
-        $classes  = Classroom::query()
+        // ---- Dropdowns (scope theo role) ----
+        $branchesQuery = Branch::where('active', 1);
+        if ($role === 'manager' || $role === 'teacher') {
+            $branchesQuery->whereIn('id', $branchIds);
+        }
+        $branches = $branchesQuery->get(['id','name']);
+        \Illuminate\Support\Facades\Log::info('branchIds', ['branches' => $branches]);
+
+        // Xử lý filter Branch theo yêu cầu
+        $branchOptions = [];
+        $defaultBranchId = null;
+        if ($role === 'admin') {
+            $branchOptions = array_merge([['id' => null, 'name' => 'Tất cả']], $branches->toArray());
+        } elseif ($role === 'manager' || $role === 'teacher') {
+            if (count($branchIds) === 0) {
+                // Teacher chưa được gán branch nào: không hiển thị filter Branch
+                $branchOptions = [];
+            } elseif (count($branchIds) === 1) {
+                $defaultBranchId = $branchIds[0];
+                $branchOptions = $branches->toArray(); // Chỉ có 1 branch
+            } else {
+                $branchOptions = array_merge([['id' => null, 'name' => 'Tất cả']], $branches->toArray());
+            }
+        }
+
+        // Nếu không có branchId từ request và có default, set default
+        if (!$branchId && $defaultBranchId) {
+            $branchId = $defaultBranchId;
+        }
+
+        // Xử lý filter Class theo yêu cầu
+        $classesQuery = Classroom::query()
             ->when($branchId, fn($qq) => $qq->where('branch_id', $branchId))
-            ->select('id','code','name')->orderBy('code')->get()
-            ->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
-        $teachers = User::query()
+            ->when($role === 'manager' && !$branchId, fn($qq) => $qq->whereIn('branch_id', $branchIds))
+            ->when($role === 'teacher', fn($qq) => $qq->whereIn('id', $classIds))
+            ->select('id','code','name')->orderBy('code');
+        $classes = $classesQuery->get()->map(fn($c) => ['id'=>$c->id,'code'=>$c->code,'name'=>$c->name]);
+
+        // Xử lý filter Class theo yêu cầu
+        $classOptions = [];
+        $defaultClassId = null;
+        if ($role === 'admin') {
+            $classOptions = array_merge([['id' => null, 'name' => 'Tất cả']], $classes->map(fn($c) => ['id' => $c->id, 'name' => $c->code . ' · ' . $c->name])->toArray());
+        } elseif ($role === 'manager' || $role === 'teacher') {
+            if (count($classes) === 0) {
+                // Không có class nào: không hiển thị filter Class
+                $classOptions = [];
+            } elseif (count($classes) === 1) {
+                $defaultClassId = $classes[0]['id'];
+                $classOptions = [['id' => $classes[0]['id'], 'name' => $classes[0]['code'] . ' · ' . $classes[0]['name']]];
+            } else {
+                $classOptions = array_merge([['id' => null, 'name' => 'Tất cả']], $classes->map(fn($c) => ['id' => $c['id'], 'name' => $c['code'] . ' · ' . $c['name']])->toArray());
+            }
+        }
+
+        // Nếu không có classId từ request và có default, set default
+        if (!$classId && $defaultClassId) {
+            $classId = $defaultClassId;
+        }
+
+        $teachersQuery = User::query()
             ->whereHas('roles', fn($r) => $r->where('name','teacher'))
-            ->select('id','name')->orderBy('name')->get();
+            ->select('id','name')->orderBy('name');
+        if ($role === 'teacher') {
+            $teachersQuery->where('id', $user->id); // chỉ GV bản thân
+        }
+        $teachers = $teachersQuery->get();
 
         return Inertia::render('Schedule/Index', [
             'filters' => [
@@ -122,37 +230,49 @@ class ScheduleController extends Controller
                 'order'      => $order,
                 'perPage'    => $perPage,
             ],
-            'branches' => $branches,
-            'classes'  => $classes,
+            'branches' => $branchOptions,
+            'classes'  => $classOptions,
             'teachers' => $teachers,
-            'sessions' => $sessions, // paginator
+            'sessions' => $sessions,
         ]);
     }
 
     public function week(Request $request)
     {
         $user = auth()->user();
-        // Lấy các branch mà manager được phân quyền
-        $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+        $role = $user->roles->first()?->name;
 
         // Lấy filter
         $branchId   = $request->filled('branch_id')   ? $request->branch_id   : null;
         $classId    = $request->filled('class_id')    ? $request->class_id    : null;
         $teacherId  = $request->filled('teacher_id')  ? $request->teacher_id  : null;
-        $weekStart  = $request->filled('week_start')  ? \Carbon\Carbon::parse($request->week_start) : \Carbon\Carbon::now()->startOfWeek();
+        $weekStart  = $request->filled('week_start')  ? Carbon::parse($request->week_start) : Carbon::now()->startOfWeek();
 
-        // Đảm bảo branch filter nằm trong quyền của manager
-        if ($branchId && !in_array($branchId, $branchIds)) {
-            abort(403, 'Bạn không có quyền xem chi nhánh này');
+        // Scope theo role
+        $branchIds = [];
+        $classIds = [];
+        if ($role === 'manager') {
+            $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+            if ($branchId && !in_array($branchId, $branchIds)) {
+                abort(403, 'Bạn không có quyền xem chi nhánh này');
+            }
+        } elseif ($role === 'teacher') {
+            $classIds = TeachingAssignment::where('teacher_id', $user->id)
+                ->where(function($q) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', now()->toDateString());
+                })->where(function($q) {
+                    $q->whereNull('effective_from')->orWhere('effective_from', '<=', now()->toDateString());
+                })->pluck('class_id')->unique()->values();
         }
 
         // Tính ngày đầu và cuối tuần
         $start = $weekStart->copy()->startOfWeek();
         $end   = $weekStart->copy()->endOfWeek();
 
-        // Lấy danh sách lớp thuộc các branch manager quản lý
-        $classQuery = \App\Models\Classroom::query()
-            ->whereIn('branch_id', $branchIds)
+        // Lấy danh sách lớp
+        $classQuery = Classroom::query()
+            ->when($role === 'manager' && !$branchId, fn($qq) => $qq->whereIn('branch_id', $branchIds))
+            ->when($role === 'teacher', fn($qq) => $qq->whereIn('id', $classIds))
             ->where('status', 'open');
 
         if ($branchId) {
@@ -163,13 +283,17 @@ class ScheduleController extends Controller
         }
         $classes = $classQuery->get();
 
-        // Lấy danh sách giáo viên thuộc các lớp này
-        $teacherIds = \App\Models\TeachingAssignment::whereIn('class_id', $classes->pluck('id'))
+        // Lấy danh sách giáo viên
+        $teacherIds = TeachingAssignment::whereIn('class_id', $classes->pluck('id'))
             ->pluck('teacher_id')->unique()->values();
-        $teachers = \App\Models\User::whereIn('id', $teacherIds)->get();
+        $teachersQuery = User::whereIn('id', $teacherIds);
+        if ($role === 'teacher') {
+            $teachersQuery->where('id', $user->id);
+        }
+        $teachers = $teachersQuery->get();
 
-        // Lấy các session trong tuần theo filter
-        $sessionQuery = \App\Models\ClassSession::query()
+        // Lấy sessions
+        $sessionQuery = ClassSession::query()
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->whereIn('class_id', $classes->pluck('id'));
 
@@ -183,23 +307,23 @@ class ScheduleController extends Controller
             ->with(['classroom', 'room', 'substitution'])
             ->orderBy('date')
             ->orderBy('start_time')
-            ->get();
-        $sessions = $sessions->map(function($s) {
-            return [
-                'id'         => $s->id,
-                'date'       => $s->date instanceof \Carbon\Carbon ? $s->date->toDateString() : (string)$s->date,
-                'start_time' => substr($s->start_time, 0, 5),
-                'end_time'   => substr($s->end_time, 0, 5),
-                'status'     => $s->status,
-                'note'       => $s->note,
-                'room'       => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
-                'classroom'  => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
-                'substitute' => method_exists($s, 'substitution') && $s->substitution
-                    ? ['id'=>$s->substitution->substitute_teacher_id, 'name'=>$s->substitution->substituteTeacher?->name]
-                    : null,
-                'is_conflict' => false,
-            ];
-        });
+            ->get()
+            ->map(function($s) {
+                return [
+                    'id'         => $s->id,
+                    'date'       => $s->date instanceof Carbon ? $s->date->toDateString() : (string)$s->date,
+                    'start_time' => substr($s->start_time, 0, 5),
+                    'end_time'   => substr($s->end_time, 0, 5),
+                    'status'     => $s->status,
+                    'note'       => $s->note,
+                    'room'       => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
+                    'classroom'  => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
+                    'substitute' => method_exists($s, 'substitution') && $s->substitution
+                        ? ['id'=>$s->substitution->substitute_teacher_id, 'name'=>$s->substitution->substituteTeacher?->name]
+                        : null,
+                    'is_conflict' => false,
+                ];
+            });
 
         // Chuẩn bị dữ liệu tuần
         $days = [];
@@ -216,7 +340,14 @@ class ScheduleController extends Controller
             $cur->addDay();
         }
 
-        return inertia('Schedule/Week', [
+        // Branches dropdown
+        $branchesQuery = Branch::where('active', 1);
+        if ($role === 'manager') {
+            $branchesQuery->whereIn('id', $branchIds);
+        }
+        $branches = $branchesQuery->get(['id','name']);
+
+        return Inertia::render('Schedule/Week', [
             'filters'  => [
                 'branch_id'   => $branchId,
                 'class_id'    => $classId,
@@ -228,7 +359,7 @@ class ScheduleController extends Controller
                 'end'   => $end->toDateString(),
                 'days'  => $days,
             ],
-            'branches' => \App\Models\Branch::whereIn('id', $branchIds)->where('active', 1)->get(['id','name']),
+            'branches' => $branches,
             'classes'  => $classes->map(fn($c) => [
                 'id' => $c->id,
                 'code' => $c->code,
@@ -243,40 +374,60 @@ class ScheduleController extends Controller
 
     public function sessionMeta(Request $request, ClassSession $session)
     {
-        // Load relations cơ bản
+        $user = auth()->user();
+        $role = $user->roles->first()?->name;
+
+        // Check quyền access session
+        if ($role === 'manager') {
+            $branchIds = $user->managerBranches()->pluck('branches.id')->all();
+            if (!in_array($session->classroom->branch_id, $branchIds)) {
+                abort(403, 'Bạn không có quyền xem buổi học này');
+            }
+        } elseif ($role === 'teacher') {
+            $hasAccess = TeachingAssignment::where('teacher_id', $user->id)
+                ->where('class_id', $session->class_id)
+                ->where(function($q) use ($session) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $session->date);
+                })->where(function($q) use ($session) {
+                    $q->whereNull('effective_from')->orWhere('effective_from', '<=', $session->date);
+                })->exists();
+            if (!$hasAccess) {
+                abort(403, 'Bạn không có quyền xem buổi học này');
+            }
+        }
+        // Admin: no check
+
+        // Load relations
         $session->load([
             'classroom:id,code,name,branch_id',
             'room:id,code,name',
             'classroom.branch:id,name',
+            'substitution.substituteTeacher:id,name',
         ]);
 
-        // Lấy GV hiệu lực tại ngày buổi học (nếu bạn có effective_from/to)
+        // Teachers hiệu lực
         $teachers = TeachingAssignment::with('teacher:id,name')
             ->where('class_id', $session->class_id)
-            ->when(true, function ($q) use ($session) {
-                // hiệu lực tại ngày buổi học
-                $q->where(function ($qq) use ($session) {
-                    $qq->whereNull('effective_from')->orWhere('effective_from', '<=', $session->date);
-                })->where(function ($qq) use ($session) {
-                    $qq->whereNull('effective_to')->orWhere('effective_to', '>=', $session->date);
-                });
+            ->where(function ($q) use ($session) {
+                $q->whereNull('effective_from')->orWhere('effective_from', '<=', $session->date);
+            })->where(function ($q) use ($session) {
+                $q->whereNull('effective_to')->orWhere('effective_to', '>=', $session->date);
             })
             ->get()
             ->map(fn($ta) => ['id' => $ta->teacher_id, 'name' => $ta->teacher->name])
             ->values();
 
-        // Lấy danh sách các giao viên có thể dạy thay lớp này
+        // Substitutes
         $currentTeacherIds = $teachers->pluck('id')->all();
         $substitutes = User::whereHas('roles', fn($q) => $q->where('name', 'teacher'))
             ->whereNotIn('id', $currentTeacherIds)
             ->get(['id', 'name']);
 
-        // Điểm danh đã nhập (map theo student_id)
+        // Enrollments
         $attMap = Attendance::where('class_session_id', $session->id)
             ->get()
             ->keyBy('student_id');
 
-        // Học viên đã ghi danh và đến buổi này (status active, vào không muộn hơn session_no)
         $enrollments = Enrollment::with('student:id,code,name')
             ->where('class_id', $session->class_id)
             ->where('status', 'active')
@@ -289,13 +440,13 @@ class ScheduleController extends Controller
                     'id'        => $en->student_id,
                     'code'      => $en->student->code,
                     'name'      => $en->student->name,
-                    'status'    => $att ? $att->status : null,   // present|absent|late|excused|null
+                    'status'    => $att ? $att->status : null,
                     'note'      => $att ? $att->note : null,
                 ];
             })
             ->values();
 
-        // (Tuỳ chọn) kiểm tra xung đột phòng — đơn giản, cùng ngày, cùng phòng, trùng giờ
+        // Conflicts
         $roomConflicts = [];
         if ($session->room_id) {
             $roomConflicts = ClassSession::with(['classroom:id,code,name'])
@@ -320,8 +471,6 @@ class ScheduleController extends Controller
                 ->values();
         }
 
-        // (Tuỳ chọn) xung đột GV (nếu cần, làm tương tự dựa trên TeachingAssignment)
-
         return response()->json([
             'session' => [
                 'id'         => $session->id,
@@ -341,17 +490,17 @@ class ScheduleController extends Controller
                     'code' => $session->room->code,
                     'name' => $session->room->name,
                 ] : null,
-                'substitution' => $session->substitution ? [ // Thêm substitute vào response
-                    'id' => $session->substitution->substitute_teacher_id,
-                    'name' => $session->substitution->substituteTeacher?->name,
+                'substitute' => $session->substitute ? [
+                    'id' => $session->substitute->substitute_teacher_id,
+                    'name' => $session->substitute->substituteTeacher?->name,
                 ] : null,
             ],
-            'teachers'    => $teachers,       // danh sách GV hiệu lực
-            'substitutes' => $substitutes,    // danh sách GV dạy thay (nếu có)
-            'enrollments' => $enrollments,    // <<< CÁI BẠN ĐANG CẦN
+            'teachers'    => $teachers,
+            'substitutes' => $substitutes,
+            'enrollments' => $enrollments,
             'conflicts'   => [
                 'room'    => $roomConflicts,
-                'teacher' => [], // TODO: bổ sung nếu bạn cần
+                'teacher' => [],
             ],
         ]);
     }
