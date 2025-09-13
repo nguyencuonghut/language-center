@@ -17,6 +17,7 @@ use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Teacher\DashboardController;
+use App\Http\Controllers\Teacher\ScheduleController;
 use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\StudentController;
 use App\Http\Controllers\Manager\TeacherController;
@@ -30,7 +31,7 @@ use App\Http\Controllers\Manager\TransferAdvancedController;
 use App\Http\Controllers\Manager\TransferAuditController;
 use App\Http\Controllers\Manager\SessionSubstitutionController;
 use App\Http\Controllers\Manager\SubstitutionController;
-use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\Manager\ScheduleController as ManagerScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -215,13 +216,13 @@ Route::middleware(['auth'])->group(function () {
         // =========================
         // Lịch dạy
         // =========================
-        //Route::get('/schedule', [ManagerScheduleController::class, 'index'])->name('schedule.index');
+        Route::get('/schedule', [ManagerScheduleController::class, 'index'])->name('schedule.index');
         // NEW: Week view
-        //Route::get('schedule/week', [ManagerScheduleController::class, 'week'])
-        //    ->name('schedule.week');
+        Route::get('schedule/week', [ManagerScheduleController::class, 'week'])
+            ->name('schedule.week');
         // API lấy dữ liệu lịch dạy (JSON)
-        //Route::get('schedule/{session}/meta', [ManagerScheduleController::class, 'sessionMeta'])
-        //    ->name('schedule.session.meta');
+        Route::get('schedule/{session}/meta', [ManagerScheduleController::class, 'sessionMeta'])
+            ->name('schedule.session.meta');
 
 
         // =========================
@@ -267,8 +268,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('attendance.store');  // Lưu điểm danh
 
         // Lịch dạy
-        // Route::get('schedule', [ScheduleController::class, 'index'])
-        //     ->name('schedule.index'); // Lịch dạy của tôi
+        Route::get('schedule', [ScheduleController::class, 'index'])
+            ->name('schedule.index'); // Lịch dạy của tôi
     });
 
     /*
@@ -458,19 +459,5 @@ Route::middleware(['auth'])->group(function () {
         Route::post('students/{student}/transfer', [TransferController::class, 'storeForStudent'])
             ->name('students.transfer');         // API gợi ý tìm lớp học cho AutoComplete
          Route::get('classrooms/search',       [ClassroomController::class, 'search'])->name('classrooms.search');
-    });
-
-        /*
-    |----------------------------------------------------------------------
-    | Route dùng chung Admin/Manager/Teacher
-    |  - KHÔNG đặt trong prefix để cả 2 vai trò dùng chung
-    |----------------------------------------------------------------------
-    */
-    Route::middleware(['auth', 'role:admin|manager|teacher'])
-    ->group(function () {
-        Route::get('schedule', [ScheduleController::class, 'index'])
-            ->name('schedule.index'); // Lịch dạy của tôi
-        Route::get('schedule/week', [ScheduleController::class, 'week'])
-           ->name('schedule.week');
     });
 });
