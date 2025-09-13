@@ -60,23 +60,23 @@ class ScheduleController extends Controller
         // Lọc theo giáo viên: theo phân công (teaching_assignments) hoặc dạy thay (session_substitutions) nếu bạn đã có bảng này
         if ($teacherId) {
             $q->where(function($w) use ($teacherId) {
-                // dạy thay
+                // Dạy thay: Kiểm tra substitution với teacherId (không phụ thuộc date)
                 $w->whereHas('substitution', fn($s) => $s->where('substitute_teacher_id', $teacherId))
-                  // giáo viên theo phân công hiệu lực tại ngày buổi
-                  ->orWhereHas('classroom.teachingAssignments', function($ta){
-                      // join condition xử lý ở callback bên dưới
+                  // Phân công: Kiểm tra teaching_assignment hiệu lực tại date của Session
+                  ->orWhereExists(function($query) use ($teacherId) {
+                      $query->selectRaw(1)
+                             ->from('teaching_assignments')
+                             ->whereColumn('teaching_assignments.class_id', 'class_sessions.class_id')
+                             ->where('teaching_assignments.teacher_id', $teacherId)
+                             ->where(function($q) {
+                                 $q->whereNull('teaching_assignments.effective_from')
+                                   ->orWhereColumn('teaching_assignments.effective_from', '<=', 'class_sessions.date');
+                             })
+                             ->where(function($q) {
+                                 $q->whereNull('teaching_assignments.effective_to')
+                                   ->orWhereColumn('teaching_assignments.effective_to', '>=', 'class_sessions.date');
+                             });
                   });
-            });
-
-            // hack nhỏ cho whereHas with date range hiệu lực (nếu bạn có cột effective_from/to)
-            $q->whereHas('classroom.teachingAssignments', function($ta) use ($teacherId) {
-                $ta->where('teacher_id', $teacherId);
-                // Nếu bạn dùng hiệu lực theo ngày buổi:
-                // $ta->where(function($d){
-                //     $d->whereNull('effective_from')->orWhere('effective_from','<=',now()->toDateString());
-                // })->where(function($d){
-                //     $d->whereNull('effective_to')->orWhere('effective_to','>=',now()->toDateString());
-                // });
             });
         }
 
