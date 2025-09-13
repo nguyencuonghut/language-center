@@ -25,9 +25,9 @@ const props = defineProps({
 })
 
 const state = reactive({
-  branch_id: props.filters?.branch_id ? String(props.filters.branch_id) : null,
-  class_id:  props.filters?.class_id ? String(props.filters.class_id)   : null,
-  teacher_id:props.filters?.teacher_id ? String(props.filters.teacher_id) : null,
+  branch_id: props.filters?.branch_id ?? null,
+  class_id: props.filters?.class_id ?? null,
+  teacher_id: props.filters?.teacher_id ?? null,
   week_start: props.filters?.week_start ? new Date(props.filters.week_start+'T00:00:00') : new Date(),
 })
 
@@ -158,8 +158,12 @@ function goAssignSubstitute() {
         <label class="block text-xs text-slate-500 mb-1">Chi nhánh</label>
         <Select
           v-model="state.branch_id"
-          :options="[{label:'Tất cả', value:null}, ...(props.branches||[]).map(b=>({label:b.name, value:String(b.id)}))]"
-          optionLabel="label" optionValue="value" class="w-full" showClear
+          :options="[{label:'Tất cả', value:null}, ...(props.branches||[]).map(b=>({label:b.name, value:b.id}))]"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả"
+          class="w-full"
+          showClear
           @change="apply"
         />
       </div>
@@ -169,7 +173,11 @@ function goAssignSubstitute() {
         <Select
           v-model="state.class_id"
           :options="[{label:'Tất cả', value:null}, ...(props.classes||[]).map(c=>({label:`${c.code} · ${c.name}`, value:String(c.id)}))]"
-          optionLabel="label" optionValue="value" class="w-full" showClear
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả"
+          class="w-full"
+          showClear
           @change="apply"
         />
       </div>
@@ -179,7 +187,11 @@ function goAssignSubstitute() {
         <Select
           v-model="state.teacher_id"
           :options="[{label:'Tất cả', value:null}, ...(props.teachers||[]).map(t=>({label:t.name, value:String(t.id)}))]"
-          optionLabel="label" optionValue="value" class="w-full" showClear
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Tất cả"
+          class="w-full"
+          showClear
           @change="apply"
         />
       </div>

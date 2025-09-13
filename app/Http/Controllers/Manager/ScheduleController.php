@@ -188,8 +188,19 @@ class ScheduleController extends Controller
             ->whereIn('class_id', $classes->pluck('id'));
 
         if ($teacherId) {
-            $sessionQuery->whereHas('teachingAssignments', function($q) use ($teacherId) {
-                $q->where('teacher_id', $teacherId);
+            $sessionQuery->whereExists(function($query) use ($teacherId) {
+                $query->selectRaw(1)
+                    ->from('teaching_assignments')
+                    ->whereColumn('teaching_assignments.class_id', 'class_sessions.class_id')
+                    ->where('teaching_assignments.teacher_id', $teacherId)
+                    ->where(function($q) {
+                        $q->whereNull('teaching_assignments.effective_from')
+                            ->orWhereColumn('teaching_assignments.effective_from', '<=', 'class_sessions.date');
+                    })
+                    ->where(function($q) {
+                        $q->whereNull('teaching_assignments.effective_to')
+                            ->orWhereColumn('teaching_assignments.effective_to', '>=', 'class_sessions.date');
+                    });
             });
         }
 
