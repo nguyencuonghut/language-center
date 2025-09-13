@@ -10,6 +10,7 @@ import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import Badge from 'primevue/badge'
 
 defineOptions({ layout: AppLayout })
 
@@ -174,13 +175,24 @@ function toYmdLocal(d){
         <span v-else>—</span>
       </template>
     </Column>
-    <Column header="Giáo viên" style="width: 260px">
-      <template #body="{ data }">
-        <span v-if="data.substitute">
-          {{ data.substitute.name }}
-          <Tag value="Dạy thay" severity="warning" class="mr-2" />
-        </span>
-        <span v-else class="text-slate-500">Theo phân công</span>
+    <Column field="teacher" header="Giáo viên" style="min-width: 250px;"> <!-- Tăng min-width để chứa cả hai tên -->
+      <template #body="slotProps">
+        <div class="flex flex-col gap-2">
+          <!-- Giáo viên phân công (luôn hiển thị nếu có) -->
+          <div v-if="slotProps.data.teacher" class="flex items-center gap-2">
+            <i class="pi pi-user text-slate-500"></i>
+            <span class="font-medium text-sm">{{ slotProps.data.teacher }}</span>
+            <Badge value="Phân công" severity="info" class="text-xs" />
+          </div>
+          <!-- Giáo viên dạy thay (chỉ hiển thị nếu có) -->
+          <div v-if="slotProps.data.substitution" class="flex items-center gap-2">
+            <i class="pi pi-user text-slate-500"></i>
+            <span class="font-medium text-sm">{{ slotProps.data.substitution.name }}</span>
+            <Badge value="Dạy thay" severity="warn" class="text-xs" />
+          </div>
+          <!-- Fallback nếu không có dữ liệu -->
+          <span v-if="!slotProps.data.teacher && !slotProps.data.substitution" class="text-slate-500 text-sm">N/A</span>
+        </div>
       </template>
     </Column>
     <Column header="Trạng thái" style="width: 120px">

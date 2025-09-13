@@ -221,7 +221,7 @@ function goAssignSubstitute() {
           <div class="text-xs flex items-center justify-between text-slate-500">
             <span>{{ s.start_time }}–{{ s.end_time }}</span>
             <Tag
-              v-if="s.substitute"
+              v-if="s.substitution"
               value="Dạy thay"
               severity="warn"
               class="ml-2"

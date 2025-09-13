@@ -22,7 +22,7 @@ class ScheduleController extends Controller
         // ---- Validate nhẹ filters ----
         $validated = $request->validate([
             'branch_id'  => ['nullable','integer','exists:branches,id'],
-            'class_id'   => ['nullable','integer','exists:classes,id'],
+            'class_id'   => ['nullable','integer','exists:classrooms,id'],
             'teacher_id' => ['nullable','integer','exists:users,id'],
             'from'       => ['nullable','date'],
             'to'         => ['nullable','date','after_or_equal:from'],
@@ -49,6 +49,7 @@ class ScheduleController extends Controller
             ->with([
                 'room:id,code,name',
                 'classroom:id,code,name,branch_id',
+                'substitution',
             ])
             ->whereBetween('date', [$from, $to])
             ->when($branchId, fn($qq) =>
@@ -88,6 +89,18 @@ class ScheduleController extends Controller
             // Nếu có quan hệ substitution() cho dạy thay
             $sub = method_exists($s, 'substitution') ? $s->substitution : null;
 
+            // Lấy giáo viên phân công hiệu lực tại ngày buổi học
+            $teacherAssignment = TeachingAssignment::where('class_id', $s->class_id)
+                ->where(function($q) use ($s) {
+                    $q->whereNull('effective_from')->orWhere('effective_from', '<=', $s->date);
+                })
+                ->where(function($q) use ($s) {
+                    $q->whereNull('effective_to')->orWhere('effective_to', '>=', $s->date);
+                })
+                ->with('teacher:id,name')
+                ->first();
+            $teacherName = $teacherAssignment ? $teacherAssignment->teacher->name : 'N/A';
+
             return [
                 'id'          => $s->id,
                 'date'        => $s->date,
@@ -97,8 +110,8 @@ class ScheduleController extends Controller
                 'note'        => $s->note,
                 'room'        => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
                 'classroom'   => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
-                // bạn có thể bổ sung teachers hiệu lực nếu cần (join phức tạp) — tạm thời hiển thị dạy thay nếu có
-                'substitute'  => $sub ? ['id'=>$sub->substitute_teacher_id, 'name'=>$sub->substituteTeacher?->name] : null,
+                'teacher'     => $teacherName, // Thêm tên giáo viên phân công
+                'substitution'  => $sub ? ['id'=>$sub->substitute_teacher_id, 'name'=>$sub->substituteTeacher?->name] : null,
                 'is_conflict' => false, // TODO: cắm Room/TeacherConflictService nếu đã có
             ];
         });
@@ -195,7 +208,7 @@ class ScheduleController extends Controller
                 'note'       => $s->note,
                 'room'       => $s->room ? ['id'=>$s->room->id,'code'=>$s->room->code,'name'=>$s->room->name] : null,
                 'classroom'  => $s->classroom ? ['id'=>$s->classroom->id,'code'=>$s->classroom->code,'name'=>$s->classroom->name] : null,
-                'substitute' => method_exists($s, 'substitution') && $s->substitution
+                'substitution' => method_exists($s, 'substitution') && $s->substitution
                     ? ['id'=>$s->substitution->substitute_teacher_id, 'name'=>$s->substitution->substituteTeacher?->name]
                     : null,
                 'is_conflict' => false,
@@ -249,6 +262,7 @@ class ScheduleController extends Controller
             'classroom:id,code,name,branch_id',
             'room:id,code,name',
             'classroom.branch:id,name',
+            'substitution',
         ]);
 
         // Lấy GV hiệu lực tại ngày buổi học (nếu bạn có effective_from/to)
@@ -342,7 +356,7 @@ class ScheduleController extends Controller
                     'code' => $session->room->code,
                     'name' => $session->room->name,
                 ] : null,
-                'substitution' => $session->substitution ? [ // Thêm substitute vào response
+                'substitution' => $session->substitution ? [ // Thêm substitution vào response
                     'id' => $session->substitution->substitute_teacher_id,
                     'name' => $session->substitution->substituteTeacher?->name,
                 ] : null,
