@@ -79,28 +79,28 @@ function toYmdLocal(d){
     <!-- Filters: 2 rows, 3 columns each -->
     <div class="flex flex-col gap-2 w-full md:w-auto">
       <div class="flex flex-col md:flex-row gap-2">
-        <div v-if="branches.length > 0" class="min-w-[180px] flex-1">
+        <div class="min-w-[180px] flex-1">
           <label class="block text-xs text-slate-500 mb-1">Chi nhánh</label>
           <Select
             v-model="state.branch_id"
-            :options="props.branches.map(b => ({ label: b.name, value: b.id }))"
+            :options="[{label:'Tất cả', value:null}, ...(props.branches||[]).map(b=>({label:b.name, value:b.id}))]"
             optionLabel="label"
             optionValue="value"
             class="w-full"
-            :showClear="props.branches.length > 1"
-            :placeholder="props.branches.length === 1 ? props.branches[0].name : 'Tất cả'"
+            showClear
+            placeholder="Tất cả"
           />
         </div>
-        <div v-if="classes.length > 0" class="min-w-[180px] flex-1">
+        <div class="min-w-[180px] flex-1">
           <label class="block text-xs text-slate-500 mb-1">Lớp</label>
           <Select
             v-model="state.class_id"
-            :options="props.classes.map(c => ({ label: c.name, value: c.id }))"
+            :options="[{label:'Tất cả', value:null}, ...(props.classes||[]).map(c=>({label:`${c.code} · ${c.name}`, value:c.id}))]"
             optionLabel="label"
             optionValue="value"
             class="w-full"
-            :showClear="props.classes.length > 1"
-            :placeholder="props.classes.length === 1 ? props.classes[0].name : 'Tất cả'"
+            showClear
+            placeholder="Tất cả"
           />
         </div>
         <div v-if="userRole === 'admin' || userRole === 'manager'" class="min-w-[180px] flex-1">
@@ -180,11 +180,8 @@ function toYmdLocal(d){
     <Column header="Giáo viên" style="width: 260px">
       <template #body="{ data }">
         <span v-if="data.substitute">
-        {{ data.substitute.name }}
-        <Tag value="Dạy thay" severity="warn" class="mr-2" />
-        </span>
-        <span v-else-if="data.teacher">
-        {{ data.teacher }}
+          {{ data.substitute.name }}
+          <Tag value="Dạy thay" severity="warning" class="mr-2" />
         </span>
         <span v-else class="text-slate-500">Theo phân công</span>
       </template>
