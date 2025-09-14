@@ -21,6 +21,24 @@
 </style>
 </head>
 <body>
+    @if($invoice->status === 'paid')
+    <div style="
+      position: fixed;
+      top: 35%;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      opacity: 0.13;
+      font-size: 80px;
+      color: #10b981;
+      font-weight: bold;
+      transform: rotate(-20deg);
+      pointer-events: none;
+      z-index: 9999;
+    ">
+      ĐÃ THANH TOÁN
+    </div>
+    @endif
   <h1>HÓA ĐƠN #{{ $invoice->id }} <span class="muted">({{ $invoice->code ?? '—' }})</span></h1>
   <div class="muted mb8">Ngày tạo: {{ dmy($invoice->created_at) }} &nbsp;|&nbsp; Hạn TT: {{ dmy($invoice->due_date) }}</div>
 
