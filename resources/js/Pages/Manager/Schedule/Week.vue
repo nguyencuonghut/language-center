@@ -205,7 +205,7 @@ function goAssignSubstitute() {
         <Button icon="pi pi-angle-left" text @click="shiftWeek(-7)" :aria-label="'Tuần trước'" />
         <Button icon="pi pi-angle-right" text @click="shiftWeek(+7)" :aria-label="'Tuần sau'" />
         <Link
-          :href="route('manager.schedule.index', { branch_id: state.branch_id, class_id: state.class_id, teacher_id: state.teacher_id, from: week.start, to: week.end })"
+          :href="route('manager.schedule.index')"
           class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           Lịch lớp
