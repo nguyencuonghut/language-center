@@ -65,7 +65,7 @@
     </div>
     <!-- Buttons -->
     <div class="flex gap-2 mt-2 md:mt-0 justify-end">
-      <Button label="Xóa lọc" icon="pi pi-times" @click="clearFilters" class="p-button-secondary py-1 h-8" />
+      <Button label="Xóa lọc" icon="pi pi-times" severity="warn" @click="clearFilters" outlined />
       <Link :href="route('teacher.schedule.week')" class="p-button p-component p-button-info !px-4 !py-2 rounded-md flex items-center gap-2">
         <i class="pi pi-calendar"></i>
         <span>Lịch theo tuần</span>
@@ -76,21 +76,38 @@
   <!-- Schedule Table -->
   <DataTable :value="items" class="p-datatable-sm shadow-sm">
     <Column field="date" header="Ngày" sortable />
-    <Column field="start_time" header="Bắt đầu" sortable />
-    <Column field="end_time" header="Kết thúc" sortable />
+    <Column field="start_time" header="Giờ" sortable >
+      <template #body="{ data }">{{ data.start_time }}–{{ data.end_time }}</template>
+    </Column>
     <Column field="class_name" header="Lớp" sortable />
-    <Column field="room_name" header="Phòng" sortable />
-    <Column field="branch_name" header="Chi nhánh" sortable />
-    <Column field="status" header="Trạng thái" sortable />
-    <!-- Cập nhật cột 'Loại' để hiển thị tên giáo viên khi dạy thay -->
-    <Column header="Loại">
-      <template #body="slotProps">
-        <Badge
-          :value="slotProps.data.is_substitution ? `Dạy thay: ${slotProps.data.teacher_name || 'N/A'}` : 'Phân công'"
-          :severity="slotProps.data.is_substitution ? 'warn' : 'info'"
-        />
+    <Column field="room_name" header="Phòng" sortable >
+      <template #body="{ data }">
+        <span v-if="data.room_name">{{ data.room_name }}</span>
+        <span v-else>—</span>
       </template>
     </Column>
+    <Column field="branch_name" header="Chi nhánh" sortable />
+    <Column field="teacher" header="Giáo viên" style="min-width: 250px;"> <!-- Tăng min-width để chứa cả hai tên -->
+      <template #body="slotProps">
+        <div class="flex flex-col gap-2">
+          <!-- Giáo viên phân công (luôn hiển thị nếu có) -->
+          <div v-if="slotProps.data.teacher" class="flex items-center gap-2">
+            <i class="pi pi-user text-slate-500"></i>
+            <span class="font-medium text-sm">{{ slotProps.data.teacher }}</span>
+            <Badge value="Phân công" severity="info" class="text-xs" />
+          </div>
+          <!-- Giáo viên dạy thay (chỉ hiển thị nếu có) -->
+          <div v-if="slotProps.data.substitution" class="flex items-center gap-2">
+            <i class="pi pi-user text-slate-500"></i>
+            <span class="font-medium text-sm">{{ slotProps.data.substitution.name }}</span>
+            <Badge value="Dạy thay" severity="warn" class="text-xs" />
+          </div>
+          <!-- Fallback nếu không có dữ liệu -->
+          <span v-if="!slotProps.data.teacher && !slotProps.data.substitution" class="text-slate-500 text-sm">N/A</span>
+        </div>
+      </template>
+    </Column>
+    <Column field="status" header="Trạng thái" sortable />
   </DataTable>
 </template>
 

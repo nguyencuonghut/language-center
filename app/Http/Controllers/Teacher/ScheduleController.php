@@ -62,6 +62,7 @@ class ScheduleController extends Controller
                      ->whereNull('ta.effective_to'); // Chỉ lấy assignment hiện tại
             })
             ->leftJoin('users as u', 'u.id', '=', 'ta.teacher_id') // Join với users để lấy tên giáo viên gốc (được phân công)
+            ->leftJoin('users as sub_u', 'sub_u.id', '=', 'ss.substitute_teacher_id') // Thêm join cho substitute teacher
             ->where('ss.substitute_teacher_id', $user->id)
             ->whereBetween('cs.date', [$fromDate, $toDate]);
 
@@ -91,6 +92,7 @@ class ScheduleController extends Controller
             r.name as room_name,
             b.name as branch_name,
             u.name as teacher_name,  -- Tên giáo viên từ teaching_assignments
+            null as substitute_name,  -- Thêm null cho union
             false as is_substitution
         ");
 
@@ -108,6 +110,7 @@ class ScheduleController extends Controller
             r.name as room_name,
             b.name as branch_name,
             u.name as teacher_name,  -- Tên giáo viên gốc (được phân công)
+            sub_u.name as substitute_name,  -- Tên giáo viên dạy thay
             true as is_substitution
         ");
 
@@ -118,6 +121,21 @@ class ScheduleController extends Controller
             ->orderBy('t.date')
             ->orderBy('t.start_time')
             ->get();
+
+        // Transform rows để khớp với Vue (tạo teacher và substitution)
+        $rows = $rows->map(function ($row) {
+            return [
+                'date' => $row->date,
+                'start_time' => substr($row->start_time, 0, 5),
+                'end_time' => substr($row->end_time, 0, 5),
+                'class_name' => $row->class_name,
+                'room_name' => $row->room_name,
+                'branch_name' => $row->branch_name,
+                'status' => $row->status,
+                'teacher' => $row->teacher_name,  // Tên giáo viên phân công
+                'substitution' => $row->substitute_name ? ['name' => $row->substitute_name] : null,  // Object cho dạy thay
+            ];
+        });
 
         // Query danh sách branches mà teacher có thể truy cập
         $branches = DB::table('branches as b')
