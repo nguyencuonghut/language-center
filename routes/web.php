@@ -270,6 +270,12 @@ Route::middleware(['auth'])->group(function () {
         // Lịch dạy
         Route::get('schedule', [ScheduleController::class, 'index'])
             ->name('schedule.index'); // Lịch dạy của tôi
+        // NEW: Week view
+        Route::get('schedule/week', [ScheduleController::class, 'week'])
+            ->name('schedule.week');
+        // API lấy dữ liệu lịch dạy (JSON)
+        Route::get('schedule/{session}/meta', [ScheduleController::class, 'sessionMeta'])
+            ->name('schedule.session.meta');
     });
 
     /*

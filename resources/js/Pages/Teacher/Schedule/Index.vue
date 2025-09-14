@@ -66,7 +66,10 @@
     <!-- Buttons -->
     <div class="flex gap-2 mt-2 md:mt-0 justify-end">
       <Button label="Xóa lọc" icon="pi pi-times" @click="clearFilters" class="p-button-secondary py-1 h-8" />
-      <Button label="Lịch theo tuần" icon="pi pi-calendar" @click="weeklyView" class="p-button-info py-1 h-8" />
+      <Link :href="route('teacher.schedule.week')" class="p-button p-component p-button-info !px-4 !py-2 rounded-md flex items-center gap-2">
+        <i class="pi pi-calendar"></i>
+        <span>Lịch theo tuần</span>
+      </Link>
     </div>
   </div>
 
@@ -93,7 +96,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'; // Thêm computed
-import { Head, router } from '@inertiajs/vue3'; // Thêm Head
+import { Head, router, Link } from '@inertiajs/vue3'; // Thêm Head
 import { usePageToast } from '@/composables/usePageToast';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DataTable from 'primevue/datatable';
@@ -159,18 +162,5 @@ const clearFilters = () => {
     to: null,
   };
   applyFilters(); // Tự động áp dụng sau khi reset
-};
-
-// Hàm lịch theo tuần (set from/to cho tuần hiện tại)
-const weeklyView = () => {
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // Chủ nhật
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // Thứ bảy
-
-  filters.value.from = startOfWeek.toISOString().split('T')[0];
-  filters.value.to = endOfWeek.toISOString().split('T')[0];
-  applyFilters(); // Tự động áp dụng
 };
 </script>
