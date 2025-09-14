@@ -13,6 +13,7 @@ use App\Services\InvoiceCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Database\Eloquent\Builder;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class InvoiceController extends Controller
 {
@@ -229,5 +230,30 @@ class InvoiceController extends Controller
         $invoice->delete();
 
         return redirect()->route('manager.invoices.index')->with('success', 'Đã xoá hoá đơn.');
+    }
+
+    public function pdf(Invoice $invoice)
+    {
+        // gộp dữ liệu như ở show()
+        $invoice->load([
+            'branch:id,name',
+            'student:id,code,name,phone,email',
+            'classroom:id,code,name',
+            'invoiceItems:id,invoice_id,type,description,qty,unit_price,amount',
+            'payments:id,invoice_id,method,paid_at,amount,ref_no'
+        ]);
+
+        // tổng – đã có trên invoice; tính thêm paid/remaining để in
+        $paid = (int) $invoice->payments->sum('amount');
+        $remaining = max(0, (int)$invoice->total - $paid);
+
+        $pdf = Pdf::loadView('pdf.invoice', [
+            'invoice'   => $invoice,
+            'paid'      => $paid,
+            'remaining' => $remaining,
+        ])->setPaper('a5', 'portrait'); // đổi 'a4' nếu muốn
+
+        $pdf = Pdf::loadView('pdf.invoice', compact('invoice', 'paid', 'remaining'));
+        return $pdf->stream('invoice_'.$invoice->id.'.pdf'); // download() nếu muốn tải về
     }
 }

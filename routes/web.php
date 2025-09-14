@@ -194,6 +194,9 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/{invoice}',   [InvoiceController::class, 'update'])->name('update');
             Route::delete('/{invoice}',[InvoiceController::class, 'destroy'])->name('destroy');
 
+            // PDF generation
+            Route::get('/{invoice}/pdf',                            [InvoiceController::class, 'pdf'])->name('pdf');
+
             // -------- Invoice Items (nested) --------
             Route::post('/{invoice}/items',                         [InvoiceItemController::class, 'store'])->name('items.store');
             Route::put('/{invoice}/items/{item}',                   [InvoiceItemController::class, 'update'])->name('items.update');

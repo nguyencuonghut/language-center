@@ -195,6 +195,10 @@ function deleteItem(item) {
     preserveScroll: true
   })
 }
+
+function openInvoicePdf() {
+  window.open(route('manager.invoices.pdf', props.invoice.id), '_blank', 'noopener')
+}
 </script>
 
 <template>
@@ -285,6 +289,13 @@ function deleteItem(item) {
       <Column v-if="can?.update !== false" header="Hành động" style="width: 140px">
         <template #body="{ data }">
             <div class="flex gap-2 justify-end">
+            <Button
+                icon="pi pi-print"
+                text
+                class="text-indigo-700 dark:text-indigo-300"
+                @click="openInvoicePdf"
+                v-tooltip="'In hóa đơn PDF'"
+            />
             <Button icon="pi pi-pencil" text @click="openEditItem(data)" />
             <Button icon="pi pi-trash" text severity="danger" @click="deleteItem(data)" />
             </div>
