@@ -13,7 +13,7 @@
               <Select
                 id="branch"
                 v-model="filters.branch_id"
-                :options="branches"
+                :options="branchOptions"
                 option-label="name"
                 option-value="id"
                 placeholder="Tất cả"
@@ -87,14 +87,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue'; // Thêm computed
 import { usePage, router } from '@inertiajs/vue3';
 import { usePageToast } from '@/composables/usePageToast';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Card from 'primevue/card';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import Select from 'primevue/select'; // Thay Dropdown bằng Select
+import Select from 'primevue/select';
 import DatePicker from 'primevue/datepicker';
 import Button from 'primevue/button';
 import Badge from 'primevue/badge';
@@ -110,9 +110,22 @@ const props = defineProps({
   classes: Array,
 });
 
-// Reactive filters
+// Computed cho branch options với 'Tất cả'
+const branchOptions = computed(() => {
+  return [{ id: null, name: 'Tất cả' }, ...props.branches];
+});
+
+// Computed cho default branch_id
+const defaultBranchId = computed(() => {
+  if (props.branches.length === 1) {
+    return props.branches[0].id;
+  }
+  return null; // 'Tất cả'
+});
+
+// Reactive filters với default
 const filters = ref({
-  branch_id: props.filters.branch_id || null,
+  branch_id: props.filters.branch_id !== undefined ? props.filters.branch_id : defaultBranchId.value,
   class_id: props.filters.class_id || null,
   from: props.filters.from || null,
   to: props.filters.to || null,
