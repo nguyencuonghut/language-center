@@ -64,6 +64,7 @@ const adminMenu = [
   { label: 'Phòng học', icon: 'pi pi-building', url: '/manager/rooms',     ready: true },
   { label: 'Giáo viên', icon: 'pi pi-id-card',  url: '/manager/teachers',  ready: true },
   { label: 'Bảng công',  icon: 'pi pi-clock',    url: '/manager/timesheets',  ready: true },
+  { label: 'Bảng lương', icon: 'pi pi-briefcase', url: '/manager/payrolls', ready: true },
   { label: 'Lớp học',   icon: 'pi pi-users',    url: '/manager/classrooms',  ready: true },
   { label: 'Học viên',  icon: 'pi pi-id-card',  url: '/manager/students',    ready: true },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/admin/attendance', ready: true },

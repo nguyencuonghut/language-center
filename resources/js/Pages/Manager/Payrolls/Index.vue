@@ -180,7 +180,7 @@ function formatDate(v) {
       <Column field="code" header="Mã" style="width: 160px" :sortable="true" />
       <Column field="branch_name" header="Chi nhánh" style="width: 200px" :sortable="true">
         <template #body="{ data }">
-          <span>{{ data.branch?.name ?? '— (toàn hệ thống)' }}</span>
+          <span>{{ data.branch?.name ?? '— (Toàn hệ thống)' }}</span>
         </template>
       </Column>
       <Column field="period_from" header="Từ ngày" style="width: 140px" :sortable="true">
