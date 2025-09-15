@@ -234,6 +234,10 @@ class InvoiceController extends Controller
 
     public function pdf(Invoice $invoice)
     {
+        // Kiểm tra hóa đơn đã thanh toán chưa
+        if ($invoice->status === 'unpaid') {
+            return back()->with('error', 'Chỉ có thể in hoá đơn đã thanh toán.');
+        }
         // gộp dữ liệu như ở show()
         $invoice->load([
             'branch:id,name',

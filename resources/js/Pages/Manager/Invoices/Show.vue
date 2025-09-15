@@ -290,6 +290,7 @@ function openInvoicePdf() {
         <template #body="{ data }">
             <div class="flex gap-2 justify-end">
             <Button
+                v-if="data.status === 'unpaid'"
                 icon="pi pi-print"
                 text
                 class="text-indigo-700 dark:text-indigo-300"
