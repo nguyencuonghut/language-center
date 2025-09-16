@@ -27,6 +27,15 @@ class ActivityLogController extends Controller
                     });
             });
         }
+        // Lọc theo người thực hiện (actor_id)
+        if ($actorId = $request->input('actor_id')) {
+            $query->where('actor_id', $actorId);
+        }
+        // Lấy danh sách actors cho filter dropdown
+        $actors = \App\Models\User::whereIn('id', ActivityLog::distinct()->pluck('actor_id'))
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
 
         $logs = $query->orderBy(
             $request->input('sort', 'created_at'),
@@ -35,6 +44,8 @@ class ActivityLogController extends Controller
 
         return Inertia::render('Admin/ActivityLogs/Index', [
             'logs' => $logs,
+            'actors' => $actors,
+            'filters' => $request->all(['q', 'actor_id', 'action', 'target_type', 'date_from', 'date_to', 'perPage', 'sort', 'order']),
         ]);
     }
 }
