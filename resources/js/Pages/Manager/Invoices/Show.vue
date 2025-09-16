@@ -215,7 +215,12 @@ function openInvoicePdf() {
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
-      <Button label="Thêm thanh toán" icon="pi pi-plus-circle" @click="openPayment" />
+      <button class="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-50
+               dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+        @click="openPayment"
+      >
+        <i class="pi pi-plus-circle"></i> Thêm thanh toán
+      </button>
       <button class="px-3 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50
                dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20"
         @click="openInvoicePdf"
@@ -225,8 +230,8 @@ function openInvoicePdf() {
       </button>
       <Link
         :href="route('manager.invoices.edit', invoice.id)"
-        class="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
-               dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+        class="px-3 py-1.5 rounded-lg border border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50
+               dark:border-fuchsia-700 dark:text-fuchsia-300 dark:hover:bg-fuchsia-900/20"
         v-if="can?.update !== false"
       >
         <i class="pi pi-pencil mr-1"></i> Sửa
