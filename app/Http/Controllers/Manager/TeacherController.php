@@ -17,10 +17,21 @@ class TeacherController extends Controller
      */
     public function index(Request $request)
     {
-        $teachers = Teacher::when($request->search, function ($query, $search) {
-            $query->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+        // Ánh xạ từ tiếng Việt sang enum value cho education_level
+        $educationMapping = [
+            'cử nhân' => 'bachelor',
+            'kỹ sư'   => 'engineer',
+            'thạc sĩ' => 'master',
+            'tiến sĩ' => 'phd',
+            'khác'    => 'other',
+        ];
+
+        $teachers = Teacher::when($request->search, function ($query, $search) use ($educationMapping) {
+                $query->where('full_name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      // Thêm search cho education_level bằng tiếng Việt (case-insensitive)
+                      ->orWhere('education_level', $educationMapping[strtolower(trim($search))] ?? null);
             })
             ->select('id', 'full_name', 'email', 'phone', 'status', 'education_level', 'created_at')
             ->orderBy('full_name')
