@@ -150,8 +150,8 @@ Route::middleware(['auth'])->group(function () {
         // ==========================
         // Transfers
         // ==========================
-        Route::get('/activity_logs', [ActivityLogController::class, 'index'])
-            ->name('activity_logs.index');
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])
+            ->name('activity-logs.index');
 
 
         // Settings (placeholder page, bổ sung controller sau)
