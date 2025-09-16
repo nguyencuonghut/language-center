@@ -115,12 +115,12 @@ async function openDetail(item) {
 function goSessionListOfClass() {
   const clsId = detail.session?.classroom?.id
   if (!clsId) return
-  router.visit(route('manager.classrooms.sessions.index', { classroom: clsId }))
+  router.visit(route('teacher.classrooms.sessions.index', { classroom: clsId }))
 }
 function goClassDetail() {
   const clsId = detail.session?.classroom?.id
   if (!clsId) return
-  router.visit(route('manager.classrooms.edit', { classroom: clsId }))
+  router.visit(route('teacher.classrooms.show', { classroom: clsId }))
 }
 
 // State for substitute dialog
