@@ -53,6 +53,14 @@ class ActivityLogController extends Controller
         // Lấy danh sách target_types cho filter dropdown
         $target_types = ActivityLog::distinct()->orderBy('target_type')->pluck('target_type')->filter()->values();
 
+        // Filter theo ngày tạo (created_at)
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
         $logs = $query->orderBy(
             $request->input('sort', 'created_at'),
             $request->input('order', 'desc')
