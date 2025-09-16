@@ -27,6 +27,12 @@ const classDetail = () => {
 const classList = () => {
   router.visit(route('teacher.classrooms.index'))
 }
+
+const getSubstitutionText = (session) => {
+  if (!session.substitution) return 'Dạy thay'
+  const teacherName = session.substitution.substitute_teacher?.name || 'N/A'
+  return `Dạy thay: ${teacherName}`
+}
 </script>
 
 <template>
@@ -79,6 +85,16 @@ const classList = () => {
       <Column field="start_time" header="Bắt đầu" />
       <Column field="end_time" header="Kết thúc" />
       <Column field="room.name" header="Phòng" />
+      <Column header="Ghi chú">
+        <template #body="{ data }">
+          <div v-if="data.substitution" class="flex items-center gap-2">
+            <Tag :value="getSubstitutionText(data)" severity="warn" class="text-xs" />
+          </div>
+          <div v-else class="truncate max-w-[360px] text-slate-600 dark:text-slate-400">
+            {{ data.note || '—' }}
+          </div>
+        </template>
+      </Column>
       <Column header="Trạng thái">
         <template #body="{ data }">
           <Tag :value="statusLabel(data.status).text" :severity="statusLabel(data.status).severity" />

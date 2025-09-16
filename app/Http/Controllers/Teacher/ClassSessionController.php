@@ -24,7 +24,7 @@ class ClassSessionController extends Controller
         $classroom->load('branch');
 
         $sessions = $classroom->sessions()
-            ->with(['room'])
+            ->with(['room', 'substitution.substituteTeacher'])
             ->orderBy('session_no')
             ->get();
 
