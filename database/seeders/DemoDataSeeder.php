@@ -23,8 +23,17 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
 
+use Faker\Factory as FakerFactory;
+
 class DemoDataSeeder extends Seeder
 {
+    protected $faker;
+
+    public function __construct()
+    {
+        $this->faker = FakerFactory::create('vi_VN');
+    }
+
     public function run(): void
     {
         DB::transaction(function () {
@@ -56,7 +65,7 @@ class DemoDataSeeder extends Seeder
                 return $u;
             });
 
-            $teachers = collect(range(1, 5))->map(function ($i) {
+            $teacher_users = collect(range(1, 5))->map(function ($i) {
                 $u = User::firstOrCreate(
                     ['email' => "teacher{$i}@honghafeed.com.vn"],
                     [
@@ -69,6 +78,28 @@ class DemoDataSeeder extends Seeder
                 $u->assignRole('teacher');
                 return $u;
             });
+
+            // Tạo giáo viên dựa vào users có role teacher
+            foreach ($teacher_users as $t) {
+                $code = 'T' . str_pad($t->id, 4, '0', STR_PAD_LEFT);
+                DB::table('teachers')->updateOrInsert(
+                    ['user_id' => $t->id],
+                    [
+                        'code' => $code,
+                        'full_name' => $t->name,
+                        'email' => $t->email,
+                        'phone' => $t->phone,
+                        'address' => $this->faker->address(),
+                        'national_id' => $this->faker->numerify('###########'),
+                        'photo_path' => null,
+                        'notes' => null,
+                        'education_level' => Arr::random(['bachelor','engineer','master','phd','other']),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+            $teachers = DB::table('teachers')->get();
 
             // ---------------------------
             // 2) BRANCHES & ROOMS

@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
+use App\Models\Teacher;
 use App\Models\ClassSession;
 use App\Models\TeacherTimesheet;
 use App\Models\Payroll;
@@ -22,7 +22,7 @@ class TeacherTimesheetAndPayrollSeeder extends Seeder
         echo "🔍 Seeding teacher timesheets & payrolls...\n";
 
         // Lấy danh sách giáo viên
-        $teachers = User::role('teacher')->get();
+        $teachers = Teacher::get();
         if ($teachers->isEmpty()) {
             echo "❌ No teachers found. Please run TeacherDashboardSeeder first.\n";
             return;

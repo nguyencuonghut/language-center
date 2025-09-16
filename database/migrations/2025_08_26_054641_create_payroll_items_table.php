@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->foreignId('payroll_id')->constrained('payrolls')->cascadeOnUpdate()->cascadeOnDelete();
             $table->foreignId('teacher_timesheet_id')->constrained('teacher_timesheets')->cascadeOnUpdate()->cascadeOnDelete();
 
-            $table->foreignId('teacher_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
+            $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnUpdate()->cascadeOnDelete();
             $table->foreignId('class_session_id')->constrained('class_sessions')->cascadeOnUpdate()->cascadeOnDelete();
 
             $table->unsignedBigInteger('amount');   // số tiền 1 buổi

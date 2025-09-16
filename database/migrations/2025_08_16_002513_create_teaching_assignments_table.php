@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('teaching_assignments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('class_id')->constrained('classrooms')->cascadeOnUpdate()->cascadeOnDelete();
-            $table->foreignId('teacher_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
+            $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnUpdate()->cascadeOnDelete();
             $table->unsignedBigInteger('rate_per_session'); // VND
             $table->date('effective_from');
             $table->date('effective_to')->nullable();

@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
-use App\Models\Course;
+use App\Models\Teacher;
 use App\Models\Classroom;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
@@ -27,27 +27,34 @@ class TeacherDashboardSeeder extends Seeder
         echo "🔍 Checking existing data...\n";
 
         // Kiểm tra dữ liệu hiện có
-        $existingTeachers = User::role('teacher')->count();
+        $existingTeachers = Teacher::count();
         $existingClassrooms = Classroom::count();
         $existingStudents = Student::count();
 
         echo "📊 Found: {$existingTeachers} teachers, {$existingClassrooms} classrooms, {$existingStudents} students\n";
 
         // Lấy teacher đầu tiên hoặc tạo teacher test
-        $teacher = User::role('teacher')->first();
+        $teacher = Teacher::first();
         if (!$teacher) {
-            echo "🧑‍🏫 Creating teacher user...\n";
-            $teacher = User::create([
-                'name' => 'John Teacher',
-                'email' => 'teacher@test.com',
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
+            echo "🧑‍🏫 Creating teacher...\n";
+            $teacher = Teacher::create([
+                'user_id' => User::firstOrCreate(
+                    ['email' => 'teacher@test.com'],
+                    [
+                        'name' => 'Test Teacher',
+                        'password' => Hash::make('password'),
+                    ]
+                )->id,
+                'code' => 'T0001',
+                'name' => 'Test Teacher',
                 'phone' => '0123456789',
-                'address' => '123 Teacher Street',
-                'date_of_birth' => '1985-05-15',
-                'gender' => 'male',
+                'address' => '123 Test St, Test City',
+                'education_level' => 'master',
+                'notes' => 'This is a test teacher account.',
             ]);
-            $teacher->assignRole('teacher');
+            echo "✅ Teacher created: " . $teacher->user->email . " / password\n";
+        } else {
+            echo "✅ Using existing teacher: " . $teacher->user->email . "\n";
         }
 
         // Lấy classrooms hiện có

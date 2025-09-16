@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('teacher_timesheets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('class_session_id')->constrained('class_sessions')->cascadeOnUpdate()->cascadeOnDelete();
-            $table->foreignId('teacher_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
+            $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnUpdate()->cascadeOnDelete();
             $table->unsignedBigInteger('amount'); // VND
             $table->enum('status', ['draft','approved','locked'])->default('draft')->index();
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
