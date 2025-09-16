@@ -118,9 +118,16 @@ function onSort(e) {
 
 /* ---------- Export CSV ---------- */
 function exportCsv() {
-  // Giữ nguyên filter hiện tại
-  const url = route('admin.activity-logs.export', buildQuery())
-  window.location.href = url
+  // Build query string từ state filter
+  const params = new URLSearchParams({
+    q: state.q || '',
+    actor_id: state.actor_id || '',
+    action: state.action || '',
+    target_type: state.target_type || '',
+    date_from: state.date_from ? toYmdLocal(state.date_from) : '',
+    date_to: state.date_to ? toYmdLocal(state.date_to) : '',
+  }).toString();
+  window.open(`/admin/activity-logs/export?${params}`, '_blank');
 }
 
 /* ---------- Table computed ---------- */

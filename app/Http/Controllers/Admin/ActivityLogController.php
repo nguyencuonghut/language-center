@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ActivityLogController extends Controller
 {
@@ -73,5 +74,74 @@ class ActivityLogController extends Controller
             'target_types' => $target_types,
             'filters' => $request->all(['q', 'actor_id', 'action', 'target_type', 'date_from', 'date_to', 'perPage', 'sort', 'order']),
         ]);
+    }
+
+    // Xuất logs ra file CSV
+    public function export(Request $request)
+    {
+        $query = ActivityLog::query()->with(['actor']);
+
+        // Áp dụng các filter giống index
+        if ($q = $request->input('q')) {
+            $query->where(function($sub) use ($q) {
+                $sub->where('action', 'like', "%$q%")
+                    ->orWhere('target_id', 'like', "%$q%")
+                    ->orWhere('ip', 'like', "%$q%")
+                    ->orWhere('meta', 'like', "%$q%")
+                    ->orWhere('user_agent', 'like', "%$q%")
+                    ->orWhereHas('actor', function($actor) use ($q) {
+                        $actor->where('name', 'like', "%$q%");
+                    });
+            });
+        }
+        if ($actorId = $request->input('actor_id')) {
+            $query->where('actor_id', $actorId);
+        }
+        if ($action = $request->input('action')) {
+            $query->where('action', $action);
+        }
+        if ($targetType = $request->input('target_type')) {
+            $query->where('target_type', $targetType);
+        }
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $logs = $query->orderBy('created_at', 'desc')->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="activity_logs.csv"',
+        ];
+
+        return new StreamedResponse(function () use ($logs) {
+            $handle = fopen('php://output', 'w');
+            // Ghi BOM để Excel nhận UTF-8
+            fwrite($handle, "\xEF\xBB\xBF");
+            // Header
+            fputcsv($handle, [
+                'ID', 'Thời gian', 'Người thực hiện', 'Action', 'Target type', 'Target ID', 'IP', 'User Agent', 'Meta'
+            ]);
+            foreach ($logs as $log) {
+                fputcsv($handle, [
+                    $log->id,
+                    $log->created_at ? $log->created_at->format('Y-m-d H:i') : '',
+                    $log->actor?->name ?? 'System',
+                    $log->action,
+                    $log->target_type,
+                    $log->target_id,
+                    $log->ip,
+                    $log->user_agent,
+                    // Sửa dòng này: luôn ép về chuỗi JSON nếu là array/object
+                    is_array($log->meta) || $log->meta instanceof \ArrayObject
+                        ? json_encode($log->meta, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)
+                        : (string)$log->meta,
+                ]);
+            }
+            fclose($handle);
+        }, 200, $headers);
     }
 }

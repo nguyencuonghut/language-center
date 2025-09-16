@@ -152,6 +152,8 @@ Route::middleware(['auth'])->group(function () {
         // ==========================
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])
             ->name('activity-logs.index');
+        Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])
+            ->name('activity-logs.export');
 
 
         // Settings (placeholder page, bổ sung controller sau)
