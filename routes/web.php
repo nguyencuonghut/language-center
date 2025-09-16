@@ -16,6 +16,7 @@ use App\Http\Controllers\Manager\CourseController;
 use App\Http\Controllers\Manager\TimesheetController;
 use App\Http\Controllers\Teacher\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Teacher\DashboardController;
 use App\Http\Controllers\Teacher\ScheduleController;
 use App\Http\Controllers\Manager\PayrollController;
@@ -146,6 +147,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/transfers',       \App\Http\Controllers\Admin\Reports\TransfersReportController::class)->name('transfers');
         });
 
+        // ==========================
+        // Transfers
+        // ==========================
+        Route::get('/activity_logs', [ActivityLogController::class, 'index'])
+            ->name('activity_logs.index');
+
+
+        // Settings (placeholder page, bổ sung controller sau)
+        // ==========================
         Route::get('/settings', fn () => Inertia::render('Placeholders/ComingSoon', [
             'title' => 'Cài đặt',
             'note'  => 'Tính năng đang phát triển.',

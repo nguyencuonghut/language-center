@@ -187,6 +187,20 @@ class PayrollController extends Controller
             'approved_at' => now(),
         ]);
 
+        // Ghi log
+        activity_log()->log(
+            $request->user()?->id,
+            'payroll.approved',
+            $payroll,  // target: Payroll
+            [
+                'payroll_id' => $payroll->id,
+                'branch_id'  => $payroll->branch_id,
+                'period_from'=> $payroll->period_from,
+                'period_to'  => $payroll->period_to,
+                'total_amount'=> (int) $payroll->total_amount,
+            ]
+        );
+
         return back()->with('success', 'Đã duyệt kỳ lương.');
     }
 

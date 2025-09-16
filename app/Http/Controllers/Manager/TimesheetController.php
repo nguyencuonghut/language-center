@@ -79,6 +79,18 @@ class TimesheetController extends Controller
             'approved_at' => now(),
         ]);
 
+        activity_log()->log(
+            $request->user()?->id,
+            'timesheet.approved',
+            $ts,  // target: TeacherTimesheet
+            [
+                'class_session_id' => $ts->class_session_id,
+                'teacher_id' => $ts->teacher_id,
+                'amount' => (int) $ts->amount,
+                'approved_at' => now()->toDateTimeString()
+            ]
+        );
+
         return back()->with('success', 'Đã duyệt timesheet.');
     }
 
@@ -98,6 +110,26 @@ class TimesheetController extends Controller
                     'updated_at'  => now(),
                 ]);
         });
+
+        // Cập nhật log cho từng bản ghi đã duyệt
+        if ($updated > 0) {
+            $timesheets = TeacherTimesheet::whereIn('id', $ids)
+                ->where('status', 'approved')
+                ->get();
+            foreach ($timesheets as $ts) {
+                activity_log()->log(
+                    $userId,
+                    'timesheet.approved',
+                    $ts,  // target: TeacherTimesheet
+                    [
+                        'class_session_id' => $ts->class_session_id,
+                        'teacher_id' => $ts->teacher_id,
+                        'amount' => (int) $ts->amount,
+                        'approved_at' => now()->toDateTimeString()
+                    ]
+                );
+            }
+        }
 
         if ($updated === 0) {
             return back()->with('error', 'Không có bản ghi nào ở trạng thái nháp để duyệt.');

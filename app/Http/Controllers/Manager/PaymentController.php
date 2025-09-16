@@ -26,6 +26,20 @@ class PaymentController extends Controller
         $status = $paid <= 0 ? 'unpaid' : ($paid < $total ? 'partial' : 'paid');
         $invoice->update(['status' => $status]);
 
+        // cập nhật trạng thái invoice xong...
+        activity_log()->log(
+            actorId: $request->user()?->id,
+            action: 'invoice.paid',
+            target: $invoice,                       // target: Invoice
+            meta: [
+                'payment_id' => $payment->id,
+                'method' => $payment->method,
+                'amount' => (int) $payment->amount,
+                'paid_at' => (string) $payment->paid_at,
+                'ref_no' => $payment->ref_no,
+            ]
+        );
+
         return back()->with('success', 'Đã ghi nhận thanh toán.');
     }
 

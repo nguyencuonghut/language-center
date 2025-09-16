@@ -109,6 +109,20 @@ class TransferController extends Controller
         try {
             $transfer = $this->transferService->createTransfer($request->validated());
 
+            // Log activity
+            activity_log()->log(
+                $request->user()?->id,
+                'transfer.created',
+                $transfer, // target: Transfer
+                [
+                    'student_id' => $transfer->student_id,
+                    'from_class_id' => $transfer->from_class_id,
+                    'to_class_id' => $transfer->to_class_id,
+                    'effective_date' => $transfer->effective_date,
+                    'start_session_no' => $transfer->start_session_no,
+                ]
+            );
+
             return redirect()->route('manager.transfers.index')
                 ->with('success', 'Chuyển lớp thành công!');
         } catch (\Exception $e) {
@@ -228,6 +242,19 @@ class TransferController extends Controller
 
             // Fallback to regular revert
             $this->transferService->revertTransfer($transfer, $data);
+
+            // Log activity
+            activity_log()->log(
+                $request->user()?->id,
+                'transfer.reverted',
+                $transfer,
+                [
+                    'student_id' => $transfer->student_id,
+                    'from_class_id' => $transfer->from_class_id,
+                    'to_class_id' => $transfer->to_class_id,
+                ]
+            );
+
             return back()->with('success', 'Đã hoàn tác chuyển lớp thành công.');
 
         } catch (\Exception $e) {
