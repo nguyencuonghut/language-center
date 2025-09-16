@@ -216,6 +216,13 @@ function openInvoicePdf() {
 
     <div class="flex flex-wrap items-center gap-2">
       <Button label="Thêm thanh toán" icon="pi pi-plus-circle" @click="openPayment" />
+      <button class="px-3 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50
+               dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/20"
+        @click="openInvoicePdf"
+        v-if="invoice.status === 'paid'"
+      >
+        <i class="pi pi-print"></i> In hóa đơn
+      </button>
       <Link
         :href="route('manager.invoices.edit', invoice.id)"
         class="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
@@ -289,14 +296,6 @@ function openInvoicePdf() {
       <Column v-if="can?.update !== false" header="Hành động" style="width: 140px">
         <template #body="{ data }">
             <div class="flex gap-2 justify-end">
-            <Button
-                v-if="data.status === 'unpaid'"
-                icon="pi pi-print"
-                text
-                class="text-indigo-700 dark:text-indigo-300"
-                @click="openInvoicePdf"
-                v-tooltip="'In hóa đơn PDF'"
-            />
             <Button icon="pi pi-pencil" text @click="openEditItem(data)" />
             <Button icon="pi pi-trash" text severity="danger" @click="deleteItem(data)" />
             </div>
