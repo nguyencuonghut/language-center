@@ -5,6 +5,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
+import Badge from 'primevue/badge'
 
 defineOptions({ layout: AppLayout })
 
@@ -67,7 +68,14 @@ const classList = () => {
       :emptyMessage="'Không có buổi học nào'"
     >
       <Column field="session_no" header="Buổi" />
-      <Column field="date" header="Ngày" :sortable="true" />
+      <Column header="Ngày">
+        <template #body="{ data }">
+          <div class="flex items-center gap-2">
+            {{ data.date }}
+            <Badge v-if="data.holiday_name" :value="data.holiday_name" severity="warn" />
+          </div>
+        </template>
+      </Column>
       <Column field="start_time" header="Bắt đầu" />
       <Column field="end_time" header="Kết thúc" />
       <Column field="room.name" header="Phòng" />
