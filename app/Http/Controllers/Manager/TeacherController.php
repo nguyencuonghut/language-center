@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\StoreTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
-use App\Models\User;
+use App\Models\Teacher;
 use App\Models\TeachingAssignment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,14 +17,13 @@ class TeacherController extends Controller
      */
     public function index(Request $request)
     {
-        $teachers = User::role('teacher')
-            ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%");
+        $teachers = Teacher::when($request->search, function ($query, $search) {
+            $query->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
             })
-            ->select('id', 'name', 'email', 'phone', 'active')
-            ->orderBy('name')
+            ->select('id', 'full_name', 'email', 'phone', 'status', 'created_at')
+            ->orderBy('full_name')
             ->paginate(20)
             ->withQueryString();
 

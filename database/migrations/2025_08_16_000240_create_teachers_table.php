@@ -23,6 +23,10 @@ return new class extends Migration {
             // Trình độ học vấn (ENUM): bachelor | engineer | master | phd | other
             $table->enum('education_level', ['bachelor','engineer','master','phd','other'])->nullable();
 
+            // Tình trạng làm việc (ENUM): active | inactive | terminated | on_leave | adjunct
+            $table->enum('status', ['active','inactive','terminated','on_leave','adjunct'])
+                ->default('active');
+
             $table->text('notes')->nullable();
             $table->timestamps();
         });

@@ -89,7 +89,7 @@ function destroyTeacher(id) {
     >
       <Column field="id" header="#" style="width: 80px" />
 
-      <Column field="name" header="Tên" style="min-width: 200px" />
+      <Column field="full_name" header="Tên" style="min-width: 200px" />
 
       <Column field="email" header="Email" style="min-width: 200px">
         <template #body="{ data }">
@@ -103,15 +103,15 @@ function destroyTeacher(id) {
         </template>
       </Column>
 
-      <Column field="active" header="Trạng thái" style="min-width: 120px">
+      <Column field="status" header="Trạng thái" style="min-width: 120px">
         <template #body="{ data }">
           <span
-            :class="data.active
+            :class="data.status === 'active'
               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
               : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'"
             class="px-2 py-1 rounded-full text-xs font-medium"
           >
-            {{ data.active ? 'Hoạt động' : 'Không hoạt động' }}
+            {{ data.status ? 'Hoạt động' : 'Không hoạt động' }}
           </span>
         </template>
       </Column>

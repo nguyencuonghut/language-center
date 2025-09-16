@@ -94,6 +94,7 @@ class DemoDataSeeder extends Seeder
                         'photo_path' => null,
                         'notes' => null,
                         'education_level' => Arr::random(['bachelor','engineer','master','phd','other']),
+                        'status' => 'active',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]
