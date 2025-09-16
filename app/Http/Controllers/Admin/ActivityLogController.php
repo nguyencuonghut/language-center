@@ -45,6 +45,13 @@ class ActivityLogController extends Controller
         // Lấy danh sách actions cho filter dropdown
         $actions = ActivityLog::distinct()->orderBy('action')->pluck('action')->filter()->values();
 
+        // Lọc theo target_type
+        if ($targetType = $request->input('target_type')) {
+            $query->where('target_type', $targetType);
+        }
+
+        // Lấy danh sách target_types cho filter dropdown
+        $target_types = ActivityLog::distinct()->orderBy('target_type')->pluck('target_type')->filter()->values();
 
         $logs = $query->orderBy(
             $request->input('sort', 'created_at'),
@@ -55,6 +62,7 @@ class ActivityLogController extends Controller
             'logs' => $logs,
             'actors' => $actors,
             'actions' => $actions,
+            'target_types' => $target_types,
             'filters' => $request->all(['q', 'actor_id', 'action', 'target_type', 'date_from', 'date_to', 'perPage', 'sort', 'order']),
         ]);
     }
