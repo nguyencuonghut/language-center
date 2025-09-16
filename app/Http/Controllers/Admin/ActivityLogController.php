@@ -37,6 +37,15 @@ class ActivityLogController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Lọc theo action
+        if ($action = $request->input('action')) {
+            $query->where('action', $action);
+        }
+
+        // Lấy danh sách actions cho filter dropdown
+        $actions = ActivityLog::distinct()->orderBy('action')->pluck('action')->filter()->values();
+
+
         $logs = $query->orderBy(
             $request->input('sort', 'created_at'),
             $request->input('order', 'desc')
@@ -45,6 +54,7 @@ class ActivityLogController extends Controller
         return Inertia::render('Admin/ActivityLogs/Index', [
             'logs' => $logs,
             'actors' => $actors,
+            'actions' => $actions,
             'filters' => $request->all(['q', 'actor_id', 'action', 'target_type', 'date_from', 'date_to', 'perPage', 'sort', 'order']),
         ]);
     }
