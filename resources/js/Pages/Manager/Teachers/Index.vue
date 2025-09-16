@@ -48,6 +48,18 @@ function destroyTeacher(id) {
     preserveScroll: true
   })
 }
+
+// Hàm ánh xạ education_level sang tiếng Việt và severity
+function getEducationDisplay(educationLevel) {
+  const mapping = {
+    'bachelor': { label: 'Cử nhân', severity: 'success' }, // Xanh lá
+    'engineer': { label: 'Kỹ sư', severity: 'info' },     // Xanh dương
+    'master': { label: 'Thạc sĩ', severity: 'warn' },   // Vàng
+    'phd': { label: 'Tiến sĩ', severity: 'danger' },       // Đỏ
+    'other': { label: 'Khác', severity: 'secondary' }      // Xám
+  }
+  return educationLevel ? mapping[educationLevel] || { label: '—', severity: 'secondary' } : { label: '—', severity: 'secondary' }
+}
 </script>
 
 <template>
@@ -112,6 +124,26 @@ function destroyTeacher(id) {
             class="px-2 py-1 rounded-full text-xs font-medium"
           >
             {{ data.status ? 'Hoạt động' : 'Không hoạt động' }}
+          </span>
+        </template>
+      </Column>
+
+      <!-- Cột mới: Trình độ -->
+      <Column field="education_level" header="Trình độ" style="min-width: 120px">
+        <template #body="{ data }">
+          <span
+            :class="getEducationDisplay(data.education_level).severity === 'success'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+              : getEducationDisplay(data.education_level).severity === 'info'
+              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+              : getEducationDisplay(data.education_level).severity === 'warning'
+              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+              : getEducationDisplay(data.education_level).severity === 'danger'
+              ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'"
+            class="px-2 py-1 rounded-full text-xs font-medium"
+          >
+            {{ getEducationDisplay(data.education_level).label }}
           </span>
         </template>
       </Column>

@@ -22,7 +22,7 @@ class TeacherController extends Controller
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             })
-            ->select('id', 'full_name', 'email', 'phone', 'status', 'created_at')
+            ->select('id', 'full_name', 'email', 'phone', 'status', 'education_level', 'created_at')
             ->orderBy('full_name')
             ->paginate(20)
             ->withQueryString();
