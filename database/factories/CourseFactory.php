@@ -19,8 +19,8 @@ class CourseFactory extends Factory
          return [
             'code'     => strtoupper($this->faker->unique()->bothify('CRS##')),
             'name'     => $this->faker->randomElement(['Kids A','Kids B','Teens A','IELTS F','TOEIC']),
-            'audience' => $this->faker->randomElement(['kids','student','working','toeic','ielts']),
-            'language' => $this->faker->randomElement(['en','zh','ko','ja']),
+            'audience' => $this->faker->randomElement(['Thiếu nhi','Sinh viên','Người đi làm','Người lớn']),
+            'language' => $this->faker->randomElement(['Tiếng Anh','Tiếng Trung','Tiếng Hàn','Tiếng Nhật']),
             'active'   => true,
         ];
     }

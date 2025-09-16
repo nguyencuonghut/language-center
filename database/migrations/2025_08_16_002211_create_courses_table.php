@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->enum('audience', ['kids','student','working','toeic','ielts'])->index();
-            $table->enum('language', ['en','zh','ko','ja'])->index();
+            $table->enum('audience', ['Thiếu nhi','Người lớn','Sinh viên','Người đi làm'])->index();
+            $table->enum('language', ['Tiếng Anh','Tiếng Trung','Tiếng Hàn','Tiếng Nhật'])->index();
             $table->boolean('active')->default(true)->index();
             $table->timestamps();
         });

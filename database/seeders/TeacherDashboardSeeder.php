@@ -10,8 +10,11 @@ use App\Models\Classroom;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Attendance;
+use App\Models\Student;
+use App\Models\Room;
 use Spatie\Permission\Models\Role;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 
 class TeacherDashboardSeeder extends Seeder
@@ -26,7 +29,7 @@ class TeacherDashboardSeeder extends Seeder
         // Kiểm tra dữ liệu hiện có
         $existingTeachers = User::role('teacher')->count();
         $existingClassrooms = Classroom::count();
-        $existingStudents = User::role('student')->count();
+        $existingStudents = Student::count();
 
         echo "📊 Found: {$existingTeachers} teachers, {$existingClassrooms} classrooms, {$existingStudents} students\n";
 
@@ -97,6 +100,10 @@ class TeacherDashboardSeeder extends Seeder
         $pattern = $schedulePatterns[$classIndex % count($schedulePatterns)];
         $sessionCount = 0;
 
+        // Lấy session_no lớn nhất hiện có cho class_id này
+        $maxSessionNo = ClassSession::where('class_id', $classroom->id)->max('session_no') ?? 0;
+
+        $roomIds = Room::pluck('id')->all();
         while ($currentDate->lte($endDate) && $sessionCount < 30) { // Limit sessions
             if (in_array($currentDate->dayOfWeek, $pattern['days'])) {
                 $existingSession = ClassSession::where('class_id', $classroom->id)
@@ -106,12 +113,13 @@ class TeacherDashboardSeeder extends Seeder
                 if (!$existingSession) {
                     ClassSession::create([
                         'class_id' => $classroom->id,
+                        'session_no' => $maxSessionNo + $sessionCount + 1, // Đảm bảo không trùng
                         'date' => $currentDate->toDateString(),
                         'start_time' => $currentDate->toDateString() . ' ' . $pattern['time'][0] . ':00',
                         'end_time' => $currentDate->toDateString() . ' ' . $pattern['time'][1] . ':00',
-                        'topic' => 'Lesson ' . $currentDate->format('md') . ' - ' . $classroom->name,
-                        'status' => $currentDate->isPast() ? 'completed' : 'scheduled',
-                        'notes' => 'Auto-generated session for ' . $classroom->name,
+                        'room_id' => $roomIds ? Arr::random($roomIds) : null,
+                        'status' => Arr::random(['planned', 'canceled', 'moved']),
+                        'note' => 'Auto-generated session for ' . $classroom->name,
                     ]);
                     $sessionCount++;
                 }
@@ -148,7 +156,7 @@ class TeacherDashboardSeeder extends Seeder
                         'student_id' => $enrollment->student_id,
                         'class_session_id' => $session->id,
                         'status' => $willAttend ? 'present' : (rand(1, 100) <= 15 ? 'late' : 'absent'),
-                        'noted_at' => Carbon::parse($session->date)->addHours(rand(8, 20)),
+                        'note' => null,
                     ]);
                     $attendanceCount++;
                 }
@@ -177,12 +185,13 @@ class TeacherDashboardSeeder extends Seeder
 
                 ClassSession::create([
                     'class_id' => $classroom->id,
+                    'session_no' => ClassSession::where('class_id', $classroom->id)->count() + 1,
                     'date' => $today->toDateString(),
                     'start_time' => $today->toDateString() . ' ' . $times[$index][0] . ':00',
                     'end_time' => $today->toDateString() . ' ' . $times[$index][1] . ':00',
-                    'topic' => 'Today\'s lesson - ' . $classroom->name,
-                    'status' => 'scheduled',
-                    'notes' => 'Today\'s test session',
+                    'room_id' => Room::inRandomOrder()->first()?->id,
+                    'status' => 'planned',
+                    'note' => 'Today\'s test session',
                 ]);
                 $todaySessionsCount++;
             }

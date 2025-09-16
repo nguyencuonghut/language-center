@@ -29,6 +29,11 @@ class TeacherTimesheet extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function classSession()
+    {
+        return $this->belongsTo(ClassSession::class, 'class_session_id');
+    }
+
     public function getApprovedAtAttribute($value)
     {
         return $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
