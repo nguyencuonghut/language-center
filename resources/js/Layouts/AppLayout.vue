@@ -84,7 +84,7 @@ const adminMenu = [
       { label: 'Chuyển lớp', url: '/admin/reports/transfers', ready: true },
     ]
   },
-  { label: 'Nhật ký hoạt động', icon: 'pi pi-history', url: '/admin/activity_logs', ready: true },
+  { label: 'Nhật ký hoạt động', icon: 'pi pi-history', url: '/admin/activity-logs', ready: true },
   { label: 'Cài đặt',   icon: 'pi pi-cog',      url: '/admin/settings',    ready: false },
 ]
 
