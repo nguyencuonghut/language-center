@@ -291,6 +291,24 @@ Route::middleware(['auth'])->group(function () {
         // API lấy dữ liệu lịch dạy (JSON)
         Route::get('schedule/{session}/meta', [ScheduleController::class, 'sessionMeta'])
             ->name('schedule.session.meta');
+
+        // =========================
+        // CLASSROOMS (Teacher view only)
+        // =========================
+        Route::resource('classrooms', \App\Http\Controllers\Teacher\ClassroomController::class)
+            ->only(['index', 'show']);
+
+        // Nested resources: schedules, sessions, enrollments (view only)
+        Route::prefix('classrooms/{classroom}')
+            ->name('classrooms.')
+            ->group(function () {
+                Route::get('schedules', [\App\Http\Controllers\Teacher\ClassScheduleController::class, 'index'])
+                    ->name('schedules.index');
+                Route::get('sessions', [\App\Http\Controllers\Teacher\ClassSessionController::class, 'index'])
+                    ->name('sessions.index');
+                Route::get('enrollments', [\App\Http\Controllers\Teacher\EnrollmentController::class, 'index'])
+                    ->name('enrollments.index');
+            });
     });
 
     /*

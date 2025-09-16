@@ -119,6 +119,7 @@ const managerMenu = [
 // Teacher menu
 const teacherMenu = [
   { label: 'Dashboard', icon: 'pi pi-home',         url: '/teacher/dashboard',    ready: true },
+  { label: 'Lớp học',   icon: 'pi pi-users',    url: '/teacher/classrooms',  ready: true },
   { label: 'Điểm danh', icon: 'pi pi-check-square', url: '/teacher/attendance',   ready: true },
   { label: 'Lịch dạy',  icon: 'pi pi-calendar',     url: '/teacher/schedule',     ready: true },
 ]

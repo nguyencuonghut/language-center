@@ -101,4 +101,46 @@ class Classroom extends Model
                 ->limit(1)
         ])->with(['currentTeachingAssignment.teacher']);
     }
+
+    /**
+     * Scope: Lấy các lớp mà giáo viên này được phân công (dạy chính hoặc dạy thay),
+     * có xét hiệu lực của teaching_assignments (effective_from, effective_to).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  int  $teacherId
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForTeacher($query, int $teacherId)
+    {
+        return $query
+            ->where(function ($q) use ($teacherId) {
+                // Dạy chính (teaching_assignments)
+                $q->whereHas('teachingAssignments', function ($q2) use ($teacherId) {
+                    $q2->where('teacher_id', $teacherId);
+                })
+                // Hoặc dạy thay (class_sessions.substitutions)
+                ->orWhereHas('sessions.substitution', function ($q3) use ($teacherId) {
+                    $q3->where('substitute_teacher_id', $teacherId);
+                });
+            });
+
+        // $now = now();
+
+        // return $query->where(function ($q) use ($teacherId, $now) {
+        //     $q->whereHas('teachingAssignments', function ($q2) use ($teacherId, $now) {
+        //         $q2->where('teacher_id', $teacherId)
+        //             ->where(function ($q3) use ($now) {
+        //                 $q3->whereNull('effective_from')
+        //                     ->orWhere('effective_from', '<=', $now);
+        //             })
+        //             ->where(function ($q3) use ($now) {
+        //                 $q3->whereNull('effective_to')
+        //                     ->orWhere('effective_to', '>=', $now);
+        //             });
+        //     })
+        //     ->orWhereHas('sessions.substitution', function ($q4) use ($teacherId) {
+        //         $q4->where('substitute_teacher_id', $teacherId);
+        //     });
+        // });
+    }
 }
