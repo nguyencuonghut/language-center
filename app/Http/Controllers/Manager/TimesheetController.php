@@ -53,7 +53,9 @@ class TimesheetController extends Controller
             'session' => function ($query) {
                 $query->with([
                     'substitution:id,class_session_id,substitute_teacher_id,reason',
-                    'substitution.substituteTeacher:id,name'
+                    'substitution.substituteTeacher:id,name',
+                    'classroom:id,code,name,branch_id',
+                    'room:id,code,name',
                 ]);
             }
         ]);
