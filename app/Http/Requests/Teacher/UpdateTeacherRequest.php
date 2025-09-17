@@ -17,48 +17,60 @@ class UpdateTeacherRequest extends FormRequest
         $teacherId = $this->route('teacher')?->id ?? null;
 
         return [
-            'name'      => ['required', 'string', 'max:191'],
-            'email'     => ['nullable', 'email', 'max:191', Rule::unique('users', 'email')->ignore($teacherId)],
-            'phone'     => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($teacherId)],
-            'password'  => ['nullable', 'string', 'min:8'], // Optional cho update
-            'active'    => ['boolean'],
+            'user_id' => ['nullable','exists:users,id'],
+            'code' => ['sometimes','required','string','max:191', Rule::unique('teachers','code')->ignore($teacherId)],
+            'full_name' => ['sometimes','required','string','max:191'],
+            'phone' => ['nullable','string','max:50', Rule::unique('teachers','phone')->ignore($teacherId)],
+            'email' => ['nullable','email','max:191', Rule::unique('teachers','email')->ignore($teacherId)],
+            'address' => ['nullable','string'],
+            'national_id' => ['nullable','string','max:100'],
+            'education_level' => ['nullable', Rule::in(['bachelor','engineer','master','phd','other'])],
+            'status' => ['required', Rule::in(['active','on_leave','terminated','adjunct','inactive'])],
+            'notes' => ['nullable','string'],
+            'photo' => ['nullable','file','image','max:2048'],
+            'remove_photo' => ['nullable','boolean'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required'   => 'Vui lòng nhập tên giáo viên.',
-            'name.string'     => 'Tên giáo viên không hợp lệ.',
-            'name.max'        => 'Tên giáo viên tối đa 191 ký tự.',
-
-            'email.email'     => 'Email không đúng định dạng.',
-            'email.unique'    => 'Email này đã được sử dụng.',
-            'email.max'       => 'Email tối đa 191 ký tự.',
-
-            'phone.string'    => 'Số điện thoại không hợp lệ.',
-            'phone.max'       => 'Số điện thoại tối đa 20 ký tự.',
-            'phone.unique'    => 'Số điện thoại này đã được sử dụng.',
-
-            'password.string' => 'Mật khẩu không hợp lệ.',
-            'password.min'    => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'code.required' => 'Mã giáo viên là bắt buộc.',
+            'code.unique' => 'Mã giáo viên đã tồn tại.',
+            'full_name.required' => 'Họ và tên giáo viên là bắt buộc.',
+            'phone.unique' => 'Số điện thoại đã tồn tại.',
+            'email.unique' => 'Email giáo viên đã tồn tại.',
+            'email.email' => 'Email giáo viên không đúng định dạng.',
+            'status.required' => 'Trạng thái giáo viên là bắt buộc.',
+            'status.in' => 'Trạng thái giáo viên không hợp lệ.',
+            'education_level.in' => 'Trình độ giáo viên không hợp lệ.',
+            'photo.image' => 'Ảnh đại diện phải là file ảnh.',
+            'photo.max' => 'Ảnh đại diện không được lớn hơn :max KB.',
+            'remove_photo.boolean' => 'Giá trị xóa ảnh không hợp lệ.',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'name'     => 'tên giáo viên',
-            'email'    => 'email',
-            'phone'    => 'số điện thoại',
-            'password' => 'mật khẩu',
-            'active'   => 'trạng thái hoạt động',
+            'code' => 'Mã giáo viên',
+            'full_name' => 'Họ và tên',
+            'phone' => 'Số điện thoại',
+            'email' => 'Email',
+            'address' => 'Địa chỉ',
+            'national_id' => 'Số CMND/CCCD',
+            'education_level' => 'Trình độ',
+            'status' => 'Trạng thái',
+            'notes' => 'Ghi chú',
+            'photo' => 'Ảnh đại diện',
+            'remove_photo' => 'Xóa ảnh đại diện',
         ];
     }
 
     public function validated($key = null, $default = null)
     {
         $data = parent::validated();
+
         // Hash password nếu có và không rỗng
         if (!empty($data['password'])) {
             $data['password'] = bcrypt($data['password']);
@@ -66,6 +78,17 @@ class UpdateTeacherRequest extends FormRequest
             // Loại bỏ password khỏi data nếu không có giá trị
             unset($data['password']);
         }
+
+        // Đổi tên key để tránh conflict (frontend có thể gửi 'email' cho user và 'teacher_email' cho teacher)
+        if (isset($data['teacher_email'])) {
+            $data['email'] = $data['teacher_email']; // Cho teacher
+            unset($data['teacher_email']);
+        }
+        if (isset($data['teacher_phone'])) {
+            $data['phone'] = $data['teacher_phone']; // Cho teacher
+            unset($data['teacher_phone']);
+        }
+
         return $data;
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Teacher\UpdateTeacherRequest;
 use App\Models\Teacher;
 use App\Models\TeachingAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class TeacherController extends Controller
@@ -57,37 +58,7 @@ class TeacherController extends Controller
      */
     public function store(StoreTeacherRequest $request)
     {
-        $data = $request->validated();
-
-        // Tạo User cho đăng nhập
-        $user = User::create([
-            'name'     => $data['full_name'],  // Sử dụng full_name từ request
-            'email'    => $data['email'] ?? null,
-            'phone'    => $data['phone'] ?? null,
-            'password' => $data['password'],  // Đã được hash trong StoreTeacherRequest
-            'active'   => $data['active'] ?? true,
-        ]);
-
-        // Gán role teacher
-        $user->assignRole('teacher');
-
-        // Tạo Teacher liên kết với User
-        Teacher::create([
-            'user_id'         => $user->id,
-            'code'            => $data['code'] ?? 'T' . str_pad($user->id, 4, '0', STR_PAD_LEFT),  // Tạo code nếu không có
-            'full_name'       => $data['full_name'],
-            'phone'           => $data['phone'] ?? null,
-            'email'           => $data['email'] ?? null,
-            'address'         => $data['address'] ?? null,
-            'national_id'     => $data['national_id'] ?? null,
-            'photo_path'      => $data['photo_path'] ?? null,
-            'education_level' => $data['education_level'] ?? null,
-            'status'          => $data['status'] ?? 'active',
-            'notes'           => $data['notes'] ?? null,
-        ]);
-
-        return redirect()->route('manager.teachers.index')
-            ->with('success', 'Đã thêm giáo viên thành công.');
+        //
     }
 
     public function show(Teacher $teacher)
@@ -147,26 +118,13 @@ class TeacherController extends Controller
      */
     public function edit(Teacher $teacher)
     {
-        $teacher->load('user');
-
         return Inertia::render('Manager/Teachers/Edit', [
-            'teacher' => [
-                'id'              => $teacher->id,
-                'user_id'         => $teacher->user_id,
-                'code'            => $teacher->code,
-                'full_name'       => $teacher->full_name,
-                'email'           => $teacher->email,
-                'phone'           => $teacher->phone,
-                'address'         => $teacher->address,
-                'national_id'     => $teacher->national_id,
-                'photo_path'      => $teacher->photo_path,
-                'education_level' => $teacher->education_level,
-                'status'          => $teacher->status,
-                'notes'           => $teacher->notes,
-                'user'            => $teacher->user ? [
-                    'active' => $teacher->user->active,
-                ] : null,
-            ]
+            'teacher' => $teacher->only([
+                'id','user_id','code','full_name','phone','email','address',
+                'national_id','photo_path','education_level','status','notes'
+            ]),
+            'educationLevels' => ['bachelor','engineer','master','phd','other'],
+            'teacherStatuses' => ['active','on_leave','terminated','adjunct','inactive'],
         ]);
     }
 
@@ -177,35 +135,22 @@ class TeacherController extends Controller
     {
         $data = $request->validated();
 
-        // Cập nhật User liên kết
-        if ($teacher->user) {
-            $userUpdateData = [
-                'name'   => $data['full_name'],
-                'email'  => $data['email'] ?? null,
-                'phone'  => $data['phone'] ?? null,
-                'active' => $data['active'] ?? true,
-            ];
-            if (isset($data['password'])) {
-                $userUpdateData['password'] = $data['password'];
-            }
-            $teacher->user->update($userUpdateData);
+        // Xử lý ảnh
+        if (($data['remove_photo'] ?? false) && $teacher->photo_path) {
+            Storage::delete($teacher->photo_path);
+            $data['photo_path'] = null;
+        }
+        if ($request->hasFile('photo')) {
+            if ($teacher->photo_path) Storage::delete($teacher->photo_path);
+            $data['photo_path'] = $request->file('photo')->store('private/teachers','local');
         }
 
-        // Cập nhật Teacher
-        $teacher->update([
-            'code'            => $data['code'] ?? $teacher->code,
-            'full_name'       => $data['full_name'],
-            'phone'           => $data['phone'] ?? null,
-            'email'           => $data['email'] ?? null,
-            'address'         => $data['address'] ?? null,
-            'national_id'     => $data['national_id'] ?? null,
-            'photo_path'      => $data['photo_path'] ?? null,
-            'education_level' => $data['education_level'] ?? null,
-            'status'          => $data['status'] ?? $teacher->status,
-            'notes'           => $data['notes'] ?? null,
-        ]);
+        unset($data['photo'], $data['remove_photo']);
 
-        return back()->with('success', 'Đã cập nhật giáo viên thành công.');
+        $teacher->update($data);
+
+        return redirect()->route('manager.teachers.index', $teacher->id)
+            ->with('success', 'Cập nhật hồ sơ giáo viên thành công.');
     }
 
     /**

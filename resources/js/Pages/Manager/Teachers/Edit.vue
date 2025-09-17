@@ -1,135 +1,199 @@
 <script setup>
-import { reactive, watch } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 
-// PrimeVue
+// PrimeVue v4 Tabs (local imports)
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
+import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
+import FileUpload from 'primevue/fileupload'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
-  teacher: {
-    type: Object,
-    required: true, // {id, name, email, phone}
-  }
+  teacher: Object,
+  educationLevels: Array,
+  teacherStatuses: Array
 })
 
-const form = reactive({
-  name: props.teacher?.name ?? '',
-  email: props.teacher?.email ?? '',
-  phone: props.teacher?.phone ?? '',
-  active: props.teacher?.active ?? true,
-  password: '', // optional
-  errors: {},
-  saving: false,
-})
+const educationLevelOptions = computed(() =>
+  props.educationLevels.map(v => ({ label: labelEdu(v), value: v }))
+)
+const teacherStatusOptions = computed(() =>
+  props.teacherStatuses.map(v => ({ label: labelStatus(v), value: v }))
+)
 
-watch(() => props.teacher, (t) => {
-  form.name  = t?.name ?? ''
-  form.email = t?.email ?? ''
-  form.phone = t?.phone ?? ''
-  form.active = t?.active ?? true
-  form.password = ''
-}, { immediate: true })
-
-function save() {
-  form.errors = {}
-  form.saving = true
-
-  const payload = {
-    name: form.name || '',
-    email: form.email || '',
-    phone: form.phone || '',
-    active: form.active,
+function labelEdu(v) {
+  switch (v) {
+    case 'bachelor': return 'Cử nhân'
+    case 'engineer': return 'Kỹ sư'
+    case 'master': return 'Thạc sĩ'
+    case 'phd': return 'Tiến sĩ'
+    default: return 'Khác'
   }
-  // chỉ gửi password nếu điền
-  if (form.password && form.password.length > 0) {
-    payload.password = form.password
-  }
-
-  router.put(route('manager.teachers.update', props.teacher.id), payload, {
-    preserveScroll: true,
-    onFinish: () => { form.saving = false },
-    onError: (errors) => { form.errors = errors || {} },
-  })
 }
+function labelStatus(v) {
+  switch (v) {
+    case 'active': return 'Đang dạy'
+    case 'on_leave': return 'Tạm nghỉ'
+    case 'terminated': return 'Đã nghỉ việc'
+    case 'adjunct': return 'Cộng tác'
+    default: return 'Không hoạt động'
+  }
+}
+
+const form = useForm({
+  code: props.teacher.code ?? '',
+  full_name: props.teacher.full_name ?? '',
+  phone: props.teacher.phone ?? '',
+  email: props.teacher.email ?? '',
+  address: props.teacher.address ?? '',
+  national_id: props.teacher.national_id ?? '',
+  education_level: props.teacher.education_level ?? null,
+  status: props.teacher.status ?? 'active',
+  notes: props.teacher.notes ?? '',
+  photo: null,          // File
+  remove_photo: false,  // Boolean
+})
+
+const onSelectPhoto = (e) => {
+  form.photo = e.files?.[0] ?? null
+}
+
+const toFormData = (data) => {
+  const fd = new FormData()
+  Object.entries(data).forEach(([k, v]) => {
+    if (v === undefined || v === null) return
+    if (v instanceof File) {
+      fd.append(k, v)
+    } else if (typeof v === 'boolean') {
+      fd.append(k, v ? '1' : '0')
+    } else {
+      fd.append(k, v)
+    }
+  })
+  fd.append('_method', 'PUT') // spoof PUT cho route resource
+  return fd
+}
+
+const onUpdate = () => {
+  // transform -> FormData để đảm bảo FE -> BE không bị null khi có file
+  form.transform((data) => toFormData(data))
+    .post(route('manager.teachers.update', props.teacher.id), {
+      preserveScroll: true,
+      onFinish: () => {
+        // trả transform về mặc định để các lần submit khác không bị ảnh hưởng
+        form.transform((d) => d)
+      }
+    })
+}
+
 </script>
 
 <template>
-  <Head :title="`Sửa giáo viên - ${teacher?.name ?? ''}`" />
+  <div class="p-6 space-y-6">
+    <Head :title="`Sửa Giáo viên: ${form.full_name || form.code}`" />
 
-  <div class="mb-3 flex items-center justify-between">
-    <h1 class="text-xl md:text-2xl font-heading font-semibold">Sửa giáo viên</h1>
-    <Link
-      :href="route('manager.teachers.index')"
-      class="px-3 py-2 text-sm rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-    >
-      ← Danh sách
-    </Link>
-  </div>
+    <h1 class="text-2xl font-semibold">Sửa hồ sơ giáo viên</h1>
 
-  <div class="max-w-2xl mx-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-    <div class="flex flex-col gap-4">
-      <!-- Họ tên -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Họ và tên</label>
-        <InputText v-model="form.name" class="w-full" placeholder="VD: Nguyễn Văn A" />
-        <div v-if="form.errors?.name" class="text-red-500 text-xs mt-1">{{ form.errors.name }}</div>
-      </div>
+    <Tabs value="profile">
+      <TabList>
+        <Tab value="profile">Hồ sơ giáo viên</Tab>
+        <Tab value="account" disabled>Thông tin đăng nhập (quản lý ở Users)</Tab>
+      </TabList>
 
-      <!-- Email -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Email</label>
-        <InputText v-model="form.email" class="w-full" placeholder="email@domain.com" />
-        <div v-if="form.errors?.email" class="text-red-500 text-xs mt-1">{{ form.errors.email }}</div>
-      </div>
+      <TabPanels>
+        <TabPanel value="profile">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Mã giáo viên</label>
+              <InputText v-model="form.code" class="w-full" />
+              <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
+            </div>
 
-      <!-- Số điện thoại -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Số điện thoại <span class="text-red-500">*</span></label>
-        <InputText
-          v-model="form.phone"
-          class="w-full"
-          placeholder="VD: 0974936497"
-          maxlength="10"
-          pattern="0[0-9]{9}"
-          required
-        />
-        <div class="text-xs text-slate-500 mt-1">Định dạng: 10 số bắt đầu bằng 0</div>
-        <div v-if="form.errors?.phone" class="text-red-500 text-xs mt-1">{{ form.errors.phone }}</div>
-      </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Họ tên đầy đủ</label>
+              <InputText v-model="form.full_name" class="w-full" />
+              <small v-if="form.errors.full_name" class="text-red-500">{{ form.errors.full_name }}</small>
+            </div>
 
-      <!-- Mật khẩu (tuỳ chọn) -->
-      <div>
-        <label class="block text-sm font-medium mb-1">Mật khẩu mới (tuỳ chọn)</label>
-        <Password v-model="form.password" class="w-full" :feedback="false" toggleMask placeholder="Để trống nếu không đổi" />
-        <div v-if="form.errors?.password" class="text-red-500 text-xs mt-1">{{ form.errors.password }}</div>
-      </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">SĐT</label>
+              <InputText v-model="form.phone" class="w-full" />
+              <small v-if="form.errors.phone" class="text-red-500">{{ form.errors.phone }}</small>
+            </div>
 
-      <!-- Trạng thái hoạt động -->
-      <div>
-        <div class="flex items-center gap-2">
-          <Checkbox v-model="form.active" :binary="true" inputId="active" />
-          <label for="active" class="text-sm font-medium">Hoạt động</label>
-        </div>
-        <div class="text-xs text-slate-500 mt-1">Bỏ chọn để tạm khóa giáo viên</div>
-        <div v-if="form.errors?.active" class="text-red-500 text-xs mt-1">{{ form.errors.active }}</div>
-      </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Email (liên hệ)</label>
+              <InputText v-model="form.email" class="w-full" />
+              <small v-if="form.errors.email" class="text-red-500">{{ form.errors.email }}</small>
+            </div>
 
-      <!-- Actions -->
-      <div class="flex justify-end gap-2 mt-2">
-        <Link
-          :href="route('manager.teachers.index')"
-          class="px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          Huỷ
-        </Link>
-        <Button label="Lưu" icon="pi pi-check" :loading="form.saving" @click="save" />
-      </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Trình độ</label>
+              <Select v-model="form.education_level"
+                      :options="educationLevelOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Chọn trình độ"
+                      class="w-full" />
+              <small v-if="form.errors.education_level" class="text-red-500">{{ form.errors.education_level }}</small>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Trạng thái</label>
+              <Select v-model="form.status"
+                      :options="teacherStatusOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Chọn trạng thái"
+                      class="w-full" />
+              <small v-if="form.errors.status" class="text-red-500">{{ form.errors.status }}</small>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Địa chỉ</label>
+              <InputText v-model="form.address" class="w-full" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">CCCD</label>
+              <InputText v-model="form.national_id" class="w-full" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium mb-1">Ghi chú</label>
+              <Textarea v-model="form.notes" rows="3" class="w-full" />
+            </div>
+
+            <div class="md:col-span-2 space-y-2">
+              <label class="block text-sm font-medium">Ảnh đại diện</label>
+
+              <div class="flex items-center gap-3" v-if="props.teacher.photo_path">
+                <!-- nếu chưa có route ký URL, bỏ link này đi -->
+                <a :href="route('files.signed', { path: props.teacher.photo_path })" target="_blank" class="text-primary underline">Xem ảnh hiện tại</a>
+                <Checkbox v-model="form.remove_photo" :binary="true" inputId="remove_photo" />
+                <label for="remove_photo">Xóa ảnh hiện tại</label>
+              </div>
+
+              <FileUpload mode="basic" name="photo" accept="image/*" customUpload :auto="false" @select="onSelectPhoto" />
+              <small v-if="form.errors.photo" class="text-red-500">{{ form.errors.photo }}</small>
+            </div>
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+
+    <div class="flex gap-3">
+      <Button label="Lưu thay đổi" :disabled="form.processing" @click="onUpdate" />
     </div>
   </div>
 </template>

@@ -34,6 +34,7 @@ use App\Http\Controllers\Manager\TransferAuditController;
 use App\Http\Controllers\Manager\SessionSubstitutionController;
 use App\Http\Controllers\Manager\SubstitutionController;
 use App\Http\Controllers\Manager\ScheduleController as ManagerScheduleController;
+use App\Http\Controllers\PrivateFileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -433,7 +434,7 @@ Route::middleware(['auth'])->group(function () {
          Route::resource('students', StudentController::class);
 
         // TEACHERS
-        Route::resource('teachers', TeacherController::class);
+        Route::resource('teachers', TeacherController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
         Route::get('teachers/search', [TeacherController::class, 'search'])->name('teachers.search');
         Route::get('teachers/wizard/create', [TeacherWizardController::class, 'create'])->name('teachers.wizard.create');
         Route::post('teachers/wizard', [TeacherWizardController::class, 'store'])->name('teachers.wizard.store');
@@ -502,4 +503,21 @@ Route::middleware(['auth'])->group(function () {
             ->name('students.transfer');         // API gợi ý tìm lớp học cho AutoComplete
          Route::get('classrooms/search',       [ClassroomController::class, 'search'])->name('classrooms.search');
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private File Access (dùng chung Admin/Manager/Teacher)
+    |  - KHÔNG đặt trong prefix để cả 3 vai trò dùng chung
+    |  - Có thể thay thế bằng controller thật nếu bạn đã tạo
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['auth'])->group(function () {
+    // Tạo URL có chữ ký tạm thời rồi redirect sang route "view"
+    Route::get('/files/signed', [PrivateFileController::class, 'signed'])->name('files.signed');
+
+    // Xem file qua URL đã ký (hết hạn sau X phút)
+    Route::get('/files/view', [PrivateFileController::class, 'view'])
+        ->name('files.view')
+        ->middleware('signed'); // yêu cầu chữ ký hợp lệ
+});
 });
