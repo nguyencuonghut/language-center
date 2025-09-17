@@ -79,39 +79,61 @@ const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.i
       <TabPanels>
         <!-- HỒ SƠ -->
         <TabPanel value="profile">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Thông tin + Ảnh -->
             <div class="lg:col-span-2 space-y-4">
-              <div class="p-4 rounded-xl border">
+                <div class="p-4 rounded-xl border">
                 <h3 class="font-semibold mb-3">Thông tin liên hệ</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span class="text-gray-500">Email:</span> <span class="ml-2">{{ props.teacher.email || '—' }}</span></div>
-                  <div><span class="text-gray-500">SĐT:</span> <span class="ml-2">{{ props.teacher.phone || '—' }}</span></div>
-                  <div class="md:col-span-2"><span class="text-gray-500">Địa chỉ:</span> <span class="ml-2">{{ props.teacher.address || '—' }}</span></div>
+                    <div class="flex items-center">
+                    <i class="pi pi-envelope mr-2 text-gray-400"></i>
+                    <span class="text-gray-500">Email:</span>
+                    <span class="ml-2">{{ props.teacher.email || '—' }}</span>
+                    </div>
+                    <div class="flex items-center">
+                    <i class="pi pi-phone mr-2 text-gray-400"></i>
+                    <span class="text-gray-500">SĐT:</span>
+                    <span class="ml-2">{{ props.teacher.phone || '—' }}</span>
+                    </div>
+                    <div class="md:col-span-2 flex items-start">
+                    <i class="pi pi-map-marker mr-2 text-gray-400 mt-0.5"></i>
+                    <span class="text-gray-500">Địa chỉ:</span>
+                    <span class="ml-2">{{ props.teacher.address || '—' }}</span>
+                    </div>
                 </div>
-              </div>
+                </div>
 
-              <div class="p-4 rounded-xl border">
+                <div class="p-4 rounded-xl border">
                 <h3 class="font-semibold mb-3">Thông tin khác</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span class="text-gray-500">CCCD:</span> <span class="ml-2">{{ props.teacher.national_id || '—' }}</span></div>
-                  <div><span class="text-gray-500">Ghi chú:</span> <span class="ml-2">{{ props.teacher.notes || '—' }}</span></div>
+                    <div class="flex items-center">
+                    <i class="pi pi-id-card mr-2 text-gray-400"></i>
+                    <span class="text-gray-500">CCCD:</span>
+                    <span class="ml-2">{{ props.teacher.national_id || '—' }}</span>
+                    </div>
+                    <div class="flex items-start">
+                    <i class="pi pi-sticky-note mr-2 text-gray-400 mt-0.5"></i>
+                    <span class="text-gray-500">Ghi chú:</span>
+                    <span class="ml-2">{{ props.teacher.notes || '—' }}</span>
+                    </div>
                 </div>
-              </div>
+                </div>
             </div>
 
             <!-- Ảnh đại diện -->
             <div class="p-4 rounded-xl border">
-              <h3 class="font-semibold mb-3">Ảnh đại diện</h3>
-              <div v-if="photoUrl" class="space-y-3">
-                <img :src="photoUrl" alt="Ảnh giáo viên" class="w-full max-w-xs rounded-lg border" />
-                <div>
-                  <a :href="photoUrl" target="_blank" class="text-primary underline">Mở ảnh trong tab mới</a>
+                <h3 class="font-semibold mb-3">Ảnh đại diện</h3>
+                <div v-if="photoUrl" class="space-y-3">
+                    <div class="flex justify-center">
+                        <img :src="photoUrl" alt="Ảnh giáo viên" class="w-full max-w-xs rounded-lg border" />
+                    </div>
+                    <div class="text-center">
+                        <a :href="photoUrl" target="_blank" class="text-primary underline">Mở ảnh trong tab mới</a>
+                    </div>
                 </div>
-              </div>
-              <div v-else class="text-sm text-gray-500">Chưa có ảnh.</div>
+                <div v-else class="text-sm text-gray-500 text-center">Chưa có ảnh.</div>
             </div>
-          </div>
+            </div>
         </TabPanel>
 
         <!-- CHỨNG CHỈ -->
@@ -157,8 +179,16 @@ const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.i
                 <span v-else>—</span>
               </template>
               </Column>
-              <Column field="effective_from" header="Bắt đầu" />
-              <Column field="effective_to" header="Kết thúc" />
+              <Column field="effective_from" header="Bắt đầu">
+                <template #body="{ data }">
+                    {{ data.effective_from ? new Date(data.effective_from).toISOString().split('T')[0] : '—' }}
+                </template>
+              </Column>
+              <Column field="effective_to" header="Kết thúc">
+                <template #body="{ data }">
+                    {{ data.effective_to ? new Date(data.effective_to).toISOString().split('T')[0] : '—' }}
+                </template>
+              </Column>
             </DataTable>
           </div>
         </TabPanel>
