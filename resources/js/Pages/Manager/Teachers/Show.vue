@@ -1,153 +1,168 @@
 <script setup>
-import { computed } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
+import { computed } from 'vue'
 
-// PrimeVue
-import Tag from 'primevue/tag'
+// PrimeVue v4 local imports (nếu bạn không đăng ký global)
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 
+// Card, Tag, Button… nếu đăng ký global thì không cần import
+
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
-  // user có role 'teacher'
-  teacher: {
-    type: Object,
-    required: true, // { id, name, email, phone, created_at, updated_at, roles?:[] }
-  },
-  // tuỳ chọn: danh sách phân công dạy
-  assignments: {
-    type: Array,
-    default: () => [] // [{ id, class: {id, code, name}, rate_per_session, effective_from, effective_to }]
-  }
+  teacher: Object,
+  certificates: Array,
+  assignments: { type: Array, default: () => [] }
 })
 
-function toDdMmYyyy(d) {
-  if (!d) return '—'
-  const dt = new Date(String(d).replace(' ', 'T'))
-  if (isNaN(dt.getTime())) {
-    const [y, m, day] = String(d).split('-')
-    if (y && m && day) return `${day.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`
-    return String(d)
-  }
-  const dd = String(dt.getDate()).padStart(2,'0')
-  const mm = String(dt.getMonth() + 1).padStart(2,'0')
-  const yy = dt.getFullYear()
-  return `${dd}/${mm}/${yy}`
-}
+const eduLabel = (v) => ({
+  bachelor: 'Cử nhân',
+  engineer: 'Kỹ sư',
+  master: 'Thạc sĩ',
+  phd: 'Tiến sĩ',
+  other: 'Khác'
+}[v] ?? v)
 
-const roleChips = computed(() => {
-  // Sử dụng role_names_vi từ accessor trong Model User
-  return props.teacher?.role_names_vi || []
-})
+const statusLabel = (v) => ({
+  active: 'Đang dạy',
+  on_leave: 'Tạm nghỉ',
+  terminated: 'Đã nghỉ việc',
+  adjunct: 'Cộng tác',
+  inactive: 'Không hoạt động'
+}[v] ?? v)
 
-const itemsValue = computed(() => props.assignments || [])
+const photoUrl = computed(() =>
+  props.teacher?.photo_path ? route('files.signed', { path: props.teacher.photo_path }) : null
+)
+
+const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.id))
 </script>
 
 <template>
-  <Head :title="`Giáo viên: ${teacher?.name ?? ''}`" />
+  <div class="p-6 space-y-6">
+    <Head :title="`Giáo viên: ${props.teacher.full_name} (${props.teacher.code})`" />
 
-  <!-- Header -->
-  <div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-    <div>
-      <h1 class="text-xl md:text-2xl font-heading font-semibold">
-        Giáo viên — {{ teacher?.name }}
-      </h1>
-      <div class="text-slate-500 dark:text-slate-400 text-sm">
-        <span class="mr-2">Email: <span class="font-medium text-slate-900 dark:text-slate-100">{{ teacher?.email ?? '—' }}</span></span>
-        <span class="mr-2">·</span>
-        <span>Điện thoại: <span class="font-medium text-slate-900 dark:text-slate-100">{{ teacher?.phone ?? '—' }}</span></span>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-2">
-      <Link
-        :href="route('manager.teachers.edit', teacher.id)"
-        class="px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
-               dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
-      >
-        <i class="pi pi-pencil mr-1"></i> Sửa
-      </Link>
-      <Link
-        :href="route('manager.teachers.index')"
-        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-      >
-        ← Danh sách
-      </Link>
-    </div>
-  </div>
-
-  <!-- Summary cards -->
-  <div class="grid gap-4 md:grid-cols-2 mb-4">
-    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div class="text-sm text-slate-500 mb-1">Vai trò</div>
-      <div class="flex flex-wrap gap-2">
-        <Tag v-for="(r, i) in roleChips" :key="i" :value="r" severity="info" />
-        <span v-if="!roleChips.length" class="text-slate-500 dark:text-slate-400">—</span>
-      </div>
-
-      <div class="mt-3 text-sm text-slate-500 mb-1">Ngày tạo</div>
-      <div class="font-medium">{{ toDdMmYyyy(teacher?.created_at) }}</div>
-
-      <div class="mt-3 text-sm text-slate-500 mb-1">Cập nhật</div>
-      <div class="font-medium">{{ toDdMmYyyy(teacher?.updated_at) }}</div>
-    </div>
-
-    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-      <div class="text-sm text-slate-500 mb-1">Thông tin liên hệ</div>
-      <div class="space-y-1">
-        <div><span class="text-slate-500 dark:text-slate-400">Email:</span> <span class="font-medium">{{ teacher?.email ?? '—' }}</span></div>
-        <div><span class="text-slate-500 dark:text-slate-400">Điện thoại:</span> <span class="font-medium">{{ teacher?.phone ?? '—' }}</span></div>
-        <div>
-          <span class="text-slate-500 dark:text-slate-400">Trạng thái:</span>
-          <span
-            :class="teacher?.active
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-              : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'"
-            class="ml-1 px-2 py-1 rounded-full text-xs font-medium"
-          >
-            {{ teacher?.active ? 'Hoạt động' : 'Không hoạt động' }}
-          </span>
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold">
+          {{ props.teacher.full_name }}
+          <span class="text-gray-500 font-normal">• {{ props.teacher.code }}</span>
+        </h1>
+        <div class="mt-1 text-sm text-gray-500">
+          Trạng thái:
+          <span class="px-2 py-0.5 rounded-full bg-gray-100">{{ statusLabel(props.teacher.status) }}</span>
+          <span class="ml-3">Trình độ: <b>{{ eduLabel(props.teacher.education_level) || '—' }}</b></span>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Assignments -->
-  <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3">
-    <div class="flex items-center justify-between mb-2">
-      <div class="font-medium">Phân công giảng dạy</div>
-      <div class="text-sm text-slate-500 dark:text-slate-400">({{ itemsValue.length }} mục)</div>
+      <div class="flex gap-2">
+        <Button label="Sửa" icon="pi pi-pencil" @click="onEdit" />
+        <Button label="Quay lại danh sách" severity="secondary" outlined @click="$inertia.visit(route('manager.teachers.index'))" />
+      </div>
     </div>
 
-    <DataTable :value="itemsValue" dataKey="id" size="small" responsiveLayout="scroll">
-      <Column header="Lớp" style="width: 280px">
-        <template #body="{ data }">
-          <span v-if="data.classroom">
-            {{ data.classroom.code }} · {{ data.classroom.name }}
-          </span>
-          <span v-else>—</span>
-        </template>
-      </Column>
-      <Column field="rate_per_session" header="Đơn giá/buổi" style="width: 160px">
-        <template #body="{ data }">
-          {{ new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(data.rate_per_session || 0) }}
-        </template>
-      </Column>
-      <Column field="effective_from" header="Hiệu lực từ" style="width: 140px">
-        <template #body="{ data }">{{ toDdMmYyyy(data.effective_from) }}</template>
-      </Column>
-      <Column field="effective_to" header="Đến" style="width: 140px">
-        <template #body="{ data }">{{ toDdMmYyyy(data.effective_to) }}</template>
-      </Column>
+    <Tabs value="profile">
+      <TabList>
+        <Tab value="profile">Hồ sơ</Tab>
+        <Tab value="certs">Chứng chỉ</Tab>
+        <Tab value="assignments" :disabled="!assignments?.length">Phân công gần đây</Tab>
+      </TabList>
 
-      <template #empty>
-        <div class="p-4 text-center text-slate-500 dark:text-slate-400">
-          Chưa có phân công nào.
-        </div>
-      </template>
-    </DataTable>
+      <TabPanels>
+        <!-- HỒ SƠ -->
+        <TabPanel value="profile">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Thông tin + Ảnh -->
+            <div class="lg:col-span-2 space-y-4">
+              <div class="p-4 rounded-xl border">
+                <h3 class="font-semibold mb-3">Thông tin liên hệ</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div><span class="text-gray-500">Email:</span> <span class="ml-2">{{ props.teacher.email || '—' }}</span></div>
+                  <div><span class="text-gray-500">SĐT:</span> <span class="ml-2">{{ props.teacher.phone || '—' }}</span></div>
+                  <div class="md:col-span-2"><span class="text-gray-500">Địa chỉ:</span> <span class="ml-2">{{ props.teacher.address || '—' }}</span></div>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl border">
+                <h3 class="font-semibold mb-3">Thông tin khác</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div><span class="text-gray-500">CCCD:</span> <span class="ml-2">{{ props.teacher.national_id || '—' }}</span></div>
+                  <div><span class="text-gray-500">Ghi chú:</span> <span class="ml-2">{{ props.teacher.notes || '—' }}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ảnh đại diện -->
+            <div class="p-4 rounded-xl border">
+              <h3 class="font-semibold mb-3">Ảnh đại diện</h3>
+              <div v-if="photoUrl" class="space-y-3">
+                <img :src="photoUrl" alt="Ảnh giáo viên" class="w-full max-w-xs rounded-lg border" />
+                <div>
+                  <a :href="photoUrl" target="_blank" class="text-primary underline">Mở ảnh trong tab mới</a>
+                </div>
+              </div>
+              <div v-else class="text-sm text-gray-500">Chưa có ảnh.</div>
+            </div>
+          </div>
+        </TabPanel>
+
+        <!-- CHỨNG CHỈ -->
+        <TabPanel value="certs">
+          <div class="rounded-xl border p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-semibold">Danh sách chứng chỉ</h3>
+              <Button label="Quản lý chứng chỉ" icon="pi pi-external-link" outlined @click="$inertia.visit(route('manager.certificates.index') || '#')" />
+            </div>
+
+            <DataTable :value="props.certificates" size="small" class="w-full">
+              <Column field="code" header="Mã" />
+              <Column field="name" header="Tên chứng chỉ" />
+              <Column header="Số hiệu" :body="(row) => row.pivot?.credential_no || '—'" />
+              <Column header="Đơn vị cấp" :body="(row) => row.pivot?.issued_by || '—'" />
+              <Column header="Ngày cấp" :body="(row) => row.pivot?.issued_at || '—'" />
+              <Column header="Hết hạn" :body="(row) => row.pivot?.expires_at || '—'" />
+              <Column header="File">
+                <template #body="slotProps">
+                  <span v-if="slotProps.data.pivot?.file_path">
+                    <a :href="route('files.signed', { path: slotProps.data.pivot.file_path })" target="_blank" class="text-primary underline">Xem</a>
+                  </span>
+                  <span v-else>—</span>
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </TabPanel>
+
+        <!-- PHÂN CÔNG GẦN ĐÂY (tuỳ chọn) -->
+        <TabPanel value="assignments" v-if="assignments?.length">
+          <div class="rounded-xl border p-4">
+            <h3 class="font-semibold mb-3">Phân công dạy gần đây</h3>
+            <DataTable :value="assignments" size="small" class="w-full">
+              <Column field="id" header="#" style="width: 80px" />
+              <Column header="Lớp">
+              <template #body="slotProps">
+                <span v-if="slotProps.data.classroom">
+                  <a :href="route('manager.classrooms.edit', slotProps.data.classroom.id)" class="text-primary underline">
+                    {{ slotProps.data.classroom.name }}
+                  </a>
+                </span>
+                <span v-else>—</span>
+              </template>
+              </Column>
+              <Column field="effective_from" header="Bắt đầu" />
+              <Column field="effective_to" header="Kết thúc" />
+            </DataTable>
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 </template>

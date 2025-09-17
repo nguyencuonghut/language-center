@@ -33,9 +33,14 @@ class Teacher extends Model
     }
 
     public function certificates(): BelongsToMany {
-        return $this->belongsToMany(Certificate::class)
-            ->withTimestamps()
-            ->withPivot(['credential_no','issued_by','issued_at','expires_at','file_path']);
+        return $this->belongsToMany(
+            Certificate::class,
+            'teacher_certificate', // 👈 chỉ định đúng tên bảng bạn đã tạo
+            'teacher_id',
+            'certificate_id'
+        )
+        ->withTimestamps()
+        ->withPivot(['credential_no','issued_by','issued_at','expires_at','file_path']);
     }
 
     public function assignments(): HasMany {

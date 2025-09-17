@@ -63,53 +63,52 @@ class TeacherController extends Controller
 
     public function show(Teacher $teacher)
     {
-        // Load user liên kết để lấy thông tin đăng nhập
-        $teacher->load('user.roles');
+        // Load certificates (pivot metadata)
+        $teacher->load(['certificates' => function($q) {
+            $q->orderBy('name');
+        }]);
 
-        // Lấy assignments + class liên quan (teacher_id giờ là teachers.id)
-        $assignments = TeachingAssignment::with(['classroom' => function ($q) {
-                $q->select('id', 'code', 'name');
-            }])
-            ->where('teacher_id', $teacher->id)
-            ->orderBy('effective_from', 'desc')
-            ->get()
-            ->map(function ($a) {
-                return [
-                    'id'               => $a->id,
-                    'rate_per_session' => (int) $a->rate_per_session,
-                    'effective_from'   => $a->effective_from,
-                    'effective_to'     => $a->effective_to,
-                    'classroom'        => $a->classroom ? [
-                        'id'   => $a->classroom->id,
-                        'code' => $a->classroom->code,
-                        'name' => $a->classroom->name,
-                    ] : null,
-                ];
-            });
+        // (Tuỳ chọn) Load vài phân công dạy gần đây nếu có model & quan hệ
+        $assignments = [];
+        if (method_exists($teacher, 'assignments')) {
+            $assignments = $teacher->assignments()
+                ->with(['classroom' => function($q){ $q->select('id','name'); }])
+                ->orderByDesc('id')
+                ->take(10)
+                ->get(['id','teacher_id','class_id','effective_from','effective_to']);
+        }
 
-        return Inertia::render('Manager/Teachers/Show', [
-            'teacher'     => [
-                'id'              => $teacher->id,
-                'user_id'         => $teacher->user_id,
-                'code'            => $teacher->code,
-                'full_name'       => $teacher->full_name,
-                'email'           => $teacher->email,
-                'phone'           => $teacher->phone,
-                'address'         => $teacher->address,
-                'national_id'     => $teacher->national_id,
-                'photo_path'      => $teacher->photo_path,
+        return inertia('Manager/Teachers/Show', [
+            'teacher' => [
+                'id' => $teacher->id,
+                'user_id' => $teacher->user_id,
+                'code' => $teacher->code,
+                'full_name' => $teacher->full_name,
+                'phone' => $teacher->phone,
+                'email' => $teacher->email,
+                'address' => $teacher->address,
+                'national_id' => $teacher->national_id, // nếu muốn ẩn, đừng gửi lên FE
+                'photo_path' => $teacher->photo_path,
                 'education_level' => $teacher->education_level,
-                'status'          => $teacher->status,
-                'notes'           => $teacher->notes,
-                'created_at'      => $teacher->created_at?->toDateString(),
-                'updated_at'      => $teacher->updated_at?->toDateString(),
-                'user'            => $teacher->user ? [
-                    'active'        => $teacher->user->active,
-                    'roles'         => $teacher->user->roles->map(fn($r) => ['id' => $r->id, 'name' => $r->name]),
-                    'role_names_vi' => $teacher->user->role_names_vi,  // Accessor tiếng Việt nếu có
-                ] : null,
+                'status' => $teacher->status,
+                'notes' => $teacher->notes,
             ],
-            'assignments' => $assignments,
+            'certificates' => $teacher->certificates->map(function($c){
+                return [
+                    'id' => $c->id,
+                    'code' => $c->code,
+                    'name' => $c->name,
+                    'description' => $c->description,
+                    'pivot' => [
+                        'credential_no' => $c->pivot->credential_no,
+                        'issued_by' => $c->pivot->issued_by,
+                        'issued_at' => $c->pivot->issued_at,
+                        'expires_at' => $c->pivot->expires_at,
+                        'file_path' => $c->pivot->file_path,
+                    ],
+                ];
+            })->values(),
+            'assignments' => $assignments, // có thể rỗng nếu bạn chưa dùng
         ]);
     }
 
