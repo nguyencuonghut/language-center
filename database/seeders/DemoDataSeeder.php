@@ -105,7 +105,19 @@ class DemoDataSeeder extends Seeder
             // ---------------------------
             // 2) BRANCHES & ROOMS
             // ---------------------------
-            $branches = Branch::factory()->count(2)->create();
+            //$branches = Branch::factory()->count(2)->create();
+            $branch_1 = Branch::create([
+                'name' => 'Đồng Văn Xanh',
+                'address' => 'Khu đô thị mới Đồng Văn Xanh, Duy Tiên, Hà Nam',
+                'active' => true,
+            ]);
+            $branch_2 = Branch::create([
+                'name' => 'Hòa Mạc',
+                'address' => 'Khu đô thị mới Hòa Mạc, Duy Tiên, Hà Nam',
+                'active' => true,
+            ]);
+
+            $branches = collect([$branch_1, $branch_2]);
 
             // Mỗi branch 5 phòng — đảm bảo code phòng unique theo nhánh (không phụ thuộc unique() của faker)
             foreach ($branches as $b) {

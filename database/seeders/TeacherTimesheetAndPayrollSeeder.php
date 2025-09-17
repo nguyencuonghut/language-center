@@ -52,7 +52,7 @@ class TeacherTimesheetAndPayrollSeeder extends Seeder
                     TeacherTimesheet::create([
                         'teacher_id' => $teacher->id,
                         'class_session_id' => $session->id,
-                        'amount' => rand(180000, 250000), // Giả lập tiền công 1 buổi
+                        'amount' => Arr::random([200000, 220000, 250000, 300000, 500000]), // Giả lập tiền công 1 buổi
                         'status' => Arr::random($statusOptions),
                         'created_at' => Carbon::now()->subMonth()->addDays(rand(0, 27)), // Đảm bảo nằm trong tháng trước
                         'updated_at' => Carbon::now()->subMonth()->addDays(rand(0, 27)),
