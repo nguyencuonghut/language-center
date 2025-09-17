@@ -54,11 +54,23 @@ function getEducationDisplay(educationLevel) {
   const mapping = {
     'bachelor': { label: 'Cử nhân', severity: 'success' }, // Xanh lá
     'engineer': { label: 'Kỹ sư', severity: 'info' },     // Xanh dương
-    'master': { label: 'Thạc sĩ', severity: 'warn' },   // Vàng
+    'master': { label: 'Thạc sĩ', severity: 'warning' },   // Vàng
     'phd': { label: 'Tiến sĩ', severity: 'danger' },       // Đỏ
     'other': { label: 'Khác', severity: 'secondary' }      // Xám
   }
   return educationLevel ? mapping[educationLevel] || { label: '—', severity: 'secondary' } : { label: '—', severity: 'secondary' }
+}
+
+// Hàm ánh xạ status sang tiếng Việt và severity
+function getStatusDisplay(status) {
+  const mapping = {
+    'active': { label: 'Hoạt động', severity: 'success' },     // Xanh lá
+    'inactive': { label: 'Không hoạt động', severity: 'secondary' }, // Xám
+    'terminated': { label: 'Đã chấm dứt', severity: 'danger' }, // Đỏ
+    'on_leave': { label: 'Nghỉ phép', severity: 'warning' },   // Vàng
+    'adjunct': { label: 'Bổ sung', severity: 'info' }         // Xanh dương
+  }
+  return status ? mapping[status] || { label: '—', severity: 'secondary' } : { label: '—', severity: 'secondary' }
 }
 </script>
 
@@ -77,7 +89,7 @@ function getEducationDisplay(educationLevel) {
       <InputText v-model="state.search" placeholder="Tìm kiếm theo tên, email, SĐT" @keyup.enter="applyFilters" class="w-64" />
       <Button label="Tìm kiếm" icon="pi pi-search" @click="applyFilters" />
       <Link
-        :href="route('manager.teachers.create')"
+        :href="route('manager.teachers.wizard.create')"
         class="px-3 py-2 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
       >
@@ -118,12 +130,18 @@ function getEducationDisplay(educationLevel) {
       <Column field="status" header="Trạng thái" style="min-width: 120px">
         <template #body="{ data }">
           <span
-            :class="data.status === 'active'
+            :class="getStatusDisplay(data.status).severity === 'success'
               ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-              : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'"
+              : getStatusDisplay(data.status).severity === 'info'
+              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+              : getStatusDisplay(data.status).severity === 'warning'
+              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+              : getStatusDisplay(data.status).severity === 'danger'
+              ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'"
             class="px-2 py-1 rounded-full text-xs font-medium"
           >
-            {{ data.status ? 'Hoạt động' : 'Không hoạt động' }}
+            {{ getStatusDisplay(data.status).label }}
           </span>
         </template>
       </Column>

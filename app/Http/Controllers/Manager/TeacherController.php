@@ -59,32 +59,45 @@ class TeacherController extends Controller
     {
         $data = $request->validated();
 
-        $teacher = User::create([
-            'name'     => $data['name'],
+        // Tạo User cho đăng nhập
+        $user = User::create([
+            'name'     => $data['full_name'],  // Sử dụng full_name từ request
             'email'    => $data['email'] ?? null,
             'phone'    => $data['phone'] ?? null,
-            'password' => $data['password'], // Đã được hash trong StoreTeacherRequest
-            'active'   => $data['active'] ?? true, // Default active
+            'password' => $data['password'],  // Đã được hash trong StoreTeacherRequest
+            'active'   => $data['active'] ?? true,
         ]);
 
         // Gán role teacher
-        $teacher->assignRole('teacher');
+        $user->assignRole('teacher');
+
+        // Tạo Teacher liên kết với User
+        Teacher::create([
+            'user_id'         => $user->id,
+            'code'            => $data['code'] ?? 'T' . str_pad($user->id, 4, '0', STR_PAD_LEFT),  // Tạo code nếu không có
+            'full_name'       => $data['full_name'],
+            'phone'           => $data['phone'] ?? null,
+            'email'           => $data['email'] ?? null,
+            'address'         => $data['address'] ?? null,
+            'national_id'     => $data['national_id'] ?? null,
+            'photo_path'      => $data['photo_path'] ?? null,
+            'education_level' => $data['education_level'] ?? null,
+            'status'          => $data['status'] ?? 'active',
+            'notes'           => $data['notes'] ?? null,
+        ]);
 
         return redirect()->route('manager.teachers.index')
             ->with('success', 'Đã thêm giáo viên thành công.');
     }
 
-    public function show(User $teacher)
+    public function show(Teacher $teacher)
     {
-        // Đảm bảo $teacher là user có role 'teacher'
-        // (tạm thời không dùng Policy, nhưng bạn có thể validate thêm nếu cần)
-        if (!$teacher->hasRole('teacher')) {
-            abort(404);
-        }
+        // Load user liên kết để lấy thông tin đăng nhập
+        $teacher->load('user.roles');
 
-        // Lấy assignments + class liên quan
+        // Lấy assignments + class liên quan (teacher_id giờ là teachers.id)
         $assignments = TeachingAssignment::with(['classroom' => function ($q) {
-                $q->select('id','code','name');
+                $q->select('id', 'code', 'name');
             }])
             ->where('teacher_id', $teacher->id)
             ->orderBy('effective_from', 'desc')
@@ -103,20 +116,27 @@ class TeacherController extends Controller
                 ];
             });
 
-        // Chuẩn hoá roles (nếu bạn đã eager load từ trước, bỏ phần này)
-        $teacher->load('roles');
-
-        return inertia('Manager/Teachers/Show', [
+        return Inertia::render('Manager/Teachers/Show', [
             'teacher'     => [
-                'id'            => $teacher->id,
-                'name'          => $teacher->name,
-                'email'         => $teacher->email,
-                'phone'         => $teacher->phone,
-                'active'        => $teacher->active,
-                'created_at'    => $teacher->created_at?->toDateString(),
-                'updated_at'    => $teacher->updated_at?->toDateString(),
-                'roles'         => $teacher->roles->map(fn($r) => ['id'=>$r->id, 'name'=>$r->name]),
-                'role_names_vi' => $teacher->role_names_vi, // Thêm accessor tiếng Việt
+                'id'              => $teacher->id,
+                'user_id'         => $teacher->user_id,
+                'code'            => $teacher->code,
+                'full_name'       => $teacher->full_name,
+                'email'           => $teacher->email,
+                'phone'           => $teacher->phone,
+                'address'         => $teacher->address,
+                'national_id'     => $teacher->national_id,
+                'photo_path'      => $teacher->photo_path,
+                'education_level' => $teacher->education_level,
+                'status'          => $teacher->status,
+                'notes'           => $teacher->notes,
+                'created_at'      => $teacher->created_at?->toDateString(),
+                'updated_at'      => $teacher->updated_at?->toDateString(),
+                'user'            => $teacher->user ? [
+                    'active'        => $teacher->user->active,
+                    'roles'         => $teacher->user->roles->map(fn($r) => ['id' => $r->id, 'name' => $r->name]),
+                    'role_names_vi' => $teacher->user->role_names_vi,  // Accessor tiếng Việt nếu có
+                ] : null,
             ],
             'assignments' => $assignments,
         ]);
@@ -125,17 +145,27 @@ class TeacherController extends Controller
     /**
      * Form chỉnh sửa
      */
-    public function edit(User $teacher)
+    public function edit(Teacher $teacher)
     {
-        abort_unless($teacher->hasRole('teacher'), 404);
+        $teacher->load('user');
 
         return Inertia::render('Manager/Teachers/Edit', [
             'teacher' => [
-                'id'     => $teacher->id,
-                'name'   => $teacher->name,
-                'email'  => $teacher->email,
-                'phone'  => $teacher->phone,
-                'active' => $teacher->active,
+                'id'              => $teacher->id,
+                'user_id'         => $teacher->user_id,
+                'code'            => $teacher->code,
+                'full_name'       => $teacher->full_name,
+                'email'           => $teacher->email,
+                'phone'           => $teacher->phone,
+                'address'         => $teacher->address,
+                'national_id'     => $teacher->national_id,
+                'photo_path'      => $teacher->photo_path,
+                'education_level' => $teacher->education_level,
+                'status'          => $teacher->status,
+                'notes'           => $teacher->notes,
+                'user'            => $teacher->user ? [
+                    'active' => $teacher->user->active,
+                ] : null,
             ]
         ]);
     }
@@ -143,26 +173,37 @@ class TeacherController extends Controller
     /**
      * Cập nhật giáo viên
      */
-    public function update(UpdateTeacherRequest $request, User $teacher)
+    public function update(UpdateTeacherRequest $request, Teacher $teacher)
     {
-        abort_unless($teacher->hasRole('teacher'), 404);
-
         $data = $request->validated();
 
-        // Cập nhật thông tin cơ bản
-        $updateData = [
-            'name'   => $data['name'],
-            'email'  => $data['email'] ?? null,
-            'phone'  => $data['phone'] ?? null,
-            'active' => $data['active'] ?? true,
-        ];
-
-        // Thêm password nếu có
-        if (isset($data['password'])) {
-            $updateData['password'] = $data['password'];
+        // Cập nhật User liên kết
+        if ($teacher->user) {
+            $userUpdateData = [
+                'name'   => $data['full_name'],
+                'email'  => $data['email'] ?? null,
+                'phone'  => $data['phone'] ?? null,
+                'active' => $data['active'] ?? true,
+            ];
+            if (isset($data['password'])) {
+                $userUpdateData['password'] = $data['password'];
+            }
+            $teacher->user->update($userUpdateData);
         }
 
-        $teacher->update($updateData);
+        // Cập nhật Teacher
+        $teacher->update([
+            'code'            => $data['code'] ?? $teacher->code,
+            'full_name'       => $data['full_name'],
+            'phone'           => $data['phone'] ?? null,
+            'email'           => $data['email'] ?? null,
+            'address'         => $data['address'] ?? null,
+            'national_id'     => $data['national_id'] ?? null,
+            'photo_path'      => $data['photo_path'] ?? null,
+            'education_level' => $data['education_level'] ?? null,
+            'status'          => $data['status'] ?? $teacher->status,
+            'notes'           => $data['notes'] ?? null,
+        ]);
 
         return back()->with('success', 'Đã cập nhật giáo viên thành công.');
     }
@@ -170,12 +211,31 @@ class TeacherController extends Controller
     /**
      * Xoá giáo viên
      */
-    public function destroy(User $teacher)
+    public function destroy(Teacher $teacher)
     {
-        abort_unless($teacher->hasRole('teacher'), 404);
+        // Kiểm tra xem Teacher có relationship active không
+        $hasRelationships = $teacher->assignments()->exists() || $teacher->timesheets()->exists();
 
-        $teacher->delete();
+        if ($hasRelationships) {
+            // Nếu có relationship, chuyển status về 'terminated' và deactive User
+            $teacher->update(['status' => 'terminated']);
 
-        return back()->with('success', 'Đã xoá giáo viên thành công.');
+            // Kiểm tra sau update
+            $teacher->refresh();
+
+            if ($teacher->user) {
+                $teacher->user->update(['active' => false]);
+            }
+            $message = 'Đã chuyển giáo viên về trạng thái đã chấm dứt và vô hiệu hóa tài khoản.';
+        } else {
+            // Nếu không có relationship, xóa Teacher và User
+            $teacher->delete();
+            if ($teacher->user) {
+                $teacher->user->delete();
+            }
+            $message = 'Đã xóa giáo viên thành công.';
+        }
+
+        return back()->with('success', $message);
     }
 }

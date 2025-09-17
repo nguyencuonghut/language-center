@@ -10,12 +10,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Teacher extends Model
 {
     protected $fillable = [
-        'user_id','code','full_name','phone','email','address',
-        'national_id','photo_path','education_level','notes',
+        'user_id',
+        'code',
+        'full_name',
+        'phone',
+        'email',
+        'address',
+        'national_id',
+        'photo_path',
+        'education_level',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
-        'national_id' => 'encrypted',
+        'education_level' => 'string',  // Hoặc enum nếu cần
+        'status' => 'string',  // Đảm bảo cast đúng
     ];
 
     public function user(): BelongsTo {
