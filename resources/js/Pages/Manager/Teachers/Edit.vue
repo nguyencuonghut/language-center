@@ -15,6 +15,7 @@ import Select from 'primevue/select'
 import FileUpload from 'primevue/fileupload'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
+import { Link } from '@inertiajs/vue3'
 
 defineOptions({ layout: AppLayout })
 
@@ -103,6 +104,22 @@ const onUpdate = () => {
     <Head :title="`Sửa Giáo viên: ${form.full_name || form.code}`" />
 
     <h1 class="text-2xl font-semibold">Sửa hồ sơ giáo viên</h1>
+
+    <div class="flex justify-end gap-3 mb-5">
+      <Link
+        :href="route('manager.teachers.show', { teacher: props.teacher.id })"
+        class="px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-800"
+      >
+        Chi tiết giáo viên
+      </Link>
+
+      <Link
+        :href="route('manager.teachers.index')"
+        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+      >
+        ← Danh sách giáo viên
+      </Link>
+    </div>
 
     <Tabs value="profile">
       <TabList>
