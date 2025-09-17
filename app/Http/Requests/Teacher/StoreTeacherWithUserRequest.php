@@ -24,7 +24,7 @@ class StoreTeacherWithUserRequest extends FormRequest
 
             // --- Tab 2: Hồ sơ Teacher ---
             'teacher.code' => ['required','string','max:191','unique:teachers,code'],
-            'teacher.full_name' => ['required','string','max:191'],
+            'teacher.name' => ['required','string','max:191'],
             'teacher.phone' => ['nullable','string','max:50','unique:teachers,phone'],
             'teacher.email' => ['nullable','email','max:191','unique:teachers,email'],
             'teacher.address' => ['nullable','string'],
@@ -49,7 +49,7 @@ class StoreTeacherWithUserRequest extends FormRequest
             'user.active.required' => 'Trạng thái kích hoạt là bắt buộc.',
             'teacher.code.required' => 'Mã giáo viên là bắt buộc.',
             'teacher.code.unique' => 'Mã giáo viên đã tồn tại.',
-            'teacher.full_name.required' => 'Họ và tên giáo viên là bắt buộc.',
+            'teacher.name.required' => 'Họ và tên giáo viên là bắt buộc.',
             'teacher.phone.unique' => 'Số điện thoại đã tồn tại.',
             'teacher.email.unique' => 'Email giáo viên đã tồn tại.',
             'teacher.email.email' => 'Email giáo viên không đúng định dạng.',

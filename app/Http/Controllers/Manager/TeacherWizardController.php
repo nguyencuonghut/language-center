@@ -56,7 +56,7 @@ class TeacherWizardController extends Controller
             $teacher = Teacher::create([
                 'user_id' => $user->id,
                 'code' => $data['teacher']['code'],
-                'full_name' => $data['teacher']['full_name'],
+                'name' => $data['teacher']['name'],
                 'phone' => $data['teacher']['phone'] ?? null,
                 'email' => $data['teacher']['email'] ?? $user->email,
                 'address' => $data['teacher']['address'] ?? null,

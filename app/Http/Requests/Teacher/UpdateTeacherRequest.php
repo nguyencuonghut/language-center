@@ -19,7 +19,7 @@ class UpdateTeacherRequest extends FormRequest
         return [
             'user_id' => ['nullable','exists:users,id'],
             'code' => ['sometimes','required','string','max:191', Rule::unique('teachers','code')->ignore($teacherId)],
-            'full_name' => ['sometimes','required','string','max:191'],
+            'name' => ['sometimes','required','string','max:191'],
             'phone' => ['nullable','string','max:50', Rule::unique('teachers','phone')->ignore($teacherId)],
             'email' => ['nullable','email','max:191', Rule::unique('teachers','email')->ignore($teacherId)],
             'address' => ['nullable','string'],
@@ -37,7 +37,7 @@ class UpdateTeacherRequest extends FormRequest
         return [
             'code.required' => 'Mã giáo viên là bắt buộc.',
             'code.unique' => 'Mã giáo viên đã tồn tại.',
-            'full_name.required' => 'Họ và tên giáo viên là bắt buộc.',
+            'name.required' => 'Họ và tên giáo viên là bắt buộc.',
             'phone.unique' => 'Số điện thoại đã tồn tại.',
             'email.unique' => 'Email giáo viên đã tồn tại.',
             'email.email' => 'Email giáo viên không đúng định dạng.',
@@ -54,7 +54,7 @@ class UpdateTeacherRequest extends FormRequest
     {
         return [
             'code' => 'Mã giáo viên',
-            'full_name' => 'Họ và tên',
+            'name' => 'Họ và tên',
             'phone' => 'Số điện thoại',
             'email' => 'Email',
             'address' => 'Địa chỉ',

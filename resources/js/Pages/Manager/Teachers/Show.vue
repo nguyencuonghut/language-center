@@ -103,12 +103,12 @@ const onDetach = (certId) => {
 
 <template>
   <div class="p-6 space-y-6">
-    <Head :title="`Giáo viên: ${props.teacher.full_name} (${props.teacher.code})`" />
+    <Head :title="`Giáo viên: ${props.teacher.name} (${props.teacher.code})`" />
 
     <div class="flex items-start justify-between gap-4">
       <div>
         <h1 class="text-2xl font-semibold">
-          {{ props.teacher.full_name }}
+          {{ props.teacher.name }}
           <span class="text-gray-500 font-normal">• {{ props.teacher.code }}</span>
         </h1>
         <div class="mt-1 text-sm text-gray-500">

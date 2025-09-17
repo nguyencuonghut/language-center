@@ -113,7 +113,7 @@ function getStatusDisplay(status) {
     >
       <Column field="id" header="#" style="width: 80px" />
 
-      <Column field="full_name" header="Tên" style="min-width: 200px" />
+      <Column field="name" header="Tên" style="min-width: 200px" />
 
       <Column field="email" header="Email" style="min-width: 200px">
         <template #body="{ data }">

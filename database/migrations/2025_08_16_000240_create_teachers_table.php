@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('code')->unique();
-            $table->string('full_name')->index();
+            $table->string('name')->index();
 
             $table->string('phone')->nullable()->unique();
             $table->string('email')->nullable()->unique();

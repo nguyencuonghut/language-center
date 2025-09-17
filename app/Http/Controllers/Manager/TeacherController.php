@@ -28,14 +28,14 @@ class TeacherController extends Controller
         ];
 
         $teachers = Teacher::when($request->search, function ($query, $search) use ($educationMapping) {
-                $query->where('full_name', 'like', "%{$search}%")
+                $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%")
                       // Thêm search cho education_level bằng tiếng Việt (case-insensitive)
                       ->orWhere('education_level', $educationMapping[strtolower(trim($search))] ?? null);
             })
-            ->select('id', 'full_name', 'email', 'phone', 'status', 'education_level', 'created_at')
-            ->orderBy('full_name')
+            ->select('id', 'name', 'email', 'phone', 'status', 'education_level', 'created_at')
+            ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
@@ -87,7 +87,7 @@ class TeacherController extends Controller
                 'id' => $teacher->id,
                 'user_id' => $teacher->user_id,
                 'code' => $teacher->code,
-                'full_name' => $teacher->full_name,
+                'name' => $teacher->name,
                 'phone' => $teacher->phone,
                 'email' => $teacher->email,
                 'address' => $teacher->address,
@@ -124,7 +124,7 @@ class TeacherController extends Controller
     {
         return Inertia::render('Manager/Teachers/Edit', [
             'teacher' => $teacher->only([
-                'id','user_id','code','full_name','phone','email','address',
+                'id','user_id','code','name','phone','email','address',
                 'national_id','photo_path','education_level','status','notes'
             ]),
             'educationLevels' => ['bachelor','engineer','master','phd','other'],

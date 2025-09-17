@@ -64,7 +64,7 @@ const form = useForm({
   },
   teacher: {
     code: '',
-    full_name: '',
+    name: '',
     phone: '',
     email: '',
     address: '',
@@ -145,8 +145,8 @@ const onSubmit = () => {
 
             <div>
               <label class="block text-sm font-medium mb-1">Họ tên đầy đủ</label>
-              <InputText v-model="form.teacher.full_name" class="w-full" />
-              <small v-if="form.errors['teacher.full_name']" class="text-red-500">{{ form.errors['teacher.full_name'] }}</small>
+              <InputText v-model="form.teacher.name" class="w-full" />
+              <small v-if="form.errors['teacher.name']" class="text-red-500">{{ form.errors['teacher.name'] }}</small>
             </div>
 
             <div>

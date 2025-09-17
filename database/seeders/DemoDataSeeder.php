@@ -86,7 +86,7 @@ class DemoDataSeeder extends Seeder
                     ['user_id' => $t->id],
                     [
                         'code' => $code,
-                        'full_name' => $t->name,
+                        'name' => $t->name,
                         'email' => $t->email,
                         'phone' => $t->phone,
                         'address' => $this->faker->address(),

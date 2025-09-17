@@ -53,7 +53,7 @@ function labelStatus(v) {
 
 const form = useForm({
   code: props.teacher.code ?? '',
-  full_name: props.teacher.full_name ?? '',
+  name: props.teacher.name ?? '',
   phone: props.teacher.phone ?? '',
   email: props.teacher.email ?? '',
   address: props.teacher.address ?? '',
@@ -101,7 +101,7 @@ const onUpdate = () => {
 
 <template>
   <div class="p-6 space-y-6">
-    <Head :title="`Sửa Giáo viên: ${form.full_name || form.code}`" />
+    <Head :title="`Sửa Giáo viên: ${form.name || form.code}`" />
 
     <h1 class="text-2xl font-semibold">Sửa hồ sơ giáo viên</h1>
 
@@ -138,8 +138,8 @@ const onUpdate = () => {
 
             <div>
               <label class="block text-sm font-medium mb-1">Họ tên đầy đủ</label>
-              <InputText v-model="form.full_name" class="w-full" />
-              <small v-if="form.errors.full_name" class="text-red-500">{{ form.errors.full_name }}</small>
+              <InputText v-model="form.name" class="w-full" />
+              <small v-if="form.errors.name" class="text-red-500">{{ form.errors.name }}</small>
             </div>
 
             <div>
