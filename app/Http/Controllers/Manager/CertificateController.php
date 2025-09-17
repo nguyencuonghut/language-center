@@ -53,7 +53,7 @@ class CertificateController extends Controller
     public function update(UpdateCertificateRequest $request, Certificate $certificate)
     {
         $certificate->update($request->validated());
-        return redirect()->route('manager.certificates.edit', $certificate->id)->with('success','Cập nhật chứng chỉ thành công.');
+        return redirect()->route('manager.certificates.index', $certificate->id)->with('success','Cập nhật chứng chỉ thành công.');
     }
 
     public function destroy(Certificate $certificate)

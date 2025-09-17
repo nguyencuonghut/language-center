@@ -23,6 +23,7 @@ use App\Http\Controllers\Manager\PayrollController;
 use App\Http\Controllers\Manager\StudentController;
 use App\Http\Controllers\Manager\TeacherController;
 use App\Http\Controllers\Manager\CertificateController;
+use App\Http\Controllers\Manager\TeacherCertificateController;
 use App\Http\Controllers\Manager\TeacherWizardController;
 use App\Http\Controllers\Manager\InvoiceController;
 use App\Http\Controllers\Manager\InvoiceItemController;
@@ -447,6 +448,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('certificates/{certificate}/edit', [CertificateController::class,'edit'])->name('certificates.edit');
         Route::put('certificates/{certificate}', [CertificateController::class,'update'])->name('certificates.update');
         Route::delete('certificates/{certificate}', [CertificateController::class,'destroy'])->name('certificates.destroy');
+
+        // Teacher-Certificate (gán/chuyển chứng chỉ cho giáo viên)
+        Route::post('teachers/{teacher}/certificates', [TeacherCertificateController::class,'attach'])
+        ->name('teachers.certificates.attach');
+        Route::delete('teachers/{teacher}/certificates/{certificate}', [TeacherCertificateController::class,'detach'])
+        ->name('teachers.certificates.detach');
 
         // TEACHING ASSIGNMENTS (Phân công dạy)
         Route::prefix('classrooms/{classroom}')->as('classrooms.')->group(function () {

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\StoreTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
 use App\Models\Teacher;
-use App\Models\TeachingAssignment;
+use App\Models\Certificate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -78,6 +78,10 @@ class TeacherController extends Controller
                 ->get(['id','teacher_id','class_id','effective_from','effective_to']);
         }
 
+        // Lấy danh sách chứng chỉ (id, code, name)
+        $allCertificates = Certificate::select('id', 'code', 'name')->orderBy('name')->get();
+
+
         return inertia('Manager/Teachers/Show', [
             'teacher' => [
                 'id' => $teacher->id,
@@ -108,7 +112,8 @@ class TeacherController extends Controller
                     ],
                 ];
             })->values(),
-            'assignments' => $assignments, // có thể rỗng nếu bạn chưa dùng
+            'assignments' => $assignments, // có thể rỗng nếu bạn chưa dùng,
+            'allCertificates' => $allCertificates,
         ]);
     }
 

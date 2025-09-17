@@ -1,7 +1,7 @@
 <script setup>
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 // PrimeVue v4 local imports (nếu bạn không đăng ký global)
 import Tabs from 'primevue/tabs'
@@ -12,15 +12,20 @@ import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
+import FileUpload from 'primevue/fileupload'
+import InputText from 'primevue/inputtext'
 
-// Card, Tag, Button… nếu đăng ký global thì không cần import
+import CertificateService from '@/service/CertificateService'
 
 defineOptions({ layout: AppLayout })
 
 const props = defineProps({
   teacher: Object,
-  certificates: Array,
-  assignments: { type: Array, default: () => [] }
+  certificates: Array,            // chứng chỉ đã gán cho GV
+  assignments: { type: Array, default: () => [] },
+  allCertificates: { type: Array, default: () => [] } // danh sách tất cả chứng chỉ để attach
 })
 
 const eduLabel = (v) => ({
@@ -44,6 +49,56 @@ const photoUrl = computed(() =>
 )
 
 const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.id))
+
+// ===== Attach/Detach dialog state =====
+const showAttach = ref(false)
+const dialogKey = ref(0)          // 👈 ép remount nội dung dialog
+const fileRef = ref(null)         // 👈 ref để .clear() FileUpload
+
+const defaults = {
+  certificate_id: null,
+  credential_no: '',
+  issued_by: '',
+  issued_at: '',
+  expires_at: '',
+  file: null
+}
+const attachForm = useForm({ ...defaults })
+
+const hardResetAttach = () => {
+  // reset tường minh + xoá lỗi + clear file + tăng key để remount
+  attachForm.defaults({ ...defaults })  // đặt default mới
+  attachForm.reset()                    // reset về default
+  attachForm.clearErrors()
+  if (fileRef.value?.clear) fileRef.value.clear()
+  dialogKey.value++
+}
+
+const openAttach = () => {
+  hardResetAttach()
+  showAttach.value = true
+}
+
+const onSelectAttachFile = (e) => {
+  attachForm.file = e.files?.[0] ?? null
+}
+
+const onAttach = () => {
+  CertificateService.attachTeacher(props.teacher.id, attachForm, {
+    onSuccess: () => {
+      showAttach.value = false
+      hardResetAttach()
+    },
+    onFinish: () => {
+      //
+    }
+  })
+}
+
+const onDetach = (certId) => {
+  if (!confirm('Bỏ gán chứng chỉ này?')) return
+  CertificateService.detachTeacher(props.teacher.id, certId)
+}
 </script>
 
 <template>
@@ -141,16 +196,35 @@ const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.i
           <div class="rounded-xl border p-4">
             <div class="flex items-center justify-between mb-3">
               <h3 class="font-semibold">Danh sách chứng chỉ</h3>
-              <Button label="Quản lý chứng chỉ" icon="pi pi-external-link" outlined @click="$inertia.visit(route('manager.certificates.index') || '#')" />
+              <div class="flex gap-2">
+                <Button label="Gán chứng chỉ" icon="pi pi-plus" @click="openAttach" />
+                <Button label="Quản lý chứng chỉ" icon="pi pi-external-link" outlined @click="$inertia.visit(route('manager.certificates.index') || '#')" />
+              </div>
             </div>
 
             <DataTable :value="props.certificates" size="small" class="w-full">
               <Column field="code" header="Mã" />
               <Column field="name" header="Tên chứng chỉ" />
-              <Column header="Số hiệu" :body="(row) => row.pivot?.credential_no || '—'" />
-              <Column header="Đơn vị cấp" :body="(row) => row.pivot?.issued_by || '—'" />
-              <Column header="Ngày cấp" :body="(row) => row.pivot?.issued_at || '—'" />
-              <Column header="Hết hạn" :body="(row) => row.pivot?.expires_at || '—'" />
+              <Column header="Số hiệu">
+                <template #body="slotProps">
+                  {{ slotProps.data.pivot?.credential_no || '—' }}
+                </template>
+              </Column>
+              <Column header="Đơn vị cấp">
+                <template #body="slotProps">
+                  {{ slotProps.data.pivot?.issued_by || '—' }}
+                </template>
+              </Column>
+              <Column header="Ngày cấp">
+                <template #body="slotProps">
+                  {{ slotProps.data.pivot?.issued_at || '—' }}
+                </template>
+              </Column>
+              <Column header="Hết hạn">
+                <template #body="slotProps">
+                  {{ slotProps.data.pivot?.expires_at || '—' }}
+                </template>
+              </Column  >
               <Column header="File">
                 <template #body="slotProps">
                   <span v-if="slotProps.data.pivot?.file_path">
@@ -159,8 +233,77 @@ const onEdit = () => router.visit(route('manager.teachers.edit', props.teacher.i
                   <span v-else>—</span>
                 </template>
               </Column>
+              <Column header="Thao tác" style="width: 140px">
+                <template #body="slotProps">
+                  <Button label="Bỏ gán" size="small" severity="danger" outlined
+                          @click="onDetach(slotProps.data.id)" />
+                </template>
+              </Column>
             </DataTable>
           </div>
+
+          <!-- Dialog Gán chứng chỉ -->
+          <Dialog
+            v-if="showAttach"
+            :key="dialogKey"
+            v-model:visible="showAttach"
+            header="Gán chứng chỉ cho giáo viên"
+            modal
+            class="w-full md:w-2/3"
+            @hide="hardResetAttach"
+            >
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium mb-1">Chứng chỉ</label>
+                <Select
+                  v-model="attachForm.certificate_id"
+                  :options="props.allCertificates"
+                  optionLabel="name"
+                  optionValue="id"
+                  placeholder="Chọn chứng chỉ"
+                  class="w-full"
+                />
+                <small v-if="attachForm.errors.certificate_id" class="text-red-500">{{ attachForm.errors.certificate_id }}</small>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-medium mb-1">Số hiệu</label>
+                  <InputText v-model="attachForm.credential_no" class="w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Đơn vị cấp</label>
+                  <InputText v-model="attachForm.issued_by" class="w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Ngày cấp</label>
+                  <InputText type="date" v-model="attachForm.issued_at" class="w-full" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Ngày hết hạn</label>
+                  <InputText type="date" v-model="attachForm.expires_at" class="w-full" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">File đính kèm</label>
+                <FileUpload
+                    ref="fileRef"
+                    mode="basic"
+                    accept="application/pdf,image/*"
+                    customUpload
+                    :auto="false"
+                    @select="onSelectAttachFile"
+                />
+                <small v-if="attachForm.errors.file" class="text-red-500">{{ attachForm.errors.file }}</small>
+              </div>
+            </div>
+
+            <template #footer>
+              <Button label="Lưu" @click="onAttach" :disabled="attachForm.processing" />
+              <Button label="Hủy" severity="secondary" outlined @click="showAttach = false" />
+            </template>
+          </Dialog>
         </TabPanel>
 
         <!-- PHÂN CÔNG GẦN ĐÂY (tuỳ chọn) -->
