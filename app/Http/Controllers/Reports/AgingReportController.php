@@ -14,7 +14,6 @@ class AgingReportController extends Controller
 {
     public function __invoke(Request $request)
     {
-        \Log::info($request->all());
         $context = $request->routeIs('admin.*') ? 'admin' : 'manager';
 
         // --- Parse filters chịu lỗi ---
@@ -22,10 +21,10 @@ class AgingReportController extends Controller
             ->filter(fn($id) => $id) // loại bỏ null/0 nếu có
             ->map(fn($id) => (int)$id)
             ->values();
-        [$startDate, $endDate] = $this->parseDateRange(
-            $request->input('start_date'),
-            $request->input('end_date')
-        );
+
+        // Ngày bắt đầu/kết thúc (mặc định tháng hiện tại)
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfMonth();
 
         // --- Build query base ---
         $base = StudentLedgerEntry::query();
@@ -156,45 +155,5 @@ class AgingReportController extends Controller
         if ($raw === null) return null;
         $v = (int) $raw;
         return $v > 0 ? $v : null;
-    }
-
-    /**
-     * Chấp nhận các định dạng: 'YYYY-MM-DD', 'DD/MM/YYYY', ISO date, Date string FE gửi lên.
-     * Nếu trống -> default 30 ngày gần nhất.
-     */
-    private function parseDateRange($from, $to): array
-    {
-        $parse = function ($s): ?Carbon {
-            if (!$s) return null;
-            if ($s instanceof Carbon) return $s;
-            $str = (string)$s;
-
-            // Thử DD/MM/YYYY
-            if (preg_match('#^\d{2}/\d{2}/\d{4}$#', $str)) {
-                return Carbon::createFromFormat('d/m/Y', $str)->startOfDay();
-            }
-
-            // Thử YYYY-MM-DD hoặc ISO
-            try {
-                return Carbon::parse($str)->startOfDay();
-            } catch (\Throwable $e) {
-                return null;
-            }
-        };
-
-        $df = $parse($from);
-        $dt = $parse($to);
-
-        if (!$df && !$dt) {
-            // default 30 ngày gần nhất
-            $dt = Carbon::now()->endOfDay();
-            $df = (clone $dt)->subDays(30)->startOfDay();
-        } elseif ($df && !$dt) {
-            $dt = Carbon::now()->endOfDay();
-        } elseif (!$df && $dt) {
-            $df = (clone $dt)->subDays(30)->startOfDay();
-        }
-
-        return [$df, $dt];
     }
 }
