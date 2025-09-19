@@ -22,6 +22,7 @@ use App\Models\Enrollment;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
+use App\Services\StudentLedger;
 
 use Faker\Factory as FakerFactory;
 
@@ -335,6 +336,22 @@ class DemoDataSeeder extends Seeder
                         'due_date'  => Carbon::parse($class->start_date)->addDays(10),
                     ]);
 
+                    // Ghi nhận công nợ học sinh
+                    // (thực tế có thể có nhiều entry hơn, ví dụ: điều chỉnh giảm, chiết khấu, v.v.)
+                    StudentLedger::debit([
+                        'student_id' => $stu->id,
+                        'entry_date' => $invoice->created_at->toDateString(),
+                        'type'       => 'invoice',
+                        'ref_type'   => 'invoices',
+                        'ref_id'     => $invoice->id,
+                        'amount'     => $invoice->total,
+                        'note'       => 'Invoice #' . $invoice->id,
+                        'meta'       => [
+                            'invoice_code' => $invoice->code,
+                            'class_id'   => $class->id,
+                        ],
+                    ]);
+
                     InvoiceItem::create([
                         'invoice_id'  => $invoice->id,
                         'type'        => 'tuition',
@@ -347,12 +364,27 @@ class DemoDataSeeder extends Seeder
                     // Một số thanh toán 1 phần hoặc đủ
                     if (rand(0, 1)) {
                         $amount = Arr::random([500000, 1000000, (int) $class->tuition_fee]);
-                        Payment::create([
+                        $payment = Payment::create([
                             'invoice_id' => $invoice->id,
                             'method'     => Arr::random(['cash', 'bank', 'momo']),
                             'paid_at'    => now()->subDays(rand(0, 5)),
                             'amount'     => (int) $amount,
                             'ref_no'     => 'PMT' . rand(1000, 9999),
+                        ]);
+
+                        // Ghi nhận thanh toán vào sổ công nợ học sinh
+                        StudentLedger::credit([
+                            'student_id' => $stu->id,
+                            'entry_date' => $payment->paid_at ? Carbon::parse($payment->paid_at)->toDateString() : now()->toDateString(),
+                            'type'       => 'payment',
+                            'ref_type'   => 'payments',
+                            'ref_id'     => $payment->id,
+                            'amount'     => $payment->amount,
+                            'note'       => 'Payment #' . $payment->id,
+                            'meta'       => [
+                                'invoice_id' => $invoice->id,
+                                'method'     => $payment->method,
+                            ],
                         ]);
 
                         if ($amount >= $class->tuition_fee) {

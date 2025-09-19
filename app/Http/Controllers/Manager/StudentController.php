@@ -205,6 +205,17 @@ class StudentController extends Controller
                 'active' => (bool) $student->active,
                 'created_at' => optional($student->created_at)->toDateTimeString(),
             ],
+            // số dư
+            'ledger' => [
+                'balance' => $student->ledgerBalance(),
+                'recent'  => $student->recentLedgerEntries(10)->map(fn($e) => [
+                    'entry_date' => $e->entry_date->toDateString(),
+                    'type'       => $e->type,
+                    'debit'      => $e->debit,
+                    'credit'     => $e->credit,
+                    'note'       => $e->note,
+                ]),
+            ],
             'enrollments'        => $enrollments,
             'invoices'           => $invoices,
             'attendanceSummary'  => $attendanceSummary,

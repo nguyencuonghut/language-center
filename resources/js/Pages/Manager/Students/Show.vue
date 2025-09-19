@@ -27,6 +27,7 @@ const props = defineProps({
   enrollments: Array, // [{id,class_id,class_code,class_name,start_session_no,enrolled_at,status}]
   invoices: Array, // [{id,total,status,due_date,created_at,invoice_items:[],payments:[]}]
   attendanceSummary: Object, // {present:0,absent:0,late:0,excused:0}
+  ledger: Object, // 👈 thêm
 })
 
 function toDdMmYyyy(d){
@@ -344,6 +345,7 @@ const confirmRetarget = () => {
       <Tab value="0">Ghi danh</Tab>
       <Tab value="1">Hoá đơn & thanh toán</Tab>
       <Tab value="2">Điểm danh (tổng quan)</Tab>
+      <Tab value="3">Công nợ</Tab>
     </TabList>
 
     <TabPanels>
@@ -473,6 +475,45 @@ const confirmRetarget = () => {
         </div>
       </TabPanel>
     </TabPanels>
+
+    <!-- LEDGER / CÔNG NỢ -->
+    <TabPanel value="3">
+    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
+        <div class="text-lg font-semibold">
+        Số dư hiện tại:
+        <span :class="props.ledger.balance > 0 ? 'text-red-600' : 'text-green-600'">
+            {{ new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(props.ledger.balance) }}
+        </span>
+        </div>
+
+        <DataTable :value="props.ledger.recent || []" size="small" responsiveLayout="scroll">
+        <Column field="entry_date" header="Ngày" style="width: 140px" />
+        <Column field="type" header="Loại" style="width: 140px" />
+        <Column field="note" header="Ghi chú" />
+        <Column field="debit" header="Nợ" style="width: 140px">
+            <template #body="{ data }">
+            <span v-if="data.debit > 0">
+                {{ new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(data.debit) }}
+            </span>
+            <span v-else>—</span>
+            </template>
+        </Column>
+        <Column field="credit" header="Có" style="width: 140px">
+            <template #body="{ data }">
+            <span v-if="data.credit > 0">
+                {{ new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(data.credit) }}
+            </span>
+            <span v-else>—</span>
+            </template>
+        </Column>
+
+        <template #empty>
+            <div class="p-4 text-center text-slate-500 dark:text-slate-400">Chưa có phát sinh công nợ.</div>
+        </template>
+        </DataTable>
+    </div>
+    </TabPanel>
+
   </Tabs>
 
   <!-- Transfer Form Modal -->

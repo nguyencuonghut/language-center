@@ -9,8 +9,11 @@ use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Student;
 use App\Models\Classroom;
+use App\Models\StudentLedgerEntry;
+use App\Services\StudentLedger;
 use App\Services\InvoiceCalculator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Database\Eloquent\Builder;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -168,9 +171,14 @@ class InvoiceController extends Controller
             'due_date'  => $data['due_date'] ?? null,
         ]);
 
-        return redirect()
-            ->route('manager.invoices.show', $invoice->id)
-            ->with('success', 'Đã tạo hoá đơn thành công.');
+        // Ghi sổ công nợ
+        DB::transaction(function () use (&$invoice) {
+            // tạo $invoice, tính $invoice->total, save()...
+            $this->writeInvoiceLedger($invoice); // 👈 ghi/điều chỉnh ledger
+        });
+
+        return redirect()->route('manager.invoices.show', $invoice->id)
+            ->with('success', 'Đã tạo hoá đơn & ghi sổ công nợ.');
     }
 
     /**
@@ -214,7 +222,13 @@ class InvoiceController extends Controller
             'due_date'   => $data['due_date'] ?? null,
         ]);
 
-        return redirect()->route('manager.invoices.show', $invoice)->with('success', 'Đã cập nhật hoá đơn.');
+        // Cập nhật sổ công nợ (idempotent theo ref)
+        DB::transaction(function () use ($invoice) {
+            // ... cập nhật invoice, items, tính lại total, save()...
+            $this->writeInvoiceLedger($invoice); // 👈 cập nhật ledger (idempotent theo ref)
+        });
+
+        return redirect()->route('manager.invoices.show', $invoice)->with('success', 'Đã cập nhật hoá đơn & sổ công nợ');
     }
 
     /**
@@ -229,7 +243,14 @@ class InvoiceController extends Controller
         $invoice->invoiceItems()->delete();
         $invoice->delete();
 
-        return redirect()->route('manager.invoices.index')->with('success', 'Đã xoá hoá đơn.');
+        // Xoá sổ công nợ liên quan
+        DB::transaction(function () use ($invoice) {
+            // ... logic xoá invoice + items + payments (nếu có)
+            $this->deleteInvoiceLedger($invoice); // 👈 xoá dòng ledger liên quan hoá đơn
+            $invoice->delete();
+        });
+
+        return redirect()->route('manager.invoices.index')->with('success', 'Đã xoá hoá đơn & sổ công nợ.');
     }
 
     public function pdf(Invoice $invoice)
@@ -259,5 +280,28 @@ class InvoiceController extends Controller
 
         $pdf = Pdf::loadView('pdf.invoice', compact('invoice', 'paid', 'remaining'));
         return $pdf->stream('invoice_'.$invoice->id.'.pdf'); // download() nếu muốn tải về
+    }
+
+    protected function writeInvoiceLedger(Invoice $invoice): void
+    {
+        StudentLedger::debit([
+            'student_id' => $invoice->student_id,
+            'entry_date' => optional($invoice->issue_date)->toDateString() ?? now()->toDateString(),
+            'type'       => 'invoice',
+            'ref_type'   => 'invoices',
+            'ref_id'     => $invoice->id,
+            'amount'     => (float) $invoice->total, // total hiện tại
+            'note'       => 'Invoice #'.$invoice->code,
+            'meta'       => ['invoice_code' => $invoice->code],
+        ]);
+    }
+
+    protected function deleteInvoiceLedger(Invoice $invoice): void
+    {
+        // Dev: xoá thẳng. (Sau này production có thể đổi thành tạo bút toán đảo)
+        StudentLedgerEntry::query()
+            ->where('ref_type', 'invoices')
+            ->where('ref_id', $invoice->id)
+            ->delete();
     }
 }
