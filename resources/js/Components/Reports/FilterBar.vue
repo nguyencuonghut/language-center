@@ -45,6 +45,7 @@
             class="w-full sm:w-48"
             display="chip"
             show-clear
+            filter
           />
 
           <!-- Course filter -->
@@ -59,6 +60,7 @@
             class="w-full sm:w-48"
             display="chip"
             show-clear
+            filter
           />
 
           <!-- Teacher filter (if provided) -->
@@ -73,6 +75,7 @@
             class="w-full sm:w-48"
             display="chip"
             show-clear
+            filter
           />
 
           <!-- Action buttons -->

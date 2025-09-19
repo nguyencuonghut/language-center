@@ -52,7 +52,7 @@ class RevenueReportController extends Controller
                 'branches' => $branchIds,
                 'courses' => $courseIds,
             ],
-            'filter_options' => [
+            'filterOptions' => [
                 'branches' => $branches,
                 'courses' => $courses,
             ],
@@ -150,17 +150,17 @@ class RevenueReportController extends Controller
         $query = Invoice::query()
             ->join('branches', 'invoices.branch_id', '=', 'branches.id');
 
-        // Only join classroom and course if we need course filtering
-        if (!empty($courseIds)) {
-            $query->join('classrooms', 'invoices.class_id', '=', 'classrooms.id');
-        }
-
         if (!empty($branchIds)) {
             $query->whereIn('invoices.branch_id', $branchIds);
         }
 
         if (!empty($courseIds)) {
-            $query->whereIn('classrooms.course_id', $courseIds);
+            // Lọc theo course qua subquery để tránh join classrooms ở base
+            $query->whereIn('invoices.class_id', function ($q) use ($courseIds) {
+                $q->select('id')
+                ->from('classrooms')
+                ->whereIn('course_id', $courseIds);
+            });
         }
 
         return $query;
@@ -260,8 +260,8 @@ class RevenueReportController extends Controller
     private function getRevenueByCourse($startDate, $endDate, $branchIds, $courseIds)
     {
         $query = $this->buildBaseQuery($branchIds, $courseIds)
-            ->join('classrooms', 'invoices.class_id', '=', 'classrooms.id')
-            ->join('courses', 'classrooms.course_id', '=', 'courses.id')
+            ->join('classrooms as cls', 'invoices.class_id', '=', 'cls.id')
+            ->join('courses', 'cls.course_id', '=', 'courses.id')
             ->join('payments', 'invoices.id', '=', 'payments.invoice_id')
             ->whereBetween('payments.paid_at', [$startDate, $endDate]);
 
@@ -272,8 +272,8 @@ class RevenueReportController extends Controller
             ->get()
             ->map(function($item) {
                 return [
-                    'name' => $item->name,
-                    'value' => (int) ($item->revenue ?? 0)
+                    'name'  => $item->name,
+                    'value' => (int) ($item->revenue ?? 0),
                 ];
             });
     }
