@@ -80,6 +80,7 @@ const adminMenu = [
     ready: true,
     submenu: [
       { label: 'Doanh thu', url: '/admin/reports/revenue', ready: true },
+      { label: 'Công nợ', url: '/admin/reports/aging', ready: true },
       { label: 'Lớp & Học viên', url: '/admin/reports/students-classes', ready: true },
       { label: 'Giáo viên & Timesheet', url: '/admin/reports/teachers-timesheet', ready: true },
       { label: 'Chuyển lớp', url: '/admin/reports/transfers', ready: true },
@@ -114,6 +115,7 @@ const managerMenu = [
       { label: 'Lớp', url: '/manager/reports/classes', ready: true },
       { label: 'Giáo viên', url: '/manager/reports/teachers', ready: true },
       { label: 'Tài chính', url: '/manager/reports/finance', ready: true },
+      { label: 'Công nợ', url: '/manager/reports/aging', ready: true },
     ]
   },
 ]

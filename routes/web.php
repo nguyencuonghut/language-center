@@ -36,6 +36,11 @@ use App\Http\Controllers\Manager\TransferAuditController;
 use App\Http\Controllers\Manager\SessionSubstitutionController;
 use App\Http\Controllers\Manager\SubstitutionController;
 use App\Http\Controllers\Manager\ScheduleController as ManagerScheduleController;
+use App\Http\Controllers\Manager\Reports\StudentsReportController;
+use App\Http\Controllers\Manager\Reports\ClassesReportController;
+use App\Http\Controllers\Manager\Reports\TeachersReportController;
+use App\Http\Controllers\Manager\Reports\FinanceReportController;
+use App\Http\Controllers\Reports\AgingReportController;
 use App\Http\Controllers\PrivateFileController;
 
 /*
@@ -149,6 +154,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/students-classes', \App\Http\Controllers\Admin\Reports\StudentsClassesReportController::class)->name('students-classes');
             Route::get('/teachers-timesheet', \App\Http\Controllers\Admin\Reports\TeachersTimesheetReportController::class)->name('teachers-timesheet');
             Route::get('/transfers',       \App\Http\Controllers\Admin\Reports\TransfersReportController::class)->name('transfers');
+            Route::get('/aging', AgingReportController::class)
+                ->name('aging');
         });
 
         // ==========================
@@ -248,10 +255,17 @@ Route::middleware(['auth'])->group(function () {
         // Reports
         // =========================
         Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/students',        \App\Http\Controllers\Manager\Reports\StudentsReportController::class)->name('students');
-            Route::get('/classes',         \App\Http\Controllers\Manager\Reports\ClassesReportController::class)->name('classes');
-            Route::get('/teachers',        \App\Http\Controllers\Manager\Reports\TeachersReportController::class)->name('teachers');
-            Route::get('/finance',         \App\Http\Controllers\Manager\Reports\FinanceReportController::class)->name('finance');
+            Route::get('/students',        [StudentsReportController::class, '__invoke'])
+                ->name('students');
+            Route::get('/classes',         [ClassesReportController::class, '__invoke'])
+                ->name('classes');
+            Route::get('/teachers',        [TeachersReportController::class, '__invoke'])
+                ->name('teachers');
+            Route::get('/finance',         [FinanceReportController::class, '__invoke'])
+                ->name('finance');
+            Route::get('/aging', [AgingReportController::class, '__invoke'])
+                ->name('aging');
+
         });
     });
 
