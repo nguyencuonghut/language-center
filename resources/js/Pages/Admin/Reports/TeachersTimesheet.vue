@@ -97,7 +97,7 @@
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Timesheet Status</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Trạng thái chấm công</h3>
                         </div>
                     </template>
                     <template #content>
@@ -116,7 +116,7 @@
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Teacher Summary</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tổng kết giáo viên</h3>
                         </div>
                     </template>
                     <template #content>
@@ -129,10 +129,10 @@
                                 >
                                     <div>
                                         <div class="font-medium text-gray-900 dark:text-white">
-                                            {{ teacher.teacher_name }}
+                                            {{ teacher.teacher }}
                                         </div>
                                         <div class="text-sm text-gray-600 dark:text-gray-400">
-                                            {{ teacher.total_sessions }} sessions • Status: {{ teacher.status }}
+                                            {{ teacher.sessions_count }} buổi • Trạng thái: {{ statusVi(teacher.status)  }}
                                         </div>
                                     </div>
                                     <div class="text-right">
@@ -217,17 +217,24 @@ const chartData = computed(() => {
     }
 
     // Timesheet Status Funnel
+    const STATUS_META = {
+        draft:    { label: 'Nháp',      color: 'rgba(251, 191, 36, 0.8)' },
+        approved: { label: 'Đã duyệt',  color: 'rgba(16, 185, 129, 0.8)' },
+        locked:   { label: 'Đã khóa',   color: 'rgba(239, 68, 68, 0.8)' },
+    }
+
     if (props.charts?.timesheet_status_funnel?.length) {
+        const items = props.charts.timesheet_status_funnel.map(i => {
+            const key = String(i.name).toLowerCase()
+            return { ...i, key, ...(STATUS_META[key] || {label: i.name, color: '#999'}) }
+        })
+
         data.timesheetStatusFunnel = {
-            labels: props.charts.timesheet_status_funnel.map(item => item.name),
+            labels: items.map(i => i.label),
             datasets: [{
-                data: props.charts.timesheet_status_funnel.map(item => item.value),
-                backgroundColor: [
-                    'rgba(251, 191, 36, 0.8)',   // Draft - yellow
-                    'rgba(16, 185, 129, 0.8)',   // Approved - green
-                    'rgba(239, 68, 68, 0.8)'     // Locked - red
-                ],
-                borderWidth: 2
+            data: items.map(i => i.value),
+            backgroundColor: items.map(i => i.color),
+            borderWidth: 2
             }]
         }
     }
@@ -309,5 +316,17 @@ const formatCurrency = (value) => {
 const formatDate = (dateString) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('vi-VN')
+}
+
+// Trạng thái tiếng Việt cho card Tổng kết giáo viên
+const statusVi = (status) => {
+    if (!status) return ''
+    const normalized = String(status).toLowerCase().trim()
+    const map = {
+        draft: 'Nháp',
+        approved: 'Đã duyệt',
+        locked: 'Đã khóa',
+    }
+    return map[normalized] || status
 }
 </script>

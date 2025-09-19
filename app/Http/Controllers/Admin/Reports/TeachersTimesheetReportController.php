@@ -137,7 +137,7 @@ class TeachersTimesheetReportController extends Controller
     private function buildTimesheetQuery($branchIds = [], $courseIds = [], $teacherIds = [])
     {
         $query = TeacherTimesheet::query()
-            ->join('users as teachers', 'teacher_timesheets.teacher_id', '=', 'teachers.id')
+            ->join('teachers as teachers', 'teacher_timesheets.teacher_id', '=', 'teachers.id')
             ->join('class_sessions', 'teacher_timesheets.class_session_id', '=', 'class_sessions.id')
             ->join('classrooms', 'class_sessions.class_id', '=', 'classrooms.id')
             ->join('branches', 'classrooms.branch_id', '=', 'branches.id');
