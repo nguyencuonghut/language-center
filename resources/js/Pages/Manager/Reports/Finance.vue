@@ -1,4 +1,5 @@
 <template>
+  <Head title="Báo cáo Tài chính" />
   <AppLayout>
     <div class="p-3 md:p-5 space-y-6">
       <!-- Page header -->

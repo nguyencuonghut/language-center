@@ -1,4 +1,5 @@
 <template>
+    <Head title="Báo cáo Học viên" />
     <AppLayout title="Báo cáo Học viên">
         <div class="p-3 md:p-5 space-y-6">
             <!-- Header -->
