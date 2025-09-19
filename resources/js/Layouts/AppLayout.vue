@@ -209,7 +209,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
               :class="[
                 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
                 isActive(item)
-                  ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                  ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                   : 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]',
                 isCollapsed ? 'justify-center' : ''
               ]"
@@ -239,7 +239,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
                 :class="[
                   'w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors text-sm',
                   isActive(subitem)
-                    ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                    ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                     : (subitem.ready
                           ? 'text-[#6b7280] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#9ca3af] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
                           : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed')
@@ -260,7 +260,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             :class="[
               'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors',
               isActive(item)
-                ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                 : (item.ready
                       ? 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
                       : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed'),
@@ -287,7 +287,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
               :class="[
                 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
                 isActive(item)
-                  ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                  ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                   : 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
               ]"
             >
@@ -312,7 +312,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
                 :class="[
                   'w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors text-sm',
                   isActive(subitem)
-                    ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                    ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                     : (subitem.ready
                           ? 'text-[#6b7280] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#9ca3af] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
                           : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed')
@@ -333,7 +333,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
             :class="[
               'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors',
               isActive(item)
-                ? 'text-[#10b981] bg-[#e6f9f3] ring-1 ring-[#b6f0dd] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b] dark:ring-[#10b981]'
+                ? 'text-[#10b981] bg-[#e6f9f3] font-semibold dark:text-[#6ee7b7] dark:bg-[#1e293b]'
                 : (item.ready
                       ? 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]'
                       : 'text-[#b0b7c3] dark:text-[#4b5563] cursor-not-allowed')
