@@ -183,7 +183,7 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
       <div class="flex items-center justify-between mb-2" :class="{ 'justify-center': isCollapsed }">
         <div v-if="!isCollapsed" class="font-bold truncate">Language Center</div>
         <Button
-          :icon="isCollapsed ? 'pi pi-arrow-right' : 'pi pi-arrow-left'"
+          :icon="isCollapsed ? 'pi pi-chevron-circle-right' : 'pi pi-chevron-circle-left'"
           text
           rounded
           @click="isCollapsed = !isCollapsed"
