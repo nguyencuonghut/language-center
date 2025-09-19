@@ -22,6 +22,9 @@ use App\Models\Enrollment;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Payment;
+use App\Models\Teacher;
+use App\Models\Certificate;
+use App\Models\TeacherCertificate;
 use App\Services\StudentLedger;
 
 use Faker\Factory as FakerFactory;
@@ -421,6 +424,51 @@ class DemoDataSeeder extends Seeder
                             ]
                         );
                     }
+                }
+            }
+
+            // ---------------------------
+            // 7) CERTIFICATE and TEACHER CERTIFICATE
+            // ---------------------------
+
+            // Certificates
+            $certificates = [
+                ['name' => 'TESOL', 'code' => 'TESOL', 'description' => 'Teaching English to Speakers of Other Languages'],
+                ['name' => 'IELTS', 'code' => 'IELTS', 'description' => 'International English Language Testing System'],
+                ['name' => 'TOEFL', 'code' => 'TOEFL', 'description' => 'Test of English as a Foreign Language'],
+                ['name' => 'Cambridge CELTA', 'code' => 'CELTA', 'description' => 'Certificate in English Language Teaching to Adults'],
+            ];
+
+            foreach ($certificates as $cert) {
+                Certificate::updateOrCreate(
+                    ['code' => $cert['code']],
+                    [
+                        'name' => $cert['name'],
+                        'description' => $cert['description'],
+                    ]
+                );
+            }
+
+            // Assign certificates to teachers
+            $allCertificates = Certificate::all();
+            $teachers = Teacher::all();
+
+            foreach ($teachers as $teacher) {
+                // Each teacher gets 1-2 random certificates
+                $certs = $allCertificates->random(rand(1, 2));
+                foreach ($certs as $cert) {
+                    TeacherCertificate::updateOrCreate(
+                        [
+                            'teacher_id' => $teacher->id,
+                            'certificate_id' => $cert->id,
+                        ],
+                        [
+                            'issued_at' => now()->subYears(rand(1, 5))->subMonths(rand(0, 11)),
+                            'expires_at' => null, // or set some to expire
+                            'credential_no' => strtoupper($cert->code) . '-' . rand(1000, 9999),
+                            'issued_by' => Arr::random(['British Council', 'Cambridge', 'ETS','TESOL International Association','Other'])
+                        ]
+                    );
                 }
             }
         });
