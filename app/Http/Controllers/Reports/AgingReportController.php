@@ -14,17 +14,18 @@ class AgingReportController extends Controller
 {
     public function __invoke(Request $request)
     {
+        \Log::info($request->all());
         $context = $request->routeIs('admin.*') ? 'admin' : 'manager';
 
         // --- Parse filters chịu lỗi ---
-        $branchId = $this->parseBranchId($request->input('branch_id')); // null nếu '', 0, '0'
-        [$dateFrom, $dateTo] = $this->parseDateRange(
-            $request->input('date_from'),
-            $request->input('date_to')
+        $branchIds = collect($request->input('branches', []))
+            ->filter(fn($id) => $id) // loại bỏ null/0 nếu có
+            ->map(fn($id) => (int)$id)
+            ->values();
+        [$startDate, $endDate] = $this->parseDateRange(
+            $request->input('start_date'),
+            $request->input('end_date')
         );
-        $branchId = $request->integer('branch_id');
-        $dateFrom = $request->date('date_from');
-        $dateTo   = $request->date('date_to');
 
         // --- Build query base ---
         $base = StudentLedgerEntry::query();
@@ -37,13 +38,14 @@ class AgingReportController extends Controller
                 $q->whereIn('branch_id', $managed);
             });
         }
-        if ($branchId) {
-            $base->whereHas('student.enrollments.classroom', function ($q) use ($branchId) {
-                $q->where('branch_id', $branchId);
+        // Áp dụng filter
+        if ($branchIds->isNotEmpty()) {
+            $base->whereHas('student.enrollments.classroom', function ($q) use ($branchIds) {
+                $q->whereIn('branch_id', $branchIds);
             });
         }
-        if ($dateFrom) $base->whereDate('entry_date', '>=', $dateFrom);
-        if ($dateTo)   $base->whereDate('entry_date', '<=', $dateTo);
+        if ($startDate) $base->whereDate('entry_date', '>=', $startDate);
+        if ($endDate)   $base->whereDate('entry_date', '<=', $endDate);
 
         // Tổng hợp theo học viên
         $perStudent = (clone $base)
@@ -125,8 +127,6 @@ class AgingReportController extends Controller
             ->orderBy('name')
             ->get()
             ->values();
-        // Thêm option "Tất cả"
-        //array_unshift($branches, ['id' => null, 'name' => 'Tất cả']);
 
         $filterOptions = [
             'branches' => $branches, // [{id,name}] nếu cần
@@ -135,9 +135,9 @@ class AgingReportController extends Controller
         return inertia('Reports/Aging', [
             'context'       => $context,
             'filters'       => [
-                'branch_id' => $branchId,
-                'date_from' => $dateFrom?->toDateString(),
-                'date_to'   => $dateTo?->toDateString(),
+                'branches' => $branchIds->all(),
+                'start_date' => $startDate?->toDateString(),
+                'end_date'   => $endDate?->toDateString(),
             ],
             'filterOptions' => $filterOptions,
             'kpi'           => $kpi,
