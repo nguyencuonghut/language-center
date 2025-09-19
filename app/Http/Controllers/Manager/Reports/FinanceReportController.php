@@ -21,14 +21,28 @@ class FinanceReportController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'courses' => 'nullable|array',
             'courses.*' => 'exists:courses,id',
+            'branches' => 'nullable|array', // <-- Thêm dòng này
+            'branches.*' => 'exists:branches,id', // <-- Và dòng này
         ]);
 
         // Get manager's branches
         $user = Auth::user();
-        $branchIds = DB::table('manager_branch')
-            ->where('user_id', $user->id)
-            ->pluck('branch_id')
-            ->all();
+        $managerBranchIds = $user->managerBranches()->pluck('branches.id')->all();
+
+        // Lấy danh sách branch khả dụng cho filter
+        $branches = \App\Models\Branch::whereIn('id', $managerBranchIds)
+            ->where('active', true)
+            ->get(['id', 'name']);
+
+        // Lấy branch filter từ request, nếu không có thì mặc định là tất cả branch của manager
+        $selectedBranchIds = $request->filled('branches')
+            ? array_values(array_intersect($request->branches, $managerBranchIds))
+            : $managerBranchIds;
+
+        // Nếu manager có nhiều chi nhánh và chưa chọn filter, FE sẽ nhận mảng rỗng để hiện "Tất cả"
+        $filtersBranches = $request->filled('branches')
+            ? $selectedBranchIds
+            : (count($managerBranchIds) > 1 ? [] : $managerBranchIds);
 
         // Default to current month if no dates provided
         $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
@@ -40,22 +54,23 @@ class FinanceReportController extends Controller
         $courses = Course::select('id', 'name')->where('active', true)->orderBy('name')->get();
 
         // Calculate KPIs
-        $kpi = $this->calculateKPIs($startDate, $endDate, $branchIds, $courseIds);
+        $kpi = $this->calculateKPIs($startDate, $endDate, $selectedBranchIds, $courseIds);
 
         // Get charts data
-        $charts = $this->getChartsData($startDate, $endDate, $branchIds, $courseIds);
+        $charts = $this->getChartsData($startDate, $endDate, $selectedBranchIds, $courseIds);
 
         // Get detailed tables data
-        $tables = $this->getTablesData($startDate, $endDate, $branchIds, $courseIds, $request);
+        $tables = $this->getTablesData($startDate, $endDate, $selectedBranchIds, $courseIds, $request);
 
-        return Inertia::render('Manager/Reports/Finance', [
-            'appliedFilters' => [
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-                'courses' => $courseIds,
+        return Inertia::render('Manager/Reports/Finance', ['filters' => [
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'courses' => $courseIds,
+            'branches' => $filtersBranches, // <-- Truyền branch filter FE
             ],
-            'availableFilters' => [
+            'filterOptions' => [
                 'courses' => $courses,
+                'branches' => $branches, // <-- Truyền danh sách branch FE
             ],
             'kpi' => $kpi,
             'charts' => $charts,

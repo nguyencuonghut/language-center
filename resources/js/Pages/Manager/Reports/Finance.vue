@@ -17,7 +17,7 @@
       <FilterBar
         :filters="filters"
         :filter-options="filterOptions"
-        :show-branch-filter="false"
+        :show-branch-filter="true"
         :loading="loading"
         @apply="applyFilters"
         @reset="resetFilters"
