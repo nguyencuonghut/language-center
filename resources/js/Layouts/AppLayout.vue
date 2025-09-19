@@ -13,6 +13,10 @@ import Button from 'primevue/button'
 const page = usePage()
 const { showSuccess, showError, showInfo } = usePageToast()
 
+// Thêm state để điều khiển submenu mở
+const openSubmenuIdx = ref(null)
+const submenuHover = ref(false)
+
 /* Flash messages từ server */
 watch(
   () => page.props.flash,
@@ -195,7 +199,12 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
       <nav class="flex-1 overflow-y-auto space-y-1">
         <template v-for="(item, i) in menu" :key="i">
           <!-- Menu item có submenu -->
-          <div v-if="item.submenu" class="group">
+          <div
+            v-if="item.submenu"
+            class="relative"
+            @mouseenter="openSubmenuIdx = i"
+            @mouseleave="openSubmenuIdx = null"
+          >
             <div
               :class="[
                 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
@@ -204,20 +213,24 @@ function logout(){ try { router.post(route('logout')) } catch { /* optional */ }
                   : 'text-[#23272f] hover:text-[#10b981] hover:bg-[#e6f9f3] dark:text-[#f6f8fa] dark:hover:text-[#6ee7b7] dark:hover:bg-[#23272f]',
                 isCollapsed ? 'justify-center' : ''
               ]"
+              @click="openSubmenuIdx = openSubmenuIdx === i ? null : i"
             >
               <i :class="['pi', item.icon, 'text-lg']"></i>
               <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
               <i v-if="!isCollapsed && item.submenu" :class="[
                 'pi pi-chevron-down ml-auto text-xs transition-transform',
-                isActive(item) ? 'rotate-180' : 'group-hover:rotate-180'
+                (openSubmenuIdx === i || isActive(item)) ? 'rotate-180' : ''
               ]"></i>
             </div>
 
             <!-- Submenu items -->
-            <div v-if="!isCollapsed" :class="[
-              'ml-6 mt-1 space-y-1 transition-opacity duration-300',
-              isActive(item) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-            ]">
+            <div
+              v-if="!isCollapsed"
+              :class="[
+                (openSubmenuIdx === i || isActive(item)) ? 'block' : 'hidden',
+                'ml-6 mt-1 space-y-1'
+              ]"
+            >
               <button
                 v-for="(subitem, j) in item.submenu"
                 :key="j"
