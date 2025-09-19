@@ -164,11 +164,11 @@ function onPage(e) {
           <div class="flex justify-end gap-2">
             <Link
               :href="route('admin.holidays.edit', data.id)"
-              class="px-2 py-1 text-sm rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
+              class="px-3 py-1.5 text-sm rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50
                      dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
             >Sửa</Link>
             <button
-              class="px-2 py-1 text-sm rounded border border-red-300 text-red-600 hover:bg-red-50
+              class="px-3 py-1.5 text-sm rounded border border-red-300 text-red-600 hover:bg-red-50
                      dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20"
               @click="destroyHoliday(data.id)"
             >Xoá</button>

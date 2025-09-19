@@ -54,8 +54,8 @@ const onDelete = (row) => {
       <Column header="Thao tác" style="width: 180px">
         <template #body="{ data }">
           <div class="flex gap-2">
-            <Button label="Sửa" size="small" @click="onEdit(data)" />
-            <Button label="Xóa" size="small" severity="danger" outlined @click="onDelete(data)" />
+            <Button label="Sửa" outlined @click="onEdit(data)" />
+            <Button label="Xóa" severity="danger" outlined @click="onDelete(data)" />
           </div>
         </template>
       </Column>
