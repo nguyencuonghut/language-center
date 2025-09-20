@@ -242,11 +242,11 @@ class TransfersReportController extends Controller
 
         $results = $query
             ->selectRaw('
-                from_branch.code as from_branch,
-                to_branch.code as to_branch,
+                from_branch.name as from_branch,
+                to_branch.name as to_branch,
                 COUNT(*) as transfer_count
             ')
-            ->groupBy('from_branch.id', 'from_branch.code', 'to_branch.id', 'to_branch.code')
+            ->groupBy('from_branch.id', 'from_branch.name', 'to_branch.id', 'to_branch.name')
             ->orderByDesc('transfer_count')
             ->get();
 

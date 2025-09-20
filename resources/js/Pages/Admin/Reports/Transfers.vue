@@ -51,7 +51,7 @@
             <!-- Charts Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Monthly Transfer Trend -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Xu hướng chuyển lớp theo tháng</h3>
@@ -64,13 +64,14 @@
                                 type="line"
                                 :data="chartData.monthlyTransferTrend"
                                 :options="chartOptions.line"
+                                class="h-full w-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Transfer Flow by Course -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Phân bố luồng chuyển lớp theo khóa học</h3>
@@ -83,13 +84,14 @@
                                 type="doughnut"
                                 :data="chartData.transferFlowByCourse"
                                 :options="chartOptions.doughnut"
+                                class="h-full w-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Chuyển lớp theo Chi nhánh -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Chuyển lớp theo Chi nhánh</h3>
@@ -102,13 +104,14 @@
                                 type="bar"
                                 :data="chartData.transfersByBranch"
                                 :options="chartOptions.bar"
+                                class="h-full w-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Chuyển lớp theo lý do -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Chuyển lớp theo lý do</h3>
@@ -121,6 +124,7 @@
                                 type="bar"
                                 :data="chartData.transferReasons"
                                 :options="chartOptions.bar"
+                                class="h-full w-full"
                             />
                         </div>
                     </template>
@@ -136,7 +140,7 @@ import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import FilterBar from '@/Components/Reports/FilterBar.vue'
 import KPICard from '@/Components/Reports/KPICard.vue'
-import Chart from '@/Components/Reports/Chart.vue'
+import Chart from 'primevue/chart'
 import Card from 'primevue/card'
 
 // Props
