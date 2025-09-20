@@ -142,6 +142,7 @@ const first = computed(() => Math.max(0, (props.branches?.from ?? 1) - 1))
       responsiveLayout="scroll"
       size="small"
     >
+      <Column field="code" header="Mã" :sortable="true" />
       <Column field="name" header="Tên" :sortable="true" />
       <Column field="address" header="Địa chỉ" />
 

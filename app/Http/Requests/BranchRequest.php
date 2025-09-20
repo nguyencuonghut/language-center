@@ -18,6 +18,12 @@ class BranchRequest extends FormRequest
         $branchId = $branch?->id;
 
         return [
+            'code' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('branches', 'code')->ignore($branchId),
+            ],
             'name' => [
                 'required',
                 'string',
@@ -36,6 +42,7 @@ class BranchRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'code'        => 'Mã chi nhánh',
             'name'        => 'Tên chi nhánh',
             'address'     => 'Địa chỉ',
             'active'      => 'Trạng thái',
@@ -46,6 +53,10 @@ class BranchRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'code.required'   => 'Mã chi nhánh là bắt buộc.',
+            'code.max'        => 'Mã chi nhánh không được vượt quá :max ký tự.',
+            'code.unique'     => 'Mã chi nhánh đã tồn tại.',
+
             'name.required'   => 'Tên chi nhánh là bắt buộc.',
             'name.max'        => 'Tên chi nhánh không được vượt quá :max ký tự.',
             'name.unique'     => 'Tên chi nhánh đã tồn tại.',

@@ -23,6 +23,7 @@ const toast = usePageToast()
 const branchService = createBranchService(toast)
 
 const form = useForm({
+  code: props.branch.code,
   name: props.branch.name,
   address: props.branch.address,
   active: !!props.branch.active,
@@ -46,6 +47,11 @@ function submit() {
 
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
       <div class="grid md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <FormLabel value="Mã chi nhánh" required />
+          <InputText v-model="form.code" class="w-full" />
+          <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
+        </div>
         <div class="md:col-span-2">
           <FormLabel value="Tên chi nhánh" required />
           <InputText v-model="form.name" class="w-full" />

@@ -10,7 +10,7 @@ class Branch extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'address', 'active'
+        'name', 'code', 'address', 'active'
     ];
 
     public function classrooms()

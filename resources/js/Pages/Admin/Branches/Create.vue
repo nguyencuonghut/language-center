@@ -22,6 +22,7 @@ const { showSuccess, showError } = usePageToast()
 const branchService = createBranchService({ showSuccess, showError })
 
 const form = useForm({
+  code: '',
   name: '',
   address: '',
   active: true,
@@ -45,6 +46,11 @@ function submit() {
 
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-4">
       <div class="grid md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <FormLabel value="Mã nhánh" required />
+          <InputText v-model="form.code" class="w-full" placeholder="VD: DVX" />
+          <small v-if="form.errors.code" class="text-red-500">{{ form.errors.code }}</small>
+        </div>
         <div class="md:col-span-2">
           <FormLabel value="Tên chi nhánh" required />
           <InputText v-model="form.name" class="w-full" placeholder="VD: Chi nhánh Trung Hòa" />

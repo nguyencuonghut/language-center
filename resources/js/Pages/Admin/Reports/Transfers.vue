@@ -29,22 +29,22 @@
                     color="blue"
                 />
                 <KPICard
-                    title="Đã hoàn thành"
-                    :value="kpi.completed_transfers?.total || 0"
-                    icon="pi pi-check-circle"
+                    title="Chuyển lớp đang hoạt động"
+                    :value="kpi.active_transfers?.total || 0"
+                    icon="pi pi-check"
                     color="green"
                 />
                 <KPICard
-                    title="Đang chờ"
-                    :value="kpi.pending_transfers?.total || 0"
-                    icon="pi pi-clock"
-                    color="orange"
-                />
-                <KPICard
-                    title="Bị từ chối"
-                    :value="kpi.rejected_transfers?.total || 0"
+                    title="Chuyển lớp đã hoàn tác"
+                    :value="kpi.reverted_transfers?.total || 0"
                     icon="pi pi-times-circle"
                     color="red"
+                />
+                <KPICard
+                    title="Tỷ lệ chuyển lớp"
+                    :value="kpi.transfer_rate?.rate || 0"
+                    icon="pi pi-check-circle"
+                    color="green"
                 />
             </div>
 
@@ -54,7 +54,7 @@
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Monthly Transfer Trend</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Xu hướng chuyển lớp theo tháng</h3>
                         </div>
                     </template>
                     <template #content>
@@ -69,19 +69,19 @@
                     </template>
                 </Card>
 
-                <!-- Transfer Status Distribution -->
+                <!-- Transfer Flow by Course -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Status Distribution</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Phân bố luồng chuyển lớp theo khóa học</h3>
                         </div>
                     </template>
                     <template #content>
                         <div class="h-80">
                             <Chart
-                                v-if="chartData.transferStatusDistribution"
+                                v-if="chartData.transferFlowByCourse"
                                 type="doughnut"
-                                :data="chartData.transferStatusDistribution"
+                                :data="chartData.transferFlowByCourse"
                                 :options="chartOptions.doughnut"
                             />
                         </div>
@@ -107,46 +107,21 @@
                     </template>
                 </Card>
 
-                <!-- Chuyển lớp gần đây -->
+                <!-- Chuyển lớp theo lý do -->
                 <Card class="h-96">
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Chuyển lớp gần đây</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Chuyển lớp theo lý do</h3>
                         </div>
                     </template>
                     <template #content>
-                        <div class="h-80 overflow-auto">
-                            <div v-if="recent.transfers?.length" class="space-y-3">
-                                <div
-                                    v-for="transfer in recent.transfers"
-                                    :key="transfer.id"
-                                    class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                                >
-                                    <div>
-                                        <div class="font-medium text-gray-900 dark:text-white">
-                                            {{ transfer.student_name }}
-                                        </div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400">
-                                            {{ transfer.from_class }} → {{ transfer.to_class }}
-                                        </div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ transfer.reason }}
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full"
-                                             :class="getStatusClass(transfer.status)">
-                                            {{ transfer.status }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 mt-1">
-                                            {{ formatDate(transfer.created_at) }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div v-else class="flex items-center justify-center h-full text-gray-500">
-                                Không có chuyển lớp gần đây
-                            </div>
+                        <div class="h-80">
+                            <Chart
+                                v-if="chartData.transferReasons"
+                                type="bar"
+                                :data="chartData.transferReasons"
+                                :options="chartOptions.bar"
+                            />
                         </div>
                     </template>
                 </Card>
@@ -200,12 +175,12 @@ const chartData = computed(() => {
         }
     }
 
-    // Transfer Status Distribution
-    if (props.charts?.transfer_status_distribution?.length) {
-        data.transferStatusDistribution = {
-            labels: props.charts.transfer_status_distribution.map(item => item.name),
+    // Transfer Flow by Course
+    if (props.charts?.transfer_flow_by_course?.length) {
+        data.transferFlowByCourse = {
+            labels: props.charts.transfer_flow_by_course.map(item => `${item.from} → ${item.to}`),
             datasets: [{
-                data: props.charts.transfer_status_distribution.map(item => item.value),
+                data: props.charts.transfer_flow_by_course.map(item => item.value),
                 backgroundColor: [
                     'rgba(16, 185, 129, 0.8)',   // Completed - green
                     'rgba(251, 191, 36, 0.8)',   // Pending - yellow
@@ -218,18 +193,30 @@ const chartData = computed(() => {
     }
 
     // Transfers by Branch
-    if (props.charts?.transfers_by_branch?.length) {
+    if (props.charts?.transfer_flow_by_branch?.length) {
         data.transfersByBranch = {
-            labels: props.charts.transfers_by_branch.map(item => item.name),
+            labels: props.charts.transfer_flow_by_branch.map(item => `${item.from} → ${item.to}`),
             datasets: [{
                 label: 'Chuyển lớp',
-                data: props.charts.transfers_by_branch.map(item => item.value),
+                data: props.charts.transfer_flow_by_branch.map(item => item.value),
                 backgroundColor: 'rgba(16, 185, 129, 0.8)',
                 borderColor: 'rgba(16, 185, 129, 1)',
                 borderWidth: 1
             }]
         }
     }
+
+    // Transfer Reasons
+    if (props.charts?.transfer_reasons?.length) {
+    data.transferReasons = {
+        labels: props.charts.transfer_reasons.map(item => item.name),
+        datasets: [{
+            label: 'Số lượng',
+            data: props.charts.transfer_reasons.map(item => item.value),
+            backgroundColor: 'rgba(59, 130, 246, 0.7)'
+        }]
+    }
+}
 
     return data
 })

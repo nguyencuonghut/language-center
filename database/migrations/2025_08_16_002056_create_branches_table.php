@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('branches', function (Blueprint $table) {
             $table->id();
+            $table->string('code')->unique();
             $table->string('name')->unique();
             $table->string('address');
             $table->boolean('active')->default(true)->index();

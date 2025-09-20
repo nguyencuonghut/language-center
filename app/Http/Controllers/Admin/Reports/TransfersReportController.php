@@ -73,6 +73,18 @@ class TransfersReportController extends Controller
         $totalTransfers = (clone $transferQuery)
             ->whereBetween('transfers.created_at', [$startDate, $endDate])
             ->count();
+        // Active transfers in date range
+        // (Assuming 'active' means transfers that are not reverted or retargeted)
+        // This can be adjusted based on actual business logic
+        $activeTransfers = (clone $transferQuery)
+            ->whereBetween('transfers.created_at', [$startDate, $endDate])
+            ->where('transfers.status', 'active')
+            ->count();
+        // Reverted transfers in date range
+        $revertedTransfers = (clone $transferQuery)
+            ->whereBetween('transfers.created_at', [$startDate, $endDate])
+            ->where('transfers.status', 'reverted')
+            ->count();
 
         // Total students (for transfer rate calculation)
         $totalStudents = DB::table('students')
@@ -104,6 +116,8 @@ class TransfersReportController extends Controller
 
         return [
             'total_transfers' => ['total' => $totalTransfers],
+            'active_transfers' => ['total' => $activeTransfers],
+            'reverted_transfers' => ['total' => $revertedTransfers],
             'transfer_rate' => ['rate' => $transferRate],
             'total_students' => ['total' => $totalStudents],
             'top_reasons' => $topReasons->map(function($item) {
@@ -228,11 +242,11 @@ class TransfersReportController extends Controller
 
         $results = $query
             ->selectRaw('
-                from_branch.name as from_branch,
-                to_branch.name as to_branch,
+                from_branch.code as from_branch,
+                to_branch.code as to_branch,
                 COUNT(*) as transfer_count
             ')
-            ->groupBy('from_branch.id', 'from_branch.name', 'to_branch.id', 'to_branch.name')
+            ->groupBy('from_branch.id', 'from_branch.code', 'to_branch.id', 'to_branch.code')
             ->orderByDesc('transfer_count')
             ->get();
 
