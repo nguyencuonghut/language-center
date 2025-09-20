@@ -29,9 +29,10 @@
                 />
                 <KPICard
                     title="Chi phí lương"
-                    :value="formatCurrency(kpi.total_payroll_cost?.total || 0)"
+                    :value="kpi.total_payroll_cost?.total || 0"
                     icon="pi pi-money-bill"
                     color="green"
+                    format="currency"
                 />
                 <KPICard
                     title="Chấm công nháp"
@@ -56,64 +57,67 @@
             <!-- Charts Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Buổi học theo Giáo viên -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Buổi học theo Giáo viên</h3>
                         </div>
                     </template>
                     <template #content>
-                        <div class="h-80">
-                            <Chart
-                                v-if="chartData.sessionsByTeacher"
+                        <div class="relative" style="height:340px;">
+                            <PrimeChart
+                                v-if="barChartData"
                                 type="bar"
-                                :data="chartData.sessionsByTeacher"
-                                :options="chartOptions.bar"
+                                :data="barChartData"
+                                :options="barChartOptions"
+                                class="!w-full !h-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Chi phí Lương theo tháng -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Chi phí Lương theo tháng</h3>
                         </div>
                     </template>
                     <template #content>
-                        <div class="h-80">
-                            <Chart
-                                v-if="chartData.monthlyPayrollCost"
+                        <div class="relative" style="height:340px;">
+                            <PrimeChart
+                                v-if="lineChartData"
                                 type="line"
-                                :data="chartData.monthlyPayrollCost"
-                                :options="chartOptions.line"
+                                :data="lineChartData"
+                                :options="lineChartOptions"
+                                class="!w-full !h-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Timesheet Status Funnel -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Trạng thái chấm công</h3>
                         </div>
                     </template>
                     <template #content>
-                        <div class="h-80">
-                            <Chart
-                                v-if="chartData.timesheetStatusFunnel"
+                        <div class="relative" style="height:340px;">
+                            <PrimeChart
+                                v-if="doughnutChartData"
                                 type="doughnut"
-                                :data="chartData.timesheetStatusFunnel"
-                                :options="chartOptions.doughnut"
+                                :data="doughnutChartData"
+                                :options="doughnutChartOptions"
+                                class="!w-full !h-full"
                             />
                         </div>
                     </template>
                 </Card>
 
                 <!-- Teacher Summary -->
-                <Card class="h-96">
+                <Card>
                     <template #header>
                         <div class="p-4 border-b dark:border-gray-700">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tổng kết giáo viên</h3>
@@ -162,8 +166,8 @@ import { router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import FilterBar from '@/Components/Reports/FilterBar.vue'
 import KPICard from '@/Components/Reports/KPICard.vue'
-import Chart from '@/Components/Reports/Chart.vue'
 import Card from 'primevue/card'
+import PrimeChart from 'primevue/chart'
 
 // Props
 const props = defineProps({
@@ -174,7 +178,7 @@ const props = defineProps({
     appliedFilters: Object
 })
 
-// Reactive data
+// Filters
 const filters = ref({
     startDate: props.appliedFilters?.start_date || null,
     endDate: props.appliedFilters?.end_date || null,
@@ -183,112 +187,101 @@ const filters = ref({
     teacherIds: props.appliedFilters?.teacher_ids || []
 })
 
-// Chart data
-const chartData = computed(() => {
-    const data = {}
+// Chart data & options
+const STATUS_META = {
+    draft:    { label: 'Nháp',      color: 'rgba(251, 191, 36, 0.8)' },
+    approved: { label: 'Đã duyệt',  color: 'rgba(16, 185, 129, 0.8)' },
+    locked:   { label: 'Đã khóa',   color: 'rgba(239, 68, 68, 0.8)' },
+}
 
-    // Sessions by Teacher Bar Chart
-    if (props.charts?.sessions_by_teacher?.length) {
-        data.sessionsByTeacher = {
-            labels: props.charts.sessions_by_teacher.map(item => item.name),
-            datasets: [{
-                label: 'Buổi học',
-                data: props.charts.sessions_by_teacher.map(item => item.value),
-                backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                borderColor: 'rgba(16, 185, 129, 1)',
-                borderWidth: 1
-            }]
-        }
+const barChartData = computed(() => {
+    if (!props.charts?.sessions_by_teacher?.length) return null
+    return {
+        labels: props.charts.sessions_by_teacher.map(item => item.name),
+        datasets: [{
+            label: 'Buổi học',
+            data: props.charts.sessions_by_teacher.map(item => item.value),
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 1
+        }]
     }
-
-    // Monthly Payroll Cost Line Chart
-    if (props.charts?.monthly_payroll_cost?.length) {
-        data.monthlyPayrollCost = {
-            labels: props.charts.monthly_payroll_cost.map(item => item.month),
-            datasets: [{
-                label: 'Chi phí lương',
-                data: props.charts.monthly_payroll_cost.map(item => item.value),
-                borderColor: 'rgba(59, 130, 246, 1)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        }
-    }
-
-    // Timesheet Status Funnel
-    const STATUS_META = {
-        draft:    { label: 'Nháp',      color: 'rgba(251, 191, 36, 0.8)' },
-        approved: { label: 'Đã duyệt',  color: 'rgba(16, 185, 129, 0.8)' },
-        locked:   { label: 'Đã khóa',   color: 'rgba(239, 68, 68, 0.8)' },
-    }
-
-    if (props.charts?.timesheet_status_funnel?.length) {
-        const items = props.charts.timesheet_status_funnel.map(i => {
-            const key = String(i.name).toLowerCase()
-            return { ...i, key, ...(STATUS_META[key] || {label: i.name, color: '#999'}) }
-        })
-
-        data.timesheetStatusFunnel = {
-            labels: items.map(i => i.label),
-            datasets: [{
-            data: items.map(i => i.value),
-            backgroundColor: items.map(i => i.color),
-            borderWidth: 2
-            }]
-        }
-    }
-
-    return data
 })
 
-// Chart options
-const chartOptions = {
-    bar: {
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    precision: 0
-                }
-            }
-        }
+const barChartOptions = {
+    plugins: {
+        legend: { display: false }
     },
-    line: {
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return formatCurrency(value)
-                    }
-                }
-            }
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        y: {
+            beginAtZero: true,
+            ticks: { precision: 0 }
         }
+    }
+}
+
+const lineChartData = computed(() => {
+    if (!props.charts?.monthly_payroll_cost?.length) return null
+    return {
+        labels: props.charts.monthly_payroll_cost.map(item => item.month),
+        datasets: [{
+            label: 'Chi phí lương',
+            data: props.charts.monthly_payroll_cost.map(item => item.value),
+            borderColor: 'rgba(59, 130, 246, 1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    }
+})
+
+const lineChartOptions = {
+    plugins: {
+        legend: { display: false }
     },
-    doughnut: {
-        plugins: {
-            legend: {
-                position: 'bottom'
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        y: {
+            beginAtZero: true,
+            ticks: {
+                callback: value => formatCurrency(value)
             }
         }
     }
 }
 
+const doughnutChartData = computed(() => {
+    if (!props.charts?.timesheet_status_funnel?.length) return null
+    const items = props.charts.timesheet_status_funnel.map(i => {
+        const key = String(i.name).toLowerCase()
+        return { ...i, key, ...(STATUS_META[key] || {label: i.name, color: '#999'}) }
+    })
+    return {
+        labels: items.map(i => i.label),
+        datasets: [{
+            data: items.map(i => i.value),
+            backgroundColor: items.map(i => i.color),
+            borderWidth: 2
+        }]
+    }
+})
+
+const doughnutChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom'
+    }
+  }
+}
+
 // Methods
 const applyFilters = (filterData) => {
     const params = {}
-
     if (filterData.start_date) params.start_date = filterData.start_date
     if (filterData.end_date) params.end_date = filterData.end_date
     if (filterData.branches?.length) params.branches = filterData.branches
@@ -304,18 +297,26 @@ const applyFilters = (filterData) => {
 const resetFilters = () => {
     router.get(route('admin.reports.teachers-timesheet'))
 }
-
 const formatCurrency = (value) => {
-    const numValue = Number(value) || 0
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-    }).format(numValue)
+  const numValue = Number(value) || 0
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    minimumFractionDigits: 0
+  }).format(numValue)
 }
 
 const formatDate = (dateString) => {
     if (!dateString) return ''
-    return new Date(dateString).toLocaleDateString('vi-VN')
+    // Xử lý format dd/MM/yyyy HH:mm hoặc dd/MM/yyyy
+    const [datePart, timePart] = dateString.split(' ')
+    const [day, month, year] = datePart.split('/')
+    if (!day || !month || !year) return dateString
+    // Nếu có time, trả về dạng dd/MM/yyyy HH:mm, nếu không chỉ trả về dd/MM/yyyy
+    if (timePart) {
+        return `${day}/${month}/${year} ${timePart}`
+    }
+    return `${day}/${month}/${year}`
 }
 
 // Trạng thái tiếng Việt cho card Tổng kết giáo viên

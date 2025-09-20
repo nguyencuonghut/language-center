@@ -187,7 +187,7 @@ class TeachersTimesheetReportController extends Controller
     private function getSessionsByTeacher($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
     {
         $query = $this->buildSessionQuery($startDate, $endDate, $branchIds, $courseIds, $teacherIds)
-            ->join('users as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id');
+            ->join('teachers as teachers', 'teaching_assignments.teacher_id', '=', 'teachers.id');
 
         return $query
             ->selectRaw('
